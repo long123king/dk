@@ -4,6 +4,8 @@
 
 dk is the enhanced refactored version of [tokenext](https://github.com/long123king/tokenext). The goal is to improve the readability and extensibility, as well as to leverage the powerful [Debugger Data Model](https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/data-model-cpp-overview) and [Time Travel Debugging](https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/time-travel-debugging-overview). SVG document will be generated for an intuitive visualization in certain circumstances.
 
+Run ***!dk help*** for supported command list.
+
 # How to start a new WinDbg C++ extension?
 
 ## 1. Add Windows Kits related folder to Visual Studio project setting:
