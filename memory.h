@@ -13,6 +13,7 @@ DECLARE_CMD(ex_mem)
 DECLARE_CMD(args)
 DECLARE_CMD(vad)
 DECLARE_CMD(memcpy)
+DECLARE_CMD(page_2_svg)
 
 void dump_size(size_t value);
 void dump_args();
@@ -40,3 +41,5 @@ void dump_vad(size_t root_addr);
 void visit_vad(size_t vad_node_addr);
 
 void do_memcpy(size_t src_addr, size_t dst_addr, size_t count);
+
+void page_to_svg(size_t addr, string svg_filename);

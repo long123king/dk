@@ -58,6 +58,7 @@ void RegisterCmdHandlers()
     CMD_LIST->RegisterCmdHandler("free_pool",       CMD_HANDLER(free_pool));
     CMD_LIST->RegisterCmdHandler("as_mem",          CMD_HANDLER(as_mem));
     CMD_LIST->RegisterCmdHandler("ex_mem",          CMD_HANDLER(ex_mem));
+    CMD_LIST->RegisterCmdHandler("page_2_svg",      CMD_HANDLER(page_2_svg));
     CMD_LIST->RegisterCmdHandler("sessions",        CMD_HANDLER(sessions));
     CMD_LIST->RegisterCmdHandler("sessionpool",     CMD_HANDLER(sessionpool));
     CMD_LIST->RegisterCmdHandler("args",            CMD_HANDLER(args));
