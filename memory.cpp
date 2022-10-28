@@ -77,7 +77,7 @@ DEFINE_CMD(page_2_svg)
 {
     if (args.size() < 3)
     {
-        EXT_F_OUT("Usage: !dk page_2_svg <addr> <output_filename>\nTTD Mode Only\n");
+        EXT_F_OUT("Usage: !dk page_2_svg <addr> <output_filename>\n");
         return;
     }
     size_t addr = EXT_F_IntArg(args, 1, 0);
