@@ -1,0 +1,155 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Cmds">
+      <UniqueIdentifier>{5710774f-bf32-4d83-842c-25ffd7d9c66c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="CmdList">
+      <UniqueIdentifier>{6bc1dfff-2fa6-4336-862c-9451bcef05e0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="framework">
+      <UniqueIdentifier>{942d0222-94c1-47b2-8975-107dd3908f7f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SVG">
+      <UniqueIdentifier>{d312d52b-59d0-478c-a757-c8540705c401}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CmdList.h">
+      <Filter>CmdList</Filter>
+    </ClInclude>
+    <ClInclude Include="dbgdata.h">
+      <Filter>Cmds</Filter>
+    </ClInclude>
+    <ClInclude Include="CmdExt.h">
+      <Filter>framework</Filter>
+    </ClInclude>
+    <ClInclude Include="process.h">
+      <Filter>Cmds</Filter>
+    </ClInclude>
+    <ClInclude Include="token.h">
+      <Filter>Cmds</Filter>
+    </ClInclude>
+    <ClInclude Include="BitFieldAnalyzer.h">
+      <Filter>framework</Filter>
+    </ClInclude>
+    <ClInclude Include="object.h">
+      <Filter>Cmds</Filter>
+    </ClInclude>
+    <ClInclude Include="type.h">
+      <Filter>Cmds</Filter>
+    </ClInclude>
+    <ClInclude Include="module.h">
+      <Filter>Cmds</Filter>
+    </ClInclude>
+    <ClInclude Include="dml.h">
+      <Filter>Cmds</Filter>
+    </ClInclude>
+    <ClInclude Include="thread.h">
+      <Filter>Cmds</Filter>
+    </ClInclude>
+    <ClInclude Include="CmdInterface.h">
+      <Filter>CmdList</Filter>
+    </ClInclude>
+    <ClInclude Include="memory.h">
+      <Filter>Cmds</Filter>
+    </ClInclude>
+    <ClInclude Include="page.h">
+      <Filter>Cmds</Filter>
+    </ClInclude>
+    <ClInclude Include="handle.h">
+      <Filter>Cmds</Filter>
+    </ClInclude>
+    <ClInclude Include="session.h">
+      <Filter>Cmds</Filter>
+    </ClInclude>
+    <ClInclude Include="pool.h">
+      <Filter>Cmds</Filter>
+    </ClInclude>
+    <ClInclude Include="stack.h">
+      <Filter>Cmds</Filter>
+    </ClInclude>
+    <ClInclude Include="list.h">
+      <Filter>Cmds</Filter>
+    </ClInclude>
+    <ClInclude Include="pe.h">
+      <Filter>Cmds</Filter>
+    </ClInclude>
+    <ClInclude Include="svg\Coordinates.h">
+      <Filter>SVG</Filter>
+    </ClInclude>
+    <ClInclude Include="svg\SvgElements.h">
+      <Filter>SVG</Filter>
+    </ClInclude>
+    <ClInclude Include="model.h">
+      <Filter>Cmds</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="dbgdata.cpp">
+      <Filter>Cmds</Filter>
+    </ClCompile>
+    <ClCompile Include="CmdExt.cpp">
+      <Filter>framework</Filter>
+    </ClCompile>
+    <ClCompile Include="engextcpp.cpp">
+      <Filter>framework</Filter>
+    </ClCompile>
+    <ClCompile Include="CmdList.cpp">
+      <Filter>CmdList</Filter>
+    </ClCompile>
+    <ClCompile Include="process.cpp">
+      <Filter>Cmds</Filter>
+    </ClCompile>
+    <ClCompile Include="token.cpp">
+      <Filter>Cmds</Filter>
+    </ClCompile>
+    <ClCompile Include="object.cpp">
+      <Filter>Cmds</Filter>
+    </ClCompile>
+    <ClCompile Include="type.cpp">
+      <Filter>Cmds</Filter>
+    </ClCompile>
+    <ClCompile Include="module.cpp">
+      <Filter>Cmds</Filter>
+    </ClCompile>
+    <ClCompile Include="dml.cpp">
+      <Filter>Cmds</Filter>
+    </ClCompile>
+    <ClCompile Include="thread.cpp">
+      <Filter>Cmds</Filter>
+    </ClCompile>
+    <ClCompile Include="memory.cpp">
+      <Filter>Cmds</Filter>
+    </ClCompile>
+    <ClCompile Include="page.cpp">
+      <Filter>Cmds</Filter>
+    </ClCompile>
+    <ClCompile Include="handle.cpp">
+      <Filter>Cmds</Filter>
+    </ClCompile>
+    <ClCompile Include="session.cpp">
+      <Filter>Cmds</Filter>
+    </ClCompile>
+    <ClCompile Include="pool.cpp">
+      <Filter>Cmds</Filter>
+    </ClCompile>
+    <ClCompile Include="stack.cpp">
+      <Filter>Cmds</Filter>
+    </ClCompile>
+    <ClCompile Include="list.cpp">
+      <Filter>Cmds</Filter>
+    </ClCompile>
+    <ClCompile Include="pe.cpp">
+      <Filter>Cmds</Filter>
+    </ClCompile>
+    <ClCompile Include="model.cpp">
+      <Filter>Cmds</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="dk.def">
+      <Filter>framework</Filter>
+    </None>
+  </ItemGroup>
+</Project>

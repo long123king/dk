@@ -1,0 +1,7 @@
+EXPORTS
+
+DebugExtensionInitialize
+DebugExtensionUninitialize
+DebugExtensionNotify
+help
+dk
