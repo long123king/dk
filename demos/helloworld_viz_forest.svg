@@ -1,0 +1,26 @@
+<svg id = 'root' width = '262180'  height = '260' viewBox = '0 0 262100 260' xmlns = 'http://www.w3.org/2000/svg' xmlns:xlink = 'http://www.w3.org/1999/xlink' onload='init(evt)'>
+<g  style='fill:white; stroke:black;' >
+	
+<a xlink:href='d:\helloworld_viz_5494_ntdll!LdrInitializeThunk.svg'>	<rect x='100' y='100' width='1588' height='40'  style = 'fill: #FC6C00;stroke: black; stroke-width: 1;'  />
+</a>
+
+	
+<a xlink:href='d:\helloworld_viz_5494_ntdll!RtlUserThreadStart.svg'>	<rect x='100' y='140' width='2135' height='40'  style = 'fill: #B01111;stroke: black; stroke-width: 1;'  />
+</a>
+
+	
+<a xlink:href='d:\helloworld_viz_6710_ntdll!RtlUserThreadStart.svg'>	<rect x='100' y='180' width='1723' height='40'  style = 'fill: #B01111;stroke: black; stroke-width: 1;'  />
+</a>
+
+</g>
+
+<g  style='font-family: monospace; font-size: 16;' >
+	<text x='150' y='120'> 5494 (   10:3    -   4b:1e   ) ntdll!LdrInitializeThunk</text>
+	<text x='150' y='160'> 5494 (   4d:8    -  a80:10c  ) ntdll!RtlUserThreadStart</text>
+	<text x='150' y='200'> 6710 (  2f3:d    -  38a:74   ) ntdll!RtlUserThreadStart</text>
+</g>
+
+<g  style='' >
+</g>
+
+</svg>

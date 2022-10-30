@@ -205,6 +205,42 @@ private:
     string m_id;
 };
 
+class CSvgLink :
+    public CSvgElement
+{
+public:
+    CSvgLink(string target)
+        :m_target(target)
+    {
+    }
+
+    // Í¨¹ý CSvgElement ¼Ì³Ð
+    virtual string Draw() override
+    {
+        stringstream ss;
+
+        ss << "\n<a xlink:href='" << m_target << "'>";
+
+        for (auto element : m_elements)
+        {
+            ss << "\t" << element->Draw() << endl;
+        }
+
+        ss << "</a>\n";
+
+        return ss.str();
+    }
+
+    void appendElement(shared_ptr<CSvgElement> element)
+    {
+        m_elements.push_back(element);
+    }
+
+private:
+    string m_target;
+    vector<shared_ptr<CSvgElement>> m_elements;
+};
+
 class CSvgRect :
     public CSvgElement
 {
@@ -478,7 +514,7 @@ public:
             << m_height << "' viewBox = '"
             << m_viewBoxPivot.m_x << " " << m_viewBoxPivot.m_y << " "
             << m_viewBoxWidth << " " << m_viewBoxHeight
-            << "' xmlns = 'http://www.w3.org/2000/svg'  onload='init(evt)'>";
+            << "' xmlns = 'http://www.w3.org/2000/svg' xmlns:xlink = 'http://www.w3.org/1999/xlink' onload='init(evt)'>";
 
         for (auto element : m_elements)
         {

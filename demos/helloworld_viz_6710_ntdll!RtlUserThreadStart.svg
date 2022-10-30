@@ -1,0 +1,308 @@
+<svg id = 'root' width = '5400'  height = '2440' viewBox = '0 0 5400 2440' xmlns = 'http://www.w3.org/2000/svg' xmlns:xlink = 'http://www.w3.org/1999/xlink' onload='init(evt)'><style type="text/css">
+	rect {
+		stroke: black; stroke-width: 1;
+	}
+	rect.fold {
+		stroke: silver; stroke-width: 15px; stroke-linecap: round;
+	}
+	rect.heat_0 {
+		fill: white;
+	}
+	rect.heat_1 {
+		fill: #74D2EE;
+	}
+	rect.heat_2 {
+		fill: #00A2B9;
+	}
+	rect.heat_3 {
+		fill: green;
+	}
+	rect.heat_4 {
+		fill: #FFCC40;
+	}
+	rect.heat_5 {
+		fill: #FC6C00;
+	}
+	rect.heat_6 {
+		fill: #B01111;
+	}
+	text {
+		white-space: pre;
+	}
+</style>
+<script type="application/ecmascript"> <![CDATA[
+	
+
+    function show_rect(rect)
+	{
+		rect.setAttribute("stroke-width", "1px");
+		rect.setAttribute("fill-opacity", 100);
+		rect.setAttribute("stroke-opacity", 100);
+		rect.removeAttribute("state");		
+	}
+
+	function hide_rect(rect)
+	{
+		rect.setAttribute("fill-opacity", 0);
+		rect.setAttribute("stroke-opacity", 0);
+		rect.setAttribute("state", "hidden");
+	}
+
+	function update_position(rect)
+	{
+		var index = parseInt(rect.getAttribute("Id"));
+
+		var rect_group = document.getElementById("rect_g");
+		var text_group = document.getElementById("text_g");
+
+		var height = 40;
+
+		var rects = rect_group.children;
+		var texts = text_group.children;
+		var b_found_choice = false;
+
+		var accum_height = 0;
+		for (var i=0;i<rects.length;i++)
+		{			
+			if (parseInt(rects[i].getAttribute("fill-opacity")) != 0)
+			{
+				accum_height += height;
+				rects[i].setAttribute("y", accum_height);
+				texts[i].setAttribute("y", accum_height+20);
+			}
+		}	
+
+		var root = document.getElementById("root");
+		var root_width = root.getAttribute("width");
+		var root_height = accum_height + 100;
+		root.setAttribute("height", root_height);
+		root.setAttribute("viewBox", "0 0 " + root_width + " " + root_height);
+	}
+
+	function show_children(rect)
+	{
+		var index = parseInt(rect.getAttribute("Id"));
+
+		var rect_group = document.getElementById("rect_g");
+		var text_group = document.getElementById("text_g");
+		var x_filter = parseInt(rect.getAttribute("x"));
+
+		var rects = rect_group.children;
+		var b_found_choice = false;
+		for (var i=0;i<rects.length;i++)
+		{			
+			if (i == index)
+			{
+				b_found_choice = true;
+			}
+			if (b_found_choice)
+			{
+				if(parseInt(rects[i].getAttribute("x")) > x_filter)
+				{
+					show_rect(rects[i]);
+					text_group.children[i].setAttribute("stroke-opacity", 100);
+					text_group.children[i].setAttribute("fill-opacity", 100);
+				}
+				else if(i > index)
+				{
+					b_found_choice = false;
+				}
+			}
+		}	
+	}
+
+	function hide_children(rect)
+	{
+		var index = parseInt(rect.getAttribute("Id"));
+
+		var rect_group = document.getElementById("rect_g");
+		var text_group = document.getElementById("text_g");
+		var x_filter = parseInt(rect.getAttribute("x"));
+
+		var rects = rect_group.children;
+		var b_found_choice = false;
+		for (var i=0;i<rects.length;i++)
+		{			
+			if (i == index)
+			{
+				b_found_choice = true;
+			}
+			if (b_found_choice)
+			{
+				if(parseInt(rects[i].getAttribute("x")) > x_filter)
+				{
+					hide_rect(rects[i])
+					text_group.children[i].setAttribute("stroke-opacity", 0);
+					text_group.children[i].setAttribute("fill-opacity", 0);
+				}
+				else if(i > index)
+				{
+					b_found_choice = false;
+				}
+			}
+		}	
+	}
+
+	function rect_click(evt) 
+	{
+		var choice = evt.target;
+
+		var style_class = choice.getAttribute("class");
+
+		if (style_class.endsWith(" fold"))
+		{
+			show_children(choice);
+
+			choice.setAttribute("class", style_class.slice(0, -5));
+		}
+		else
+		{
+			hide_children(choice);
+
+			choice.setAttribute("class", style_class + " fold");
+		}
+
+		update_position(choice);
+	}
+
+	function init(evt)
+	{
+		var rect_group = document.getElementById("rect_g");
+
+		var rects = rect_group.children;
+		for (var i=0;i<rects.length;i++)
+		{
+			rects[i].setAttribute("Id", i);
+			rects[i].addEventListener("click", rect_click, false);
+		}		
+	}
+
+    
+]]>
+</script>
+
+<g  id='rect_g'  style='fill:white; stroke:black;' >
+	<rect x='100' y='40' width='1100' height='40'  class = 'heat_6'  />
+	<rect x='200' y='80' width='1100' height='40'  class = 'heat_6'  />
+	<rect x='300' y='120' width='1100' height='40'  class = 'heat_6'  />
+	<rect x='400' y='160' width='1100' height='40'  class = 'heat_6'  />
+	<rect x='500' y='200' width='1100' height='40'  class = 'heat_6'  />
+	<rect x='600' y='240' width='1100' height='40'  class = 'heat_6'  />
+	<rect x='700' y='280' width='1100' height='40'  class = 'heat_6'  />
+	<rect x='800' y='320' width='1100' height='40'  class = 'heat_6'  />
+	<rect x='900' y='360' width='1100' height='40'  class = 'heat_6'  />
+	<rect x='900' y='400' width='1100' height='40'  class = 'heat_6'  />
+	<rect x='1000' y='440' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='1100' y='480' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='1000' y='520' width='1100' height='40'  class = 'heat_5'  />
+	<rect x='1000' y='560' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='1000' y='600' width='1100' height='40'  class = 'heat_3'  />
+	<rect x='1100' y='640' width='1100' height='40'  class = 'heat_3'  />
+	<rect x='1200' y='680' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='1000' y='720' width='1100' height='40'  class = 'heat_4'  />
+	<rect x='1100' y='760' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='1100' y='800' width='1100' height='40'  class = 'heat_4'  />
+	<rect x='1200' y='840' width='1100' height='40'  class = 'heat_4'  />
+	<rect x='1300' y='880' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='1100' y='920' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='1200' y='960' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='1300' y='1000' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='1000' y='1040' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='1000' y='1080' width='1100' height='40'  class = 'heat_2'  />
+	<rect x='1100' y='1120' width='1100' height='40'  class = 'heat_2'  />
+	<rect x='1200' y='1160' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='1000' y='1200' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='1000' y='1240' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='1000' y='1280' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='1100' y='1320' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='1200' y='1360' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='1000' y='1400' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='1000' y='1440' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='1000' y='1480' width='1100' height='40'  class = 'heat_2'  />
+	<rect x='1000' y='1520' width='1100' height='40'  class = 'heat_3'  />
+	<rect x='1100' y='1560' width='1100' height='40'  class = 'heat_3'  />
+	<rect x='1200' y='1600' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='1200' y='1640' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='1000' y='1680' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='900' y='1720' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='800' y='1760' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='800' y='1800' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='700' y='1840' width='1100' height='40'  class = 'heat_3'  />
+	<rect x='700' y='1880' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='700' y='1920' width='1100' height='40'  class = 'heat_2'  />
+	<rect x='600' y='1960' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='600' y='2000' width='1100' height='40'  class = 'heat_2'  />
+	<rect x='400' y='2040' width='1100' height='40'  class = 'heat_4'  />
+	<rect x='500' y='2080' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='600' y='2120' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='600' y='2160' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='500' y='2200' width='1100' height='40'  class = 'heat_3'  />
+	<rect x='500' y='2240' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='500' y='2280' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='400' y='2320' width='1100' height='40'  class = 'heat_1'  />
+	<rect x='400' y='2360' width='1100' height='40'  class = 'heat_1'  />
+</g>
+
+<g  id='text_g'  style='font-family: monospace; font-size: 16;' >
+	<text x='150' y='60'> (  2f3:d    -  38a:74   ) ntdll!RtlUserThreadStart</text>
+	<text x='250' y='100'> (  2f3:d    -  38a:74   ) KERNEL32!BaseThreadInitThunk</text>
+	<text x='350' y='140'> (  2f3:d    -  38a:74   ) ntdll!TppWorkerThread</text>
+	<text x='450' y='180'> (  2f3:d    -  371:2e   ) ntdll!TppWorkpExecuteCallback</text>
+	<text x='550' y='220'> (  2f3:d    -  371:12   ) ntdll!LdrpWorkCallback</text>
+	<text x='650' y='260'> (  2f3:d    -  36a:6    ) ntdll!LdrpProcessWork</text>
+	<text x='750' y='300'> (  2f3:d    -  35a:a3   ) ntdll!LdrpSnapModule</text>
+	<text x='850' y='340'> (  2f3:d    -  35a:6b   ) ntdll!LdrpDoPostSnapWork</text>
+	<text x='950' y='380'> (    0:0    -  2f3:0    ) ntdll!NtProtectVirtualMemory</text>
+	<text x='950' y='420'> (  2f3:d    -  35a:5a   ) ntdll!LdrpHandleTlsData</text>
+	<text x='1050' y='460'> (  2f3:26   -  2f3:89   ) ntdll!RtlpImageDirectoryEntryToDataEx</text>
+	<text x='1150' y='500'> (  2f3:3e   -  2f3:6c   ) ntdll!RtlImageNtHeaderEx</text>
+	<text x='1050' y='540'> (  2f3:94   -  318:5    ) ntdll!RtlAcquireSRWLockExclusive</text>
+	<text x='1050' y='580'> (  318:1d   -  318:1d   ) ntdll!RtlAllocateHeap</text>
+	<text x='1050' y='620'> (  318:77   -  322:9a   ) ntdll!RtlpAllocateHeapInternal</text>
+	<text x='1150' y='660'> (  318:77   -  322:7f   ) ntdll!RtlpLowFragHeapAllocFromContext</text>
+	<text x='1250' y='700'> (  322:21   -  322:54   ) ntdll!RtlpLfhFindClearBitAndSet</text>
+	<text x='1050' y='740'> (  322:ad   -  340:167  ) ntdll!LdrpAllocateTlsEntry</text>
+	<text x='1150' y='780'> (  322:be   -  322:be   ) ntdll!RtlAllocateHeap</text>
+	<text x='1150' y='820'> (  322:118  -  340:9a   ) ntdll!RtlpAllocateHeapInternal</text>
+	<text x='1250' y='860'> (  322:118  -  340:7f   ) ntdll!RtlpLowFragHeapAllocFromContext</text>
+	<text x='1350' y='900'> (  340:21   -  340:54   ) ntdll!RtlpLfhFindClearBitAndSet</text>
+	<text x='1150' y='940'> (  340:b0   -  340:146  ) ntdll!LdrpAcquireTlsIndex</text>
+	<text x='1250' y='980'> (  340:c0   -  340:139  ) ntdll!RtlFindClearBitsAndSet</text>
+	<text x='1350' y='1020'> (  340:114  -  340:12e  ) ntdll!RtlSetBits</text>
+	<text x='1050' y='1060'> (  340:19c  -  340:19c  ) ntdll!RtlAllocateHeap</text>
+	<text x='1050' y='1100'> (  340:1f6  -  346:9a   ) ntdll!RtlpAllocateHeapInternal</text>
+	<text x='1150' y='1140'> (  340:1f6  -  346:7f   ) ntdll!RtlpLowFragHeapAllocFromContext</text>
+	<text x='1250' y='1180'> (  346:21   -  346:54   ) ntdll!RtlpLfhFindClearBitAndSet</text>
+	<text x='1050' y='1220'> (  346:a9   -  346:b3   ) ntdll!memcpy</text>
+	<text x='1050' y='1260'> (  346:d1   -  346:d1   ) ntdll!RtlAllocateHeap</text>
+	<text x='1050' y='1300'> (  346:12b  -  348:9a   ) ntdll!RtlpAllocateHeapInternal</text>
+	<text x='1150' y='1340'> (  346:12b  -  348:7f   ) ntdll!RtlpLowFragHeapAllocFromContext</text>
+	<text x='1250' y='1380'> (  348:21   -  348:54   ) ntdll!RtlpLfhFindClearBitAndSet</text>
+	<text x='1050' y='1420'> (  348:a9   -  348:b3   ) ntdll!memcpy</text>
+	<text x='1050' y='1460'> (  348:d0   -  34a:0    ) ntdll!NtSetInformationProcess</text>
+	<text x='1050' y='1500'> (  34a:24   -  350:2    ) ntdll!RtlReleaseSRWLockExclusive</text>
+	<text x='1050' y='1540'> (  350:9    -  35a:41   ) ntdll!RtlFreeHeap</text>
+	<text x='1150' y='1580'> (  350:1e   -  35a:3a   ) ntdll!RtlpFreeHeapInternal</text>
+	<text x='1250' y='1620'> (  350:6b   -  350:70   ) ntdll!RtlGetCurrentServiceSessionId</text>
+	<text x='1250' y='1660'> (  35a:24   -  35a:2c   ) ntdll!RtlpHpStackLoggingEnabled</text>
+	<text x='1050' y='1700'> (  35a:4b   -  35a:51   ) ntdll!_security_check_cookie</text>
+	<text x='950' y='1740'> (  35a:5e   -  35a:62   ) ntdll!LdrControlFlowGuardEnforcedWithExportSuppression</text>
+	<text x='850' y='1780'> (  35a:72   -  35a:85   ) ntdll!LdrpLogDllState</text>
+	<text x='850' y='1820'> (  35a:93   -  35a:99   ) ntdll!_security_check_cookie</text>
+	<text x='750' y='1860'> (  35a:aa   -  365:7    ) ntdll!RtlEnterCriticalSection</text>
+	<text x='750' y='1900'> (  365:12   -  366:8    ) ntdll!RtlLeaveCriticalSection</text>
+	<text x='750' y='1940'> (  366:d    -  36a:0    ) ntdll!NtSetEvent</text>
+	<text x='650' y='1980'> (  36a:a    -  36c:7    ) ntdll!RtlEnterCriticalSection</text>
+	<text x='650' y='2020'> (  36c:13   -  371:8    ) ntdll!RtlLeaveCriticalSection</text>
+	<text x='450' y='2060'> (  371:37   -  383:41   ) ntdll!TppCallbackEpilog</text>
+	<text x='550' y='2100'> (  371:45   -  371:9c   ) ntdll!TppCallbackCheckThreadAfterCallback</text>
+	<text x='650' y='2140'> (  371:69   -  371:78   ) ntdll!TppCheckForTransactions</text>
+	<text x='650' y='2180'> (  371:8f   -  371:95   ) ntdll!_security_check_cookie</text>
+	<text x='550' y='2220'> (  37c:1c   -  383:3    ) ntdll!guard_xfg_dispatch_icall_nop</text>
+	<text x='550' y='2260'> (  383:b    -  383:2e   ) ntdll!memset$thunk$772440563353939046</text>
+	<text x='550' y='2300'> (  383:31   -  383:37   ) ntdll!_security_check_cookie</text>
+	<text x='450' y='2340'> (  38a:19   -  38a:67   ) ntdll!memset$thunk$772440563353939046</text>
+	<text x='450' y='2380'> (  38a:74   -  38a:74   ) ntdll!NtWaitForWorkViaWorkerFactory</text>
+</g>
+
+</svg>

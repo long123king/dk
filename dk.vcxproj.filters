@@ -13,6 +13,9 @@
     <Filter Include="SVG">
       <UniqueIdentifier>{d312d52b-59d0-478c-a757-c8540705c401}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ttd">
+      <UniqueIdentifier>{8caf07d9-039b-41ee-bc5d-005a15295e26}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CmdList.h">
@@ -84,6 +87,12 @@
     <ClInclude Include="model.h">
       <Filter>Cmds</Filter>
     </ClInclude>
+    <ClInclude Include="ttd_cmd.h">
+      <Filter>ttd</Filter>
+    </ClInclude>
+    <ClInclude Include="ttd\TTD.hpp">
+      <Filter>ttd</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dbgdata.cpp">
@@ -145,6 +154,9 @@
     </ClCompile>
     <ClCompile Include="model.cpp">
       <Filter>Cmds</Filter>
+    </ClCompile>
+    <ClCompile Include="ttd_cmd.cpp">
+      <Filter>ttd</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

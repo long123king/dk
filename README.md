@@ -8,6 +8,19 @@ Run ***!dk help*** for supported command list.
 
 Check page_2_svg demo [here](https://raw.githubusercontent.com/long123king/dk/main/demos/page_00000060a11ff000.svg).
 
+Run following commands to generate callstack forest visualization in svg format(small projects only!), demos for helloworld project can be found  [here](https://raw.githubusercontent.com/long123king/dk/main/demos/helloworld_viz_forest.svg).
+
+```
+0:001> !dk ldttd
+0:001> !dk dump_ttd_events d:\helloworld_viz
+```
+
+
+
+# Reference
+
+1. [TTD.hpp](https://github.com/commial/ttd-bindings/blob/master/TTD/TTD.hpp) from [Bindings for Microsoft WinDBG TTD](https://github.com/commial/ttd-bindings)
+
 # How to start a new WinDbg C++ extension?
 
 ## 1. Add Windows Kits related folder to Visual Studio project setting:

@@ -147,7 +147,8 @@
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile />
-      <AdditionalIncludeDirectories>$(SolutionDir)ttd\inc\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalOptions>/D _HAS_STD_BYTE=0 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -184,6 +185,8 @@
     <ClInclude Include="svg\SvgElements.h" />
     <ClInclude Include="thread.h" />
     <ClInclude Include="token.h" />
+    <ClInclude Include="ttd\TTD.hpp" />
+    <ClInclude Include="ttd_cmd.h" />
     <ClInclude Include="type.h" />
   </ItemGroup>
   <ItemGroup>
@@ -206,6 +209,7 @@
     <ClCompile Include="stack.cpp" />
     <ClCompile Include="thread.cpp" />
     <ClCompile Include="token.cpp" />
+    <ClCompile Include="ttd_cmd.cpp" />
     <ClCompile Include="type.cpp" />
   </ItemGroup>
   <ItemGroup>

@@ -15,6 +15,7 @@
 #include "stack.h"
 #include "pe.h"
 #include "clfs.h"
+#include "ttd_cmd.h"
 
 #include "model.h"
 
@@ -87,6 +88,8 @@ void RegisterCmdHandlers()
     CMD_LIST->RegisterCmdHandler("mobj_at",         CMD_HANDLER(mobj_at));
     CMD_LIST->RegisterCmdHandler("call",            CMD_HANDLER(call));
     CMD_LIST->RegisterCmdHandler("ccall",           CMD_HANDLER(ccall));
+    CMD_LIST->RegisterCmdHandler("ldttd",           CMD_HANDLER(ldttd));
+    CMD_LIST->RegisterCmdHandler("dump_ttd_events", CMD_HANDLER(dump_ttd_events));
 }
 
 BOOL __stdcall CmdListMain(HANDLE Instance, ULONG Reason, PVOID Reserved)
