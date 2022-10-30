@@ -1,15 +1,15 @@
 <svg id = 'root' width = '262180'  height = '260' viewBox = '0 0 262100 260' xmlns = 'http://www.w3.org/2000/svg' xmlns:xlink = 'http://www.w3.org/1999/xlink' onload='init(evt)'>
 <g  style='fill:white; stroke:black;' >
 	
-<a xlink:href='d:\helloworld_viz_5494_ntdll!LdrInitializeThunk.svg'>	<rect x='100' y='100' width='1588' height='40'  style = 'fill: #FC6C00;stroke: black; stroke-width: 1;'  />
+<a xlink:href='https://raw.githubusercontent.com/long123king/dk/main/demos/helloworld_viz_5494_ntdll!LdrInitializeThunk.svg'>	<rect x='100' y='100' width='1588' height='40'  style = 'fill: #FC6C00;stroke: black; stroke-width: 1;'  />
 </a>
 
 	
-<a xlink:href='d:\helloworld_viz_5494_ntdll!RtlUserThreadStart.svg'>	<rect x='100' y='140' width='2135' height='40'  style = 'fill: #B01111;stroke: black; stroke-width: 1;'  />
+<a xlink:href='https://raw.githubusercontent.com/long123king/dk/main/demos/helloworld_viz_5494_ntdll!RtlUserThreadStart.svg'>	<rect x='100' y='140' width='2135' height='40'  style = 'fill: #B01111;stroke: black; stroke-width: 1;'  />
 </a>
 
 	
-<a xlink:href='d:\helloworld_viz_6710_ntdll!RtlUserThreadStart.svg'>	<rect x='100' y='180' width='1723' height='40'  style = 'fill: #B01111;stroke: black; stroke-width: 1;'  />
+<a xlink:href='https://raw.githubusercontent.com/long123king/dk/main/demos/helloworld_viz_6710_ntdll!RtlUserThreadStart.svg'>	<rect x='100' y='180' width='1723' height='40'  style = 'fill: #B01111;stroke: black; stroke-width: 1;'  />
 </a>
 
 </g>
