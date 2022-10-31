@@ -172,6 +172,7 @@
     <ClInclude Include="handle.h" />
     <ClInclude Include="list.h" />
     <ClInclude Include="memory.h" />
+    <ClInclude Include="MemoryAnalyzer.h" />
     <ClInclude Include="model.h" />
     <ClInclude Include="module.h" />
     <ClInclude Include="object.h" />
@@ -198,6 +199,7 @@
     <ClCompile Include="handle.cpp" />
     <ClCompile Include="list.cpp" />
     <ClCompile Include="memory.cpp" />
+    <ClCompile Include="MemoryAnalyzer.cpp" />
     <ClCompile Include="model.cpp" />
     <ClCompile Include="module.cpp" />
     <ClCompile Include="object.cpp" />

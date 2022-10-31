@@ -13,6 +13,9 @@
     <Filter Include="SVG">
       <UniqueIdentifier>{d312d52b-59d0-478c-a757-c8540705c401}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Utility">
+      <UniqueIdentifier>{38dd1604-e5c6-4db2-beed-4136dde7ffb3}</UniqueIdentifier>
+    </Filter>
     <Filter Include="ttd">
       <UniqueIdentifier>{8caf07d9-039b-41ee-bc5d-005a15295e26}</UniqueIdentifier>
     </Filter>
@@ -93,6 +96,9 @@
     <ClInclude Include="ttd\TTD.hpp">
       <Filter>ttd</Filter>
     </ClInclude>
+    <ClInclude Include="MemoryAnalyzer.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dbgdata.cpp">
@@ -157,6 +163,9 @@
     </ClCompile>
     <ClCompile Include="ttd_cmd.cpp">
       <Filter>ttd</Filter>
+    </ClCompile>
+    <ClCompile Include="MemoryAnalyzer.cpp">
+      <Filter>Utility</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

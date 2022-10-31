@@ -9,6 +9,8 @@
 #include <iomanip>
 #include <set>
 
+#include "MemoryAnalyzer.h"
+
 #include "svg/Coordinates.h"
 #include "svg/SvgElements.h"
 
@@ -40,6 +42,11 @@ DEFINE_CMD(as_qword)
 
 DEFINE_CMD(as_mem)
 {
+    if (args.size() < 3)
+    {
+        EXT_F_ERR("Usage: !dk as_mem <addr> <len>\n");
+        return;
+    }
     size_t addr = EXT_F_IntArg(args, 1, 0);
     size_t len = EXT_F_IntArg(args, 2, 0);
 
@@ -147,8 +154,10 @@ shared_ptr<CSvgDoc> visual_page(string page_content, uint64_t page_addr, Coordin
     auto canvas_size = coordinates_mgr.GetCanvasSize();
     auto svg_doc = make_shared<CSvgDoc>(get<0>(canvas_size), get<1>(canvas_size), CSvgPoint(0, 0), get<0>(canvas_size), get<1>(canvas_size));
 
-    auto svg_def = make_shared<CSvgDefsArrowHead>("arrowhead", 10, 7);
-    svg_def->addStyle("stroke: none; fill:red; fill-opacity: 0.4; stroke-opacity: 0.4;");
+    auto svg_defr = make_shared<CSvgDefsArrowHead>("arrowheadr", 10, 7);
+    auto svg_defg = make_shared<CSvgDefsArrowHead>("arrowheadg", 10, 7);
+    svg_defr->addStyle("stroke: none; fill:red; fill-opacity: 0.4; stroke-opacity: 0.4;");
+    svg_defg->addStyle("stroke: none; fill:green; fill-opacity: 0.4; stroke-opacity: 0.4;");
 
     vector<string> addr_texts;
     vector<string> addr_styles;
@@ -194,7 +203,8 @@ shared_ptr<CSvgDoc> visual_page(string page_content, uint64_t page_addr, Coordin
     svg_content_grids->addTextStyle("font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;");
     svg_content_grids->addRectStyle("stroke: white; stroke-width: 2; fill: black; font-size: 16; font-weight: normal;");
 
-    svg_doc->appendElement(svg_def);
+    svg_doc->appendElement(svg_defr);
+    svg_doc->appendElement(svg_defg);
     svg_doc->appendElement(svg_addr_grids);
     svg_doc->appendDynamicElement(svg_content_grids);
 
@@ -245,7 +255,7 @@ void AddStackVariable(shared_ptr<CSvgGroup> g_arrows, shared_ptr<CSvgGroup> g_te
     auto arrow_v = make_shared<CSvgArrow>(
         CSvgPoint(get<0>(v_pivot), get<1>(v_pivot) - get<1>(coordinates_mgr.GetLAddrParameters()) / 2),
         CSvgPoint(get<0>(v_target_pivot), get<1>(v_target_pivot) - get<1>(coordinates_mgr.GetLAddrParameters()) / 2),
-        "arrowhead");
+        "arrowheadr");
 
     stringstream ss;
     ss << "stack variable: " << variable_name << "; ( " << hex << showbase << (uint64_t)variable_addr << " )";
@@ -253,6 +263,82 @@ void AddStackVariable(shared_ptr<CSvgGroup> g_arrows, shared_ptr<CSvgGroup> g_te
 
     g_arrows->appendElement(arrow_v);
     g_texts->appendElement(text_v);
+}
+
+void AddPtr2Sym(shared_ptr<CSvgGroup> g_arrows, shared_ptr<CSvgGroup> g_texts, shared_ptr<CSvgGroup> g_rects, uint64_t variable_addr, uint64_t target_addr, string notes, CoordinatesManager& coordinates_mgr)
+{
+    uint64_t v_page = variable_addr & 0xFFFFFFFFFFFFF000;
+
+    uint64_t v_row_index = ((variable_addr - v_page) + 8) / 8;
+    uint64_t v_column_index = variable_addr % 8;
+
+    auto v_pivot = coordinates_mgr.GetMRowPivot(v_row_index);
+    auto v_target_pivot = coordinates_mgr.GetLGridPivot(v_column_index + 8, v_row_index);
+
+    auto half_height = get<1>(coordinates_mgr.GetLAddrParameters()) / 2;
+    auto grid_width = get<0>(coordinates_mgr.GetLGridParameters());
+
+    auto arrow_v = make_shared<CSvgArrow>(
+        CSvgPoint(get<0>(v_target_pivot), get<1>(v_target_pivot) - half_height),
+        CSvgPoint(get<0>(v_pivot) - grid_width, get<1>(v_pivot) - half_height),
+        "arrowheadr");
+
+    stringstream ss;
+    ss << "0x" << hex << setfill('0') << setw(16) << target_addr;
+    auto text = make_shared<CSvgText>(CSvgPoint(get<0>(v_pivot) + 10, get<1>(v_pivot) - half_height), ss.str());
+
+    auto rect = make_shared<CSvgRect>(CSvgPoint(get<0>(v_pivot), get<1>(v_pivot) - half_height * 2), 160, half_height * 2);
+
+    ss.str("");
+    ss << notes;
+    auto text_v = make_shared<CSvgText>(CSvgPoint(get<0>(v_pivot) + 200, get<1>(v_pivot) - get<1>(coordinates_mgr.GetLAddrParameters()) / 2), ss.str());
+
+    g_arrows->appendElement(arrow_v);
+    g_texts->appendElement(text);
+    g_texts->appendElement(text_v);
+    g_rects->appendElement(rect);
+}
+
+void AddPtr2Local(shared_ptr<CSvgGroup> g_arrows, shared_ptr<CSvgGroup> g_besier, shared_ptr<CSvgGroup> g_texts, shared_ptr<CSvgGroup> g_rects, uint64_t variable_addr, uint64_t target_addr, CoordinatesManager& coordinates_mgr)
+{
+    uint64_t v_page = variable_addr & 0xFFFFFFFFFFFFF000;
+
+    uint64_t v_row_index = ((variable_addr - v_page) + 8) / 8;
+    uint64_t v_column_index = variable_addr % 8;
+
+    uint64_t t_row_index = ((target_addr - v_page) + 8) / 8;
+    uint64_t t_column_index = 0;
+
+    auto v_pivot = coordinates_mgr.GetMRowPivot(v_row_index);
+    auto v_target_pivot = coordinates_mgr.GetLGridPivot(v_column_index + 8, v_row_index);
+
+    auto v_local = coordinates_mgr.GetLGridPivot(t_column_index + 8, t_row_index);
+
+    auto half_height = get<1>(coordinates_mgr.GetLAddrParameters()) / 2;
+    auto grid_width = get<0>(coordinates_mgr.GetLGridParameters());
+
+    auto arrow_v = make_shared<CSvgArrow>(
+        CSvgPoint(get<0>(v_target_pivot), get<1>(v_target_pivot) - half_height),
+        CSvgPoint(get<0>(v_pivot) - grid_width, get<1>(v_pivot) - half_height),
+        "arrowheadr");
+
+    auto besier = make_shared<CSvgBesier>(
+        CSvgPoint(get<0>(v_pivot) - grid_width, get<1>(v_pivot) - half_height),
+        CSvgPoint((4*get<0>(v_pivot) + get<0>(v_local))/5, get<1>(v_pivot) - half_height),
+        CSvgPoint((get<0>(v_pivot) + get<0>(v_local))/2, ((get<1>(v_pivot) + get<1>(v_local)) / 2) - half_height),
+        CSvgPoint(get<0>(v_local) + grid_width/2, get<1>(v_local) - half_height),
+        "arrowheadg");
+
+    stringstream ss;
+    ss << "0x" << hex << setfill('0') << setw(16) << target_addr;
+    auto text_v = make_shared<CSvgText>(CSvgPoint(get<0>(v_pivot) + 10, get<1>(v_pivot) - half_height), ss.str());
+
+    auto rect = make_shared<CSvgRect>(CSvgPoint(get<0>(v_pivot), get<1>(v_pivot) - half_height*2), 160, half_height * 2, "fill: green; stroke:green;");
+
+    g_arrows->appendElement(arrow_v);
+    g_besier->appendElement(besier);
+    g_texts->appendElement(text_v);
+    g_rects->appendElement(rect);
 }
 
 void page_to_svg(size_t addr, string svg_filename)
@@ -279,10 +365,42 @@ void page_to_svg(size_t addr, string svg_filename)
     auto svg_g_texts = make_shared<CSvgGroup>();
     svg_g_texts->addStyle("stroke: none; fill: black; font-size: 16; font-weight: normal; font-family: monospace; ");
 
-    AddStackVariable(svg_g_arrows, svg_g_texts, (uint64_t)addr, "addr", coordinates_mgr);
+    auto svg_g_besier = make_shared<CSvgGroup>();
+    svg_g_besier->addStyle("stroke: green; stroke-width: 3; stroke-opacity: 0.4; fill: none;");
+
+    auto svg_g_rects = make_shared<CSvgGroup>();
+    svg_g_rects->addStyle("stroke: red; stroke-width: 2; fill: red; font-size: 16; font-weight: normal; font-family: monospace;  fill-opacity: 0.2;");
+
+    //AddStackVariable(svg_g_arrows, svg_g_texts, (uint64_t)addr, "addr", coordinates_mgr);
+
+    CMemoryAnalyzer manalyzer(page, ch_page, 0x1000);
+    manalyzer.analyze();
+    for (auto ptr2sym : manalyzer.get_ptr2sym())
+    {
+        stringstream ss;
+        for (auto ch : get<0>(ptr2sym.second))
+        {
+            if (ch == '<')
+                ss << "&lt;";
+            else if (ch == '>')
+                ss << "&gt;";
+            else if (ch == '&')
+                ss << "&amp;";
+            else
+                ss << ch;
+        }
+        AddPtr2Sym(svg_g_arrows, svg_g_texts, svg_g_rects, ch_page + ptr2sym.first, get<1>(ptr2sym.second), ss.str(), coordinates_mgr);
+    }
+
+    for (auto ptr2local : manalyzer.get_ptr2local())
+    {
+        AddPtr2Local(svg_g_arrows, svg_g_besier, svg_g_texts, svg_g_rects, ch_page + ptr2local.first, ch_page + ptr2local.second, coordinates_mgr);
+    }
 
     stack_svg_doc->appendDynamicElement(svg_g_arrows);
     stack_svg_doc->appendDynamicElement(svg_g_texts);
+    stack_svg_doc->appendDynamicElement(svg_g_besier);
+    stack_svg_doc->appendDynamicElement(svg_g_rects);
 
     stack_svg_doc->Save(svg_filename);
 }

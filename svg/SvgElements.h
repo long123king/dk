@@ -26,7 +26,7 @@ public:
     {
     }
 
-    // 通过 CSvgElement 继承
+    
     virtual string Draw() override
     {
         return "";
@@ -47,7 +47,7 @@ public:
     {
     }
 
-    // 通过 CSvgElement 继承
+    
     /*
     <defs>
         <marker id = "arrowhead" markerWidth = "10" markerHeight = "7"
@@ -102,7 +102,7 @@ public:
     }
 
 
-    // 通过 CSvgElement 继承
+    
     virtual string Draw() override
     {
         stringstream ss;
@@ -123,6 +123,43 @@ private:
     string m_arrow_head_id;
 };
 
+class CSvgBesier :
+    public CSvgElement
+{
+public:
+    CSvgBesier(CSvgPoint start, CSvgPoint start_ctrl, CSvgPoint end_ctrl, CSvgPoint end, string arrow_head_id)
+        :m_start(start)
+        ,m_start_ctrl(start_ctrl)
+        ,m_end(end)
+        ,m_end_ctrl(end_ctrl)
+        ,m_arrow_head_id(arrow_head_id)
+    {
+
+    }
+
+    
+    virtual string Draw() override
+    {
+        stringstream ss;
+        ss << "<path d='"
+            << " M" << m_start.m_x << " " << m_start.m_y << " "
+            << " Q " << m_start_ctrl.m_x << " " << m_start_ctrl.m_y << ", "
+            << " " << m_end_ctrl.m_x << " " << m_end_ctrl.m_y << " "
+            << " T " << m_end.m_x << " " << m_end.m_y << "' "            
+            << " marker-end='url(#" << m_arrow_head_id << ")'"
+            << " />";
+
+        return ss.str();
+    }
+
+private:
+    CSvgPoint m_start;
+    CSvgPoint m_start_ctrl;
+    CSvgPoint m_end;
+    CSvgPoint m_end_ctrl;
+    string m_arrow_head_id;
+};
+
 class CSvgLine :
     public CSvgElement
 {
@@ -134,7 +171,7 @@ public:
     {
     }
 
-    // 通过 CSvgElement 继承
+    
     virtual string Draw() override
     {
         stringstream ss;
@@ -162,7 +199,7 @@ class CSvgGroup :
     public CSvgElement
 {
 public:
-    // 通过 CSvgElement 继承
+    
     virtual string Draw() override
     {
         stringstream ss;
@@ -214,7 +251,6 @@ public:
     {
     }
 
-    // 通过 CSvgElement 继承
     virtual string Draw() override
     {
         stringstream ss;
@@ -255,7 +291,7 @@ public:
     {
     }
 
-    // 通过 CSvgElement 继承
+    
     virtual string Draw() override
     {
         stringstream ss;
@@ -296,7 +332,7 @@ public:
     {
     }
 
-    // 通过 CSvgElement 继承
+    
     virtual string Draw() override
     {
         stringstream ss;
@@ -328,7 +364,7 @@ public:
     {
     }
 
-    // 通过 CSvgElement 继承
+    
     virtual string Draw() override
     {
         stringstream ss;
@@ -372,7 +408,7 @@ public:
     {
     }
 
-    // 通过 CSvgElement 继承
+    
     virtual string Draw() override
     {
         stringstream ss;
@@ -413,7 +449,7 @@ public:
     {
     }
 
-    // 通过 CSvgElement 继承
+    
     virtual string Draw() override
     {
         for (uint64_t i = 0; i <= m_cell_rows; i++)
@@ -504,7 +540,7 @@ public:
 
     }
 
-    // 通过 CSvgElement 继承
+    
     virtual string Draw() override
     {
         stringstream ss;
