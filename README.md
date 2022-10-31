@@ -8,7 +8,7 @@ Run ***!dk help*** for supported command list.
 
 Check page_2_svg demo [here](https://raw.githubusercontent.com/long123king/dk/main/demos/page_00000060a11ff000.svg).
 
-Run following commands to generate callstack forest visualization in svg format(small projects only!), demos for helloworld project can be found  [here](https://raw.githubusercontent.com/long123king/dk/main/demos/helloworld_viz_forest.svg).
+Run following commands to generate callstack forest visualization in svg format(small projects only!), demos for helloworld project can be found  [here](https://raw.githubusercontent.com/long123king/dk/main/demos/helloworld_viz_forest.svg). (Click interaction on svg is blocked by browsers, try it locally)
 
 ```
 0:001> !dk ldttd
