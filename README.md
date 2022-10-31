@@ -6,7 +6,7 @@ dk is the enhanced refactored version of [tokenext](https://github.com/long123ki
 
 Run ***!dk help*** for supported command list.
 
-Check page_2_svg demo [here](https://raw.githubusercontent.com/long123king/dk/main/demos/page_00000060a11ff000.svg).
+Check page_2_svg demo [here](https://raw.githubusercontent.com/long123king/dk/main/demos/page_00000060a11ff000.svg) and [here with pointers](https://raw.githubusercontent.com/long123king/dk/main/demos/page_00000052%60182ff730_1.svg).
 
 Run following commands to generate callstack forest visualization in svg format(small projects only!), demos for helloworld project can be found  [here](https://raw.githubusercontent.com/long123king/dk/main/demos/helloworld_viz_forest.svg). (Click interaction on svg is blocked by browsers, try it locally)
 
