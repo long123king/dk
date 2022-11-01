@@ -1053,6 +1053,41 @@ string CModelAccess::dump_heap_memory(DK_MOBJ_PTR heap_memory)
     return ss.str();
 }
 
+vector<ttd_heap_memory> CModelAccess::get_heap_memory()
+{
+    vector<ttd_heap_memory> results;
+    auto cur_session = DK_MODEL_ACCESS->get_pobj_tree(DK_MODEL_ACCESS->m_debugger, "State.DebuggerVariables.cursession");
+
+    if (cur_session != nullptr)
+    {
+        auto ttd = DK_MGET_POBJ(cur_session, "TTD");
+        if (ttd != nullptr)
+        {
+            stringstream ss;
+            auto resources = DK_MGET_POBJ(ttd, "Resources");
+            auto heap_memory_pobj = DK_MGET_POBJ(resources, "HeapMemory");
+
+            auto heap_memories = DK_MODEL_ACCESS->iterate(heap_memory_pobj);
+            for (auto& heap_memory : heap_memories)
+            {
+                ttd_heap_memory heap_entry;
+
+                heap_entry.function = BSTR2str(get_pvalue<BSTR, VT_BSTR>(get<1>(heap_memory), "Function"));
+                heap_entry.pos = get_pos(get<1>(heap_memory), "Position");
+                heap_entry.thread_id = get_pvalue<DWORD, VT_UI4>(get<1>(heap_memory), "ThreadId");
+                heap_entry.res_id = get_pvalue<uint64_t, VT_UI8>(get<1>(heap_memory), "ResourceId");
+                heap_entry.res_new_id = get_pvalue<uint64_t, VT_UI8>(get<1>(heap_memory), "ResourceIdNew");
+                heap_entry.size = get_pvalue<uint64_t, VT_UI8>(get<1>(heap_memory), "Size");
+
+                results.push_back(heap_entry);
+            }
+            EXT_F_STR_OUT(ss);
+        }
+    }
+
+    return results;
+}
+
 string CModelAccess::dump_event(DK_MOBJ_PTR event)
 {
     stringstream ss;

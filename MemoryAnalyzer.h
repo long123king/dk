@@ -16,6 +16,8 @@ public:
     {
         if (m_data.size() < m_len)
             m_len = m_data.size();
+
+        m_heap = DK_GET_HEAP();
     }
 
     size_t is_in_cur_stack(size_t addr);
@@ -24,11 +26,14 @@ public:
 
     string get_symbol(size_t addr);
 
+    tuple<size_t, size_t> is_heap(size_t addr);
+
     void analyze();
 
     map<size_t, size_t> get_ptr2local();
     map<size_t, size_t> get_ptr2stack();
     map<size_t, tuple<string, size_t>> get_ptr2sym();
+    map<size_t, tuple<size_t, size_t, size_t>> get_ptr2heap();
 
 private:
     string m_data;
@@ -38,5 +43,7 @@ private:
     map<size_t, size_t> m_ptr2locals;
     map<size_t, size_t> m_ptr2stacks;
     map<size_t, tuple<string, size_t>> m_ptr2syms;
+    map<size_t, tuple<size_t, size_t, size_t>> m_ptr2heaps;
 
+    vector<ttd_heap_memory> m_heap;
 };

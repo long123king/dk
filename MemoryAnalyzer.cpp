@@ -43,6 +43,19 @@ string CMemoryAnalyzer::get_symbol(size_t addr)
     return ss.str();
 }
 
+tuple<size_t, size_t> CMemoryAnalyzer::is_heap(size_t addr)
+{
+    for (auto& entry : m_heap)
+    {
+        if (addr >= entry.res_id && addr < entry.res_id + entry.size)
+        {
+            return make_tuple(entry.res_id, entry.size);
+        }
+    }
+
+    return make_tuple(0, 0);;
+}
+
 void CMemoryAnalyzer::analyze()
 {
     map<size_t, string> notes;
@@ -68,6 +81,11 @@ void CMemoryAnalyzer::analyze()
             m_ptr2syms[i * 8] = make_tuple(sym, qw);
         }
 
+        auto heap_entry = is_heap(qw);
+        if (get<1>(heap_entry) != 0)
+        {
+            m_ptr2heaps[i * 8] = make_tuple(qw, get<0>(heap_entry), get<1>(heap_entry));
+        }
     }
 }
 
@@ -84,4 +102,9 @@ map<size_t, size_t> CMemoryAnalyzer::get_ptr2stack()
 map<size_t, tuple<string, size_t>> CMemoryAnalyzer::get_ptr2sym()
 {
     return m_ptr2syms;
+}
+
+map<size_t, tuple<size_t, size_t, size_t>> CMemoryAnalyzer::get_ptr2heap()
+{
+    return m_ptr2heaps;
 }

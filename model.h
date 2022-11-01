@@ -6,6 +6,7 @@
 #include <memory>
 #include <map>
 #include <array>
+#include <tuple>
 
 #include <oaidl.h>
 #include <wrl.h>
@@ -72,6 +73,7 @@ private:
 #define DK_GET_CURSTACK         CModelAccess::Instance()->get_current_callstack
 #define DK_DUMP_CURSTACK        CModelAccess::Instance()->dump_current_callstack
 #define DK_GET_CURTID           CModelAccess::Instance()->get_current_tid
+#define DK_GET_HEAP             CModelAccess::Instance()->get_heap_memory
 
 DECLARE_CMD(ls_model)
 DECLARE_CMD(ls_sessions)
@@ -92,6 +94,16 @@ DECLARE_CMD(call)
 DECLARE_CMD(ccall)
 
 string BSTR2str(BSTR bstr);
+
+typedef struct _ttd_heap_memory
+{
+    string                      function;
+    tuple<uint64_t, uint64_t>   pos{ 0, 0 };
+    uint32_t                    thread_id{ 0 };
+    uint64_t                    res_id{ 0 };
+    uint64_t                    res_new_id{ 0 };
+    uint64_t                    size{ 0 };
+}ttd_heap_memory;
 
 class CModelAccess
 {
@@ -197,6 +209,8 @@ public:
     string dump_call_result(DK_MOBJ_PTR call_result);
 
     string dump_heap_memory(DK_MOBJ_PTR heap_memory);
+
+    vector<ttd_heap_memory> get_heap_memory();
 
     string dump_mem_access_result(DK_MOBJ_PTR mem_access_result);
 
