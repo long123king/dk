@@ -603,3 +603,34 @@ private:
 
     vector<shared_ptr<CSvgElement>> m_dynamic_elements;
 };
+
+inline string SvgEscapeText(string text, uint64_t limit=2000)
+{
+    stringstream ss;
+    for (auto ch : text)
+    {
+        if (ch == '<')
+            ss << "&lt;";
+        else if (ch == '>')
+            ss << "&gt;";
+        else if (ch == '&')
+            ss << "&amp;";
+        else
+            ss << ch;
+    }
+
+    string str = ss.str();
+    if (str.size() > limit && limit > 6)
+    {
+        for (auto i = limit - 6; i < limit; i++)
+        {
+            if (str[i] == '&')
+            {
+                return str.substr(0, limit - 6 + i) + "......";
+            }
+        }
+        return str.substr(0, limit - 6) + "......";
+    }
+
+    return str;
+}

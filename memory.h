@@ -43,3 +43,6 @@ void visit_vad(size_t vad_node_addr);
 void do_memcpy(size_t src_addr, size_t dst_addr, size_t count);
 
 void page_to_svg(size_t addr, string svg_filename);
+
+void mem_access_to_svg(size_t start_addr, size_t end_addr, string mode, string svg_filename);
+

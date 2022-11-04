@@ -356,8 +356,38 @@ void AddMem(shared_ptr<CSvgDoc> svg_doc, size_t addr, size_t size, CSvgPoint dis
 
     auto grid_pivot = coordinates_mgr.GetLGridPivot(0, 0);
     auto grid_parameters = coordinates_mgr.GetLGridParameters();
-    auto svg_content_grids = make_shared<CSvgGrids>(CSvgPoint(get<0>(grid_pivot) + disp.m_x - 100, get<1>(grid_pivot) + disp.m_y - 100),
+    auto svg_content_grids = make_shared<CSvgGrids>(CSvgPoint(get<0>(grid_pivot) + disp.m_x, get<1>(grid_pivot) + disp.m_y),
         get<0>(grid_parameters), get<1>(grid_parameters), get<2>(grid_parameters), aligned_size / 8,
+        content_texts, content_styles, vector<string>());
+
+    svg_content_grids->addLineStyle("stroke: white; fill: white;");
+    svg_content_grids->addTextStyle("font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;");
+    svg_content_grids->addRectStyle("stroke: white; stroke-width: 2; fill: black; font-size: 16; font-weight: normal;");
+
+    //svg_doc->appendElement(svg_addr_grids);
+    svg_doc->appendElement(svg_content_grids);
+}
+
+void AddBytes(shared_ptr<CSvgDoc> svg_doc, string content, CSvgPoint disp)
+{
+    CoordinatesManager coordinates_mgr(GRID_WIDTH, GRID_HEIGHT, GRID_ADDR_WIDTH);
+
+    vector<string> content_texts;
+    vector<string> content_styles;
+    for (uint64_t i = 0; i < content.size(); i++)
+    {
+        stringstream ss;
+        ss << hex << uppercase << setfill('0') << setw(2) << (uint16_t)(content[i] & 0x00FF);
+        content_texts.push_back(ss.str());
+
+        ss.str("");
+        ss << Byte2FontStyle((uint8_t)content[i]);
+        content_styles.push_back(ss.str());
+    }
+
+    auto grid_parameters = coordinates_mgr.GetLGridParameters();
+    auto svg_content_grids = make_shared<CSvgGrids>(CSvgPoint(disp.m_x, disp.m_y),
+        get<0>(grid_parameters), get<1>(grid_parameters), get<2>(grid_parameters), content.size() / 8,
         content_texts, content_styles, vector<string>());
 
     svg_content_grids->addLineStyle("stroke: white; fill: white;");
@@ -371,7 +401,8 @@ void AddMem(shared_ptr<CSvgDoc> svg_doc, size_t addr, size_t size, CSvgPoint dis
 
 void AddPtr2Heap(shared_ptr<CSvgDoc> svg_doc, shared_ptr<CSvgGroup> g_arrows, shared_ptr<CSvgGroup> g_besier, shared_ptr<CSvgGroup> g_texts, shared_ptr<CSvgGroup> g_rects, 
     uint64_t variable_addr, uint64_t target_addr, uint64_t heap_base, uint64_t heap_size, 
-    CoordinatesManager& coordinates_mgr)
+    CoordinatesManager& coordinates_mgr,
+    string base_filename)
 {
     uint64_t v_page = variable_addr & 0xFFFFFFFFFFFFF000;
 
@@ -396,13 +427,22 @@ void AddPtr2Heap(shared_ptr<CSvgDoc> svg_doc, shared_ptr<CSvgGroup> g_arrows, sh
         CSvgPoint(get<0>(v_local) + grid_width / 2, get<1>(v_local) - half_height),
         "arrowheadg");*/
 
-    AddMem(svg_doc, target_addr, 8, CSvgPoint(get<0>(v_pivot), get<1>(v_pivot) - 2*half_height));
+    AddMem(svg_doc, target_addr, 8, CSvgPoint(get<0>(v_pivot) - 100, get<1>(v_pivot) - 2*half_height - 100));
 
     stringstream ss;
     ss << "0x" << hex << setfill('0') << setw(16) << target_addr;
     auto text_v = make_shared<CSvgText>(CSvgPoint(get<0>(v_pivot) + 10, get<1>(v_pivot) - half_height), ss.str());
 
+    ss.str("");
+    ss << base_filename << "mem_access_0x" << target_addr << "_8.svg";
+
+    auto mem_access_link = make_shared<CSvgLink>(ss.str());
+
+    mem_access_to_svg(target_addr, target_addr + 8, "W", ss.str());
+
     auto rect = make_shared<CSvgRect>(CSvgPoint(get<0>(v_pivot), get<1>(v_pivot) - half_height * 2), 160, half_height * 2, "fill: blue; stroke:blue;");
+
+    mem_access_link->appendElement(rect);
 
     //ss.str("");
     //ss << "heap: 0x" << hex << heap_base << ", 0x" << heap_size;
@@ -412,7 +452,7 @@ void AddPtr2Heap(shared_ptr<CSvgDoc> svg_doc, shared_ptr<CSvgGroup> g_arrows, sh
     //g_besier->appendElement(besier);
     g_texts->appendElement(text_v);
     //g_texts->appendElement(text);
-    g_rects->appendElement(rect);
+    g_rects->appendElement(mem_access_link);
 }
 
 void AddPtr2Local(shared_ptr<CSvgGroup> g_arrows, shared_ptr<CSvgGroup> g_besier, shared_ptr<CSvgGroup> g_texts, shared_ptr<CSvgGroup> g_rects, uint64_t variable_addr, uint64_t target_addr, CoordinatesManager& coordinates_mgr)
@@ -529,19 +569,7 @@ void page_to_svg(size_t addr, string svg_filename)
     manalyzer.analyze();
     for (auto ptr2sym : manalyzer.get_ptr2sym())
     {
-        stringstream ss;
-        for (auto ch : get<0>(ptr2sym.second))
-        {
-            if (ch == '<')
-                ss << "&lt;";
-            else if (ch == '>')
-                ss << "&gt;";
-            else if (ch == '&')
-                ss << "&amp;";
-            else
-                ss << ch;
-        }
-        AddPtr2Sym(svg_g_arrows, svg_g_texts, svg_g_rects, ch_page + ptr2sym.first, get<1>(ptr2sym.second), ss.str(), coordinates_mgr);
+        AddPtr2Sym(svg_g_arrows, svg_g_texts, svg_g_rects, ch_page + ptr2sym.first, get<1>(ptr2sym.second), SvgEscapeText(get<0>(ptr2sym.second)), coordinates_mgr);
     }
 
     for (auto ptr2local : manalyzer.get_ptr2local())
@@ -551,7 +579,7 @@ void page_to_svg(size_t addr, string svg_filename)
 
     for (auto ptr2heap : manalyzer.get_ptr2heap())
     {
-        AddPtr2Heap(stack_svg_doc, svg_g_arrows, svg_g_besier, svg_g_texts, svg_g_rects, ch_page + ptr2heap.first, get<0>(ptr2heap.second), get<1>(ptr2heap.second), get<2>(ptr2heap.second), coordinates_mgr);
+        AddPtr2Heap(stack_svg_doc, svg_g_arrows, svg_g_besier, svg_g_texts, svg_g_rects, ch_page + ptr2heap.first, get<0>(ptr2heap.second), get<1>(ptr2heap.second), get<2>(ptr2heap.second), coordinates_mgr, svg_filename);
     }
 
     stack_svg_doc->appendElement(inner_script);
@@ -561,6 +589,103 @@ void page_to_svg(size_t addr, string svg_filename)
     stack_svg_doc->appendDynamicElement(svg_g_rects);
 
     stack_svg_doc->Save(svg_filename);
+}
+
+void mem_access_to_svg(size_t start_addr, size_t end_addr, string mode, string svg_filename)
+{
+    auto accesses = DK_GET_MEM_ACCESS(start_addr, end_addr, mode);
+
+    uint64_t height = 1600;
+    uint64_t width = 1000 * accesses.size();
+
+    CSvgPoint pivot{ 0, 0 };
+
+    auto svg_doc = make_shared<CSvgDoc>(width, height, pivot, width, height);
+    uint64_t index = 0;
+
+    auto svg_defr = make_shared<CSvgDefsArrowHead>("arrowheadr", 10, 7);
+    auto svg_defg = make_shared<CSvgDefsArrowHead>("arrowheadg", 10, 7);
+    auto svg_defb = make_shared<CSvgDefsArrowHead>("arrowheadb", 10, 7);
+    svg_defr->addStyle("stroke: none; fill:red; fill-opacity: 0.4; stroke-opacity: 0.4;");
+    svg_defg->addStyle("stroke: none; fill:green; fill-opacity: 0.4; stroke-opacity: 0.4;");
+    svg_defb->addStyle("stroke: none; fill:blue; fill-opacity: 0.4; stroke-opacity: 0.4;");
+
+    auto text_g = make_shared<CSvgGroup>();
+    text_g->addStyle("stroke: none; fill: black; font-size: 16; font-weight: normal; font-family: monospace; ");
+
+    auto rect_g = make_shared<CSvgGroup>();
+    rect_g->addStyle("stroke: black; fill: #74D2EE;");
+
+    auto arrow_g = make_shared<CSvgGroup>();
+    arrow_g->addStyle("stroke: red; stroke-width: 3;");
+
+    auto curr_pos = DK_GET_CURPOS();
+
+    for (auto& access : accesses)
+    {
+        string new_value((char*)&access.value, 8);
+        string old_value((char*)&access.overwritten_value, 8);
+
+        stringstream ss;
+
+        ss << "( "
+            << hex
+            << get<0>(access.start_pos) << ":" << get<1>(access.start_pos)
+            << " - "
+            << get<0>(access.end_pos) << ":" << get<1>(access.end_pos)
+            << " ) 0x"
+            << setfill('0')
+            << setw(16) << access.addr
+            << ", size: 0x"
+            << access.size
+            ;
+
+        auto pos = make_shared<CSvgText>(CSvgPoint(index * 1000 + 100, 50), ss.str());
+
+        svg_doc->appendElement(pos);
+
+        AddBytes(svg_doc, old_value, CSvgPoint(index * 1000 + 100, 100));
+        AddBytes(svg_doc, new_value, CSvgPoint(index * 1000 + 100, 160));
+
+        auto arrow = make_shared<CSvgArrow>(CSvgPoint(index * 1000 + 260, 128), CSvgPoint(index * 1000 + 260, 130), "arrowheadr");
+        arrow_g->appendElement(arrow);
+
+        DK_SEEK_TO(get<0>(access.start_pos), get<1>(access.start_pos));
+
+        auto callstack = DK_GET_CURSTACK();
+        for (auto& frame : callstack)
+        {
+            auto insn_addr = frame[1];
+            auto insn_sym = EXT_F_Addr2Sym(insn_addr);
+
+            ss.str("");
+            ss  << "[ "
+                << hex << setfill(' ')
+                << frame[0]
+                << " ] "
+                << get<0>(insn_sym)
+                << "+0x"
+                << hex << get<1>(insn_sym);
+
+            auto frame_text = make_shared<CSvgText>(CSvgPoint(index * 1000 + 100, 240 + frame[0] * 40), SvgEscapeText(ss.str(), 90));
+            text_g->appendElement(frame_text);
+
+            auto frame_rect = make_shared<CSvgRect>(CSvgPoint(index * 1000 + 100, 240 + frame[0] * 40 - 20), 800, 40);
+            rect_g->appendElement(frame_rect);
+        }
+
+        index++;
+    }
+
+    DK_SEEK_TO(get<0>(curr_pos), get<1>(curr_pos));
+
+    svg_doc->appendElement(svg_defr);
+    svg_doc->appendElement(svg_defg);
+    svg_doc->appendElement(svg_defb);
+    svg_doc->appendElement(rect_g);
+    svg_doc->appendElement(text_g);
+    svg_doc->appendElement(arrow_g);
+    svg_doc->Save(svg_filename);
 }
 
 void dump_size(size_t value)

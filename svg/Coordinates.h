@@ -52,6 +52,11 @@ public:
         return make_tuple(1000, 100 + m_addr_height * i);
     }
 
+    tuple<uint64_t, uint64_t> GetRRowPivot(uint64_t i)
+    {
+        return make_tuple(2000, 100 + m_addr_height * i);
+    }
+
 private:
     uint64_t m_grid_width{ 0 };
     uint64_t m_grid_height{ 0 };

@@ -233,20 +233,7 @@ void CTTDInsight::dump_ttd_model_events(string out_filename)
                 << right << setw(4) << branch->end_pos.sequence_id << ":"
                 << left << setw(4) << branch->end_pos.step_id << " ) ";
 
-            for (auto ch : branch->func_name)
-            {
-                if (ch == '<')
-                    ss << "&lt;";
-                else if (ch == '>')
-                    ss << "&gt;";
-                else if (ch == '&')
-                    ss << "&amp;";
-                else
-                    ss << ch;
-            }
-
-
-            auto text = make_shared<CSvgText>(CSvgPoint(x + 50, y + text_disp), ss.str());
+            auto text = make_shared<CSvgText>(CSvgPoint(x + 50, y + text_disp), SvgEscapeText(branch->func_name));
 
             text_g->appendElement(text);
 

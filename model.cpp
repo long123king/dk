@@ -17,20 +17,6 @@ DEFINE_CMD(ls_model)
     }
     auto results = DK_DUMP(mobj)(DK_MODEL_ACCESS->get_mobj_tree(args[1]), true, args[1]);
 
-    //stringstream ss;
-    //ss << "ls " << args[1] << endl;
-    //size_t index = 0;
-    //for (auto& result : results)
-    //{
-    //    ss //<< "\t" << string(50, '-') << endl
-    //        << "\t#[" << index++ << "] " 
-    //        << DML_CMD << get<2>(result)
-    //        << DML_TEXT << left << setw(30) << setfill(' ') << get<0>(result) 
-    //        << DML_END
-    //        << " " 
-    //        << DK_DUMP(mobj)(get<3>(result), false, args[1] + get<0>(result));
-    //}
-
     EXT_F_DML(results.c_str());
 }
 
@@ -418,7 +404,7 @@ DEFINE_CMD(ttd_mem_access)
 {
     if (!DK_MODEL_ACCESS->isTTD() || args.size() < 5)
     {
-        EXT_F_OUT("Usage: !dk ttd_calls <session_id> <start_addr> <end_addr> <mode:R/W/E/C>\nTTD Mode Only\n");
+        EXT_F_OUT("Usage: !dk ttd_mem_access <session_id> <start_addr> <end_addr> <mode:R/W/E/C>\nTTD Mode Only\n");
         return;
     }
 
@@ -475,7 +461,8 @@ DEFINE_CMD(ttd_mem_use)
     auto start_percent = EXT_F_IntArg(args, 4, 0);
     auto end_percent = EXT_F_IntArg(args, 5, 0);
 
-    auto thread = DK_MGET_THRD(session_id, proc_id, thread_id);
+    //auto thread = DK_MGET_THRD(session_id, proc_id, thread_id);
+    auto thread = DK_MGET_PROC(session_id, proc_id);
     if (thread != nullptr)
     {
         auto ttd = DK_MGET_POBJ(thread, "TTD");
@@ -498,7 +485,8 @@ DEFINE_CMD(ttd_mem_use)
                     auto results = DK_MODEL_ACCESS->iterate(mem_use_result);
                     for (auto& result : results)
                     {
-                        EXT_F_OUT(DK_DUMP(mem_use_result)(get<1>(result)).c_str());
+                        EXT_F_DML(DK_DUMP(mem_use_result)(get<1>(result)).c_str());
+                        break;
                     }
                     LOG_UNDEF_MGR
                 }
@@ -509,11 +497,11 @@ DEFINE_CMD(ttd_mem_use)
 
 DEFINE_CMD(cur_context)
 {
-    auto cur_session    = DK_MODEL_ACCESS->get_pobj_tree(DK_MODEL_ACCESS->m_debugger, "State.DebuggerVariables.cursession");
-    auto cur_process    = DK_MODEL_ACCESS->get_pobj_tree(DK_MODEL_ACCESS->m_debugger, "State.DebuggerVariables.curprocess");
-    auto cur_thread     = DK_MODEL_ACCESS->get_pobj_tree(DK_MODEL_ACCESS->m_debugger, "State.DebuggerVariables.curthread");
-    auto cur_stack      = DK_MODEL_ACCESS->get_pobj_tree(DK_MODEL_ACCESS->m_debugger, "State.DebuggerVariables.curstack");
-    auto cur_frame      = DK_MODEL_ACCESS->get_pobj_tree(DK_MODEL_ACCESS->m_debugger, "State.DebuggerVariables.curframe");
+    auto cur_session = DK_MODEL_ACCESS->get_current_session();
+    auto cur_process = DK_MODEL_ACCESS->get_current_process();
+    auto cur_thread = DK_MODEL_ACCESS->get_current_thread();
+    auto cur_stack = DK_MODEL_ACCESS->get_current_stack();
+    auto cur_frame = DK_MODEL_ACCESS->get_current_frame();
 
     EXT_F_OUT("current session: 0x%0I64x, \n\t%s", cur_session.Get(), DK_DUMP(session)(cur_session).c_str());
     EXT_F_OUT("current process: 0x%0I64x, \n\t%s", cur_process.Get(), DK_DUMP(process)(cur_process).c_str());
@@ -526,16 +514,16 @@ DEFINE_CMD(cur_context)
 const GUID IID_IHostDataModelAccess = { 0xf2bce54e, 0x4835, 0x4f8a, { 0x83, 0x6e, 0x79, 0x81, 0xe2, 0x99, 0x4, 0xd1 } };
 
 map<ModelObjectKind, string> CModelAccess::s_map_kind_name{
-    { ObjectPropertyAccessor, "PropertyAccessor"},
-    { ObjectContext, "Context"},
-    { ObjectTargetObject, "TargetObject"},
-    { ObjectTargetObjectReference, "TargetObjectReference"},
-    { ObjectSynthetic, "Synthetic"},
-    { ObjectNoValue, "NoValue"},
-    { ObjectError, "Error"},
-    { ObjectIntrinsic, "Intrinsic"},
-    { ObjectMethod, "Method"},
-    { ObjectKeyReference, "KeyReference"}
+    { ObjectPropertyAccessor,       "PropertyAccessor"},
+    { ObjectContext,                "Context"},
+    { ObjectTargetObject,           "TargetObject"},
+    { ObjectTargetObjectReference,  "TargetObjectReference"},
+    { ObjectSynthetic,              "Synthetic"},
+    { ObjectNoValue,                "NoValue"},
+    { ObjectError,                  "Error"},
+    { ObjectIntrinsic,              "Intrinsic"},
+    { ObjectMethod,                 "Method"},
+    { ObjectKeyReference,           "KeyReference"}
 };
 
 map<VARTYPE, string> CModelAccess::s_map_vt_name{
@@ -716,7 +704,7 @@ string CModelAccess::dump_stack(DK_MOBJ_PTR stack)
 
 string CModelAccess::dump_current_callstack()
 {
-    auto cur_stack = DK_MODEL_ACCESS->get_pobj_tree(DK_MODEL_ACCESS->m_debugger, "State.DebuggerVariables.curstack");
+    auto cur_stack = DK_MODEL_ACCESS->get_current_stack();
 
     return dump_stack(cur_stack);
 }
@@ -803,7 +791,7 @@ string CModelAccess::dump_mem_access_result(DK_MOBJ_PTR mem_access_result)
 
     ss << " (" << get<0>(symbol) << "+" << get<1>(symbol) << ")" << endl;
 
-    auto cur_stack = DK_MODEL_ACCESS->get_pobj_tree(DK_MODEL_ACCESS->m_debugger, "State.DebuggerVariables.curstack");
+    auto cur_stack = DK_MODEL_ACCESS->get_current_stack();
     ss << "current stack: " << cur_stack.Get() << ", \n\t" << DK_DUMP(stack)(cur_stack);
 
     ss << endl;
@@ -815,17 +803,63 @@ string CModelAccess::dump_mem_use_result(DK_MOBJ_PTR mem_use_result)
 {
     stringstream ss;
 
-    auto code_ranges = get_pobj(mem_use_result, "CodeRanges");
-    auto input_ranges = get_pobj(mem_use_result, "InputRanges");
-    auto output_ranges = get_pobj(mem_use_result, "OutputRanges");
-    auto total_input_ranges = get_pobj(mem_use_result, "TotalInputRanges");
-    auto total_ranges = get_pobj(mem_use_result, "TotalRanges");
-    auto touched_ranges = get_pobj(mem_use_result, "TouchedRanges");
-    auto register_mismatch_list = get_pobj(mem_use_result, "RegisterMismatchList");
-    auto data_mismatch_list = get_pobj(mem_use_result, "DataMismatchList");
-    auto input_cacheline_ranges = get_pobj(mem_use_result, "InputCacheLineRanges");
+    vector<string> use_kinds = {
+        "CodeRanges",
+        "InputRanges",
+        "OutputRanges",
+        "TotalInputRanges",
+        "TotalRanges",
+        "TouchedRanges",
+        "RegisterMismatchList",
+        "DataMismatchList",
+        "InputCacheLineRanges",
+    };
 
-    // TODO: Figure out what does each range mean.
+    for (auto use_kind : use_kinds)
+    {
+        auto code_range_pobj = get_pobj(mem_use_result, use_kind);
+        if (code_range_pobj != nullptr)
+        {
+            auto code_ranges = iterate(code_range_pobj);
+
+            ss << use_kind << " : " << endl;
+            for (auto code_range : code_ranges)
+            {
+                //ss << dump_mobj(get<1>(code_range)) << endl;
+
+                auto addr_range = get_pobj(get<1>(code_range), "AddressRange");
+
+                if (addr_range != nullptr)
+                {
+                    auto min_addr = get_pvalue<uint64_t, VT_UI8>(addr_range, "MinAddress");
+                    auto max_addr = get_pvalue<uint64_t, VT_UI8>(addr_range, "MaxAddress");
+
+                    //auto data = get_pobj(get<1>(code_range), "Data");
+
+                    auto code_sym = EXT_F_Addr2Sym(min_addr);
+
+                    ss << hex << setfill('0')
+                        << " 0x" << setw(16) << min_addr << " - 0x" << max_addr
+                        << " ( " << setw(5) << setfill(' ') << max_addr - min_addr << " ) "
+                        //<< get<0>(code_sym) << "+0x" << get<1>(code_sym)
+                        << endl;
+
+                }
+                else
+                {
+                    auto min_addr = get_pvalue<uint64_t, VT_UI8>(get<1>(code_range), "MinAddress");
+                    auto max_addr = get_pvalue<uint64_t, VT_UI8>(get<1>(code_range), "MaxAddress");
+
+                    ss << hex << setfill('0')
+                        << " 0x" << setw(16) << min_addr << " - 0x" << max_addr
+                        << " ( " << setw(5) << setfill(' ') << max_addr - min_addr << " ) "
+                        //<< get<0>(code_sym) << "+0x" << get<1>(code_sym)
+                        << endl;
+                }
+
+            }
+        }
+    }
 
     return ss.str();
 }
@@ -1023,11 +1057,96 @@ vector<string> CModelAccess::execute_cmd(string command)
 
 uint64_t CModelAccess::get_current_tid()
 {
-    auto cur_thread = DK_MODEL_ACCESS->get_pobj_tree(DK_MODEL_ACCESS->m_debugger, "State.DebuggerVariables.curthread");
+    auto cur_thread = DK_MODEL_ACCESS->get_current_thread();
 
     auto cur_tid = get_pvalue<uint64_t, VT_UI8>(cur_thread, "Id");
 
     return cur_tid;
+}
+
+vector<ttd_mem_access> CModelAccess::get_mem_access(uint64_t start_addr, uint64_t end_addr, string mode)
+{
+    vector<ttd_mem_access> mem_accesses;
+    auto session = get_current_session();
+    if (session != nullptr)
+    {
+        auto ttd = DK_MGET_POBJ(session, "TTD");
+        if (ttd != nullptr)
+        {
+            auto mem_pobj = DK_MGET_POBJ(ttd, "Memory");
+
+            if (mem_pobj != nullptr)
+            {
+                auto arg_start_addr = DK_MODEL_ACCESS->create_int_intrinsic_obj<uint64_t, VT_UI8>(start_addr);
+                auto arg_end_addr = DK_MODEL_ACCESS->create_int_intrinsic_obj<uint64_t, VT_UI8>(end_addr);
+                auto arg_mode = DK_MODEL_ACCESS->create_str_intrinsic_obj(mode);
+
+                vector<DK_MOBJ_PTR> vec_args;
+                vec_args.push_back(arg_start_addr);
+                vec_args.push_back(arg_end_addr);
+                vec_args.push_back(arg_mode);
+
+                auto mem_access_result = DK_MODEL_ACCESS->call(mem_pobj, ttd, vec_args);
+                if (mem_access_result != nullptr)
+                {
+                    auto results = DK_MODEL_ACCESS->iterate(mem_access_result);
+                    for (auto& result : results)
+                    {
+                        ttd_mem_access mem_access;
+
+                        mem_access.start_pos = get_pos(get<1>(result), "TimeStart");
+                        mem_access.end_pos = get_pos(get<1>(result), "TimeEnd");
+                        mem_access.access_type = BSTR2str(get_pvalue<BSTR, VT_BSTR>(get<1>(result), "AccessType"));
+                        mem_access.ip_addr = get_pvalue<uint64_t, VT_UI8>(get<1>(result), "IP");
+                        mem_access.addr = get_pvalue<uint64_t, VT_UI8>(get<1>(result), "Address");
+                        mem_access.size = get_pvalue<uint64_t, VT_UI8>(get<1>(result), "Size");
+                        mem_access.value = get_pvalue<uint64_t, VT_UI8>(get<1>(result), "Value");
+                        mem_access.overwritten_value = get_pvalue<uint64_t, VT_UI8>(get<1>(result), "OverwrittenValue");
+                        mem_access.thread_id = get_pvalue<uint64_t, VT_UI8>(get<1>(result), "ThreadId");
+                        mem_access.event_type = get_pvalue<uint64_t, VT_UI8>(get<1>(result), "EventType");
+
+                        mem_accesses.emplace_back(mem_access);
+                    }
+                }
+            }
+        }
+    }
+
+    return mem_accesses;
+}
+
+DK_MOBJ_PTR CModelAccess::get_current_session()
+{
+    return get_pobj_tree(m_debugger, "State.DebuggerVariables.cursession");
+}
+
+DK_MOBJ_PTR CModelAccess::get_current_process()
+{
+    return get_pobj_tree(m_debugger, "State.DebuggerVariables.curprocess");
+}
+
+DK_MOBJ_PTR CModelAccess::get_current_thread()
+{
+    return get_pobj_tree(m_debugger, "State.DebuggerVariables.curthread");
+}
+
+DK_MOBJ_PTR CModelAccess::get_current_stack()
+{
+    return get_pobj_tree(m_debugger, "State.DebuggerVariables.curstack");
+}
+
+DK_MOBJ_PTR CModelAccess::get_current_frame()
+{
+    return get_pobj_tree(m_debugger, "State.DebuggerVariables.curframe");
+}
+
+tuple<uint64_t, uint64_t> CModelAccess::get_current_pos()
+{
+    auto cur_pos = get_pobj_tree(m_debugger, "State.DebuggerVariables.curthread.TTD.Position");
+
+    auto seq = get_pvalue<uint64_t, VT_UI8>(cur_pos, "Sequence");
+    auto step = get_pvalue<uint64_t, VT_UI8>(cur_pos, "Steps");
+    return make_tuple(seq, step);
 }
 
 string CModelAccess::dump_heap_memory(DK_MOBJ_PTR heap_memory)
@@ -1056,7 +1175,7 @@ string CModelAccess::dump_heap_memory(DK_MOBJ_PTR heap_memory)
 vector<ttd_heap_memory> CModelAccess::get_heap_memory()
 {
     vector<ttd_heap_memory> results;
-    auto cur_session = DK_MODEL_ACCESS->get_pobj_tree(DK_MODEL_ACCESS->m_debugger, "State.DebuggerVariables.cursession");
+    auto cur_session = DK_MODEL_ACCESS->get_current_session();
 
     if (cur_session != nullptr)
     {
@@ -1579,11 +1698,6 @@ DK_MOBJ_PTR CModelAccess::get_thread(size_t session_id, size_t process_id, size_
     }
 
     return nullptr;
-}
-
-DK_MOBJ_PTR CModelAccess::get_cursession()
-{
-    return path2mobj("Debugger.State.DebuggerVariables.cursession");
 }
 
 vector<tuple<uint64_t, DK_MOBJ_PTR>> CModelAccess::iterate(DK_MOBJ_PTR& mobj)

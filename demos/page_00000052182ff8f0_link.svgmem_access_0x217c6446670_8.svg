@@ -1,0 +1,365 @@
+<svg id = 'root' width = '5000'  height = '1600' viewBox = '0 0 5000 1600' xmlns = 'http://www.w3.org/2000/svg' xmlns:xlink = 'http://www.w3.org/1999/xlink' onload='init(evt)'><text x='100' y='50'>( 27:ff - 27:ff )</text>
+<g  style='stroke: white; fill: white;' >
+	<line  x1='100'  y1='100'  x2='420'  y2='100'  />
+	<line  x1='100'  y1='130'  x2='420'  y2='130'  />
+	<line  x1='100'  y1='100'  x2='100'  y2='130'  />
+	<line  x1='140'  y1='100'  x2='140'  y2='130'  />
+	<line  x1='180'  y1='100'  x2='180'  y2='130'  />
+	<line  x1='220'  y1='100'  x2='220'  y2='130'  />
+	<line  x1='260'  y1='100'  x2='260'  y2='130'  />
+	<line  x1='300'  y1='100'  x2='300'  y2='130'  />
+	<line  x1='340'  y1='100'  x2='340'  y2='130'  />
+	<line  x1='380'  y1='100'  x2='380'  y2='130'  />
+	<line  x1='420'  y1='100'  x2='420'  y2='130'  />
+</g>
+
+<g  style='stroke: white; stroke-width: 2; fill: black; font-size: 16; font-weight: normal;' >
+	<rect x='100' y='100' width='40' height='30'  />
+	<rect x='140' y='100' width='40' height='30'  />
+	<rect x='180' y='100' width='40' height='30'  />
+	<rect x='220' y='100' width='40' height='30'  />
+	<rect x='260' y='100' width='40' height='30'  />
+	<rect x='300' y='100' width='40' height='30'  />
+	<rect x='340' y='100' width='40' height='30'  />
+	<rect x='380' y='100' width='40' height='30'  />
+</g>
+
+<g  style='font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;' >
+	<text x='110' y='120' style = 'fill: #ff0708;' >FD</text>
+	<text x='150' y='120' style = 'fill: #ff0708;' >FD</text>
+	<text x='190' y='120' style = 'fill: #ff0708;' >FD</text>
+	<text x='230' y='120' style = 'fill: #ff0708;' >FD</text>
+	<text x='270' y='120'>00</text>
+	<text x='310' y='120'>00</text>
+	<text x='350' y='120'>00</text>
+	<text x='390' y='120'>00</text>
+</g>
+
+<g  style='stroke: white; fill: white;' >
+	<line  x1='100'  y1='160'  x2='420'  y2='160'  />
+	<line  x1='100'  y1='190'  x2='420'  y2='190'  />
+	<line  x1='100'  y1='160'  x2='100'  y2='190'  />
+	<line  x1='140'  y1='160'  x2='140'  y2='190'  />
+	<line  x1='180'  y1='160'  x2='180'  y2='190'  />
+	<line  x1='220'  y1='160'  x2='220'  y2='190'  />
+	<line  x1='260'  y1='160'  x2='260'  y2='190'  />
+	<line  x1='300'  y1='160'  x2='300'  y2='190'  />
+	<line  x1='340'  y1='160'  x2='340'  y2='190'  />
+	<line  x1='380'  y1='160'  x2='380'  y2='190'  />
+	<line  x1='420'  y1='160'  x2='420'  y2='190'  />
+</g>
+
+<g  style='stroke: white; stroke-width: 2; fill: black; font-size: 16; font-weight: normal;' >
+	<rect x='100' y='160' width='40' height='30'  />
+	<rect x='140' y='160' width='40' height='30'  />
+	<rect x='180' y='160' width='40' height='30'  />
+	<rect x='220' y='160' width='40' height='30'  />
+	<rect x='260' y='160' width='40' height='30'  />
+	<rect x='300' y='160' width='40' height='30'  />
+	<rect x='340' y='160' width='40' height='30'  />
+	<rect x='380' y='160' width='40' height='30'  />
+</g>
+
+<g  style='font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;' >
+	<text x='110' y='180'>00</text>
+	<text x='150' y='180'>00</text>
+	<text x='190' y='180'>00</text>
+	<text x='230' y='180'>00</text>
+	<text x='270' y='180'>00</text>
+	<text x='310' y='180'>00</text>
+	<text x='350' y='180'>00</text>
+	<text x='390' y='180'>00</text>
+</g>
+<text x='1100' y='50'>( 27:118 - 27:118 )</text>
+<g  style='stroke: white; fill: white;' >
+	<line  x1='1100'  y1='100'  x2='1420'  y2='100'  />
+	<line  x1='1100'  y1='130'  x2='1420'  y2='130'  />
+	<line  x1='1100'  y1='100'  x2='1100'  y2='130'  />
+	<line  x1='1140'  y1='100'  x2='1140'  y2='130'  />
+	<line  x1='1180'  y1='100'  x2='1180'  y2='130'  />
+	<line  x1='1220'  y1='100'  x2='1220'  y2='130'  />
+	<line  x1='1260'  y1='100'  x2='1260'  y2='130'  />
+	<line  x1='1300'  y1='100'  x2='1300'  y2='130'  />
+	<line  x1='1340'  y1='100'  x2='1340'  y2='130'  />
+	<line  x1='1380'  y1='100'  x2='1380'  y2='130'  />
+	<line  x1='1420'  y1='100'  x2='1420'  y2='130'  />
+</g>
+
+<g  style='stroke: white; stroke-width: 2; fill: black; font-size: 16; font-weight: normal;' >
+	<rect x='1100' y='100' width='40' height='30'  />
+	<rect x='1140' y='100' width='40' height='30'  />
+	<rect x='1180' y='100' width='40' height='30'  />
+	<rect x='1220' y='100' width='40' height='30'  />
+	<rect x='1260' y='100' width='40' height='30'  />
+	<rect x='1300' y='100' width='40' height='30'  />
+	<rect x='1340' y='100' width='40' height='30'  />
+	<rect x='1380' y='100' width='40' height='30'  />
+</g>
+
+<g  style='font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;' >
+	<text x='1110' y='120' style = 'fill: #ff0708;' >CD</text>
+	<text x='1150' y='120' style = 'fill: #ff0708;' >CD</text>
+	<text x='1190' y='120' style = 'fill: #ff0708;' >CD</text>
+	<text x='1230' y='120' style = 'fill: #ff0708;' >CD</text>
+	<text x='1270' y='120'>00</text>
+	<text x='1310' y='120'>00</text>
+	<text x='1350' y='120'>00</text>
+	<text x='1390' y='120'>00</text>
+</g>
+
+<g  style='stroke: white; fill: white;' >
+	<line  x1='1100'  y1='160'  x2='1420'  y2='160'  />
+	<line  x1='1100'  y1='190'  x2='1420'  y2='190'  />
+	<line  x1='1100'  y1='160'  x2='1100'  y2='190'  />
+	<line  x1='1140'  y1='160'  x2='1140'  y2='190'  />
+	<line  x1='1180'  y1='160'  x2='1180'  y2='190'  />
+	<line  x1='1220'  y1='160'  x2='1220'  y2='190'  />
+	<line  x1='1260'  y1='160'  x2='1260'  y2='190'  />
+	<line  x1='1300'  y1='160'  x2='1300'  y2='190'  />
+	<line  x1='1340'  y1='160'  x2='1340'  y2='190'  />
+	<line  x1='1380'  y1='160'  x2='1380'  y2='190'  />
+	<line  x1='1420'  y1='160'  x2='1420'  y2='190'  />
+</g>
+
+<g  style='stroke: white; stroke-width: 2; fill: black; font-size: 16; font-weight: normal;' >
+	<rect x='1100' y='160' width='40' height='30'  />
+	<rect x='1140' y='160' width='40' height='30'  />
+	<rect x='1180' y='160' width='40' height='30'  />
+	<rect x='1220' y='160' width='40' height='30'  />
+	<rect x='1260' y='160' width='40' height='30'  />
+	<rect x='1300' y='160' width='40' height='30'  />
+	<rect x='1340' y='160' width='40' height='30'  />
+	<rect x='1380' y='160' width='40' height='30'  />
+</g>
+
+<g  style='font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;' >
+	<text x='1110' y='180'>00</text>
+	<text x='1150' y='180'>00</text>
+	<text x='1190' y='180'>00</text>
+	<text x='1230' y='180'>00</text>
+	<text x='1270' y='180'>00</text>
+	<text x='1310' y='180'>00</text>
+	<text x='1350' y='180'>00</text>
+	<text x='1390' y='180'>00</text>
+</g>
+<text x='2100' y='50'>( 28:29 - 28:29 )</text>
+<g  style='stroke: white; fill: white;' >
+	<line  x1='2100'  y1='100'  x2='2420'  y2='100'  />
+	<line  x1='2100'  y1='130'  x2='2420'  y2='130'  />
+	<line  x1='2100'  y1='100'  x2='2100'  y2='130'  />
+	<line  x1='2140'  y1='100'  x2='2140'  y2='130'  />
+	<line  x1='2180'  y1='100'  x2='2180'  y2='130'  />
+	<line  x1='2220'  y1='100'  x2='2220'  y2='130'  />
+	<line  x1='2260'  y1='100'  x2='2260'  y2='130'  />
+	<line  x1='2300'  y1='100'  x2='2300'  y2='130'  />
+	<line  x1='2340'  y1='100'  x2='2340'  y2='130'  />
+	<line  x1='2380'  y1='100'  x2='2380'  y2='130'  />
+	<line  x1='2420'  y1='100'  x2='2420'  y2='130'  />
+</g>
+
+<g  style='stroke: white; stroke-width: 2; fill: black; font-size: 16; font-weight: normal;' >
+	<rect x='2100' y='100' width='40' height='30'  />
+	<rect x='2140' y='100' width='40' height='30'  />
+	<rect x='2180' y='100' width='40' height='30'  />
+	<rect x='2220' y='100' width='40' height='30'  />
+	<rect x='2260' y='100' width='40' height='30'  />
+	<rect x='2300' y='100' width='40' height='30'  />
+	<rect x='2340' y='100' width='40' height='30'  />
+	<rect x='2380' y='100' width='40' height='30'  />
+</g>
+
+<g  style='font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;' >
+	<text x='2110' y='120'>00</text>
+	<text x='2150' y='120'>00</text>
+	<text x='2190' y='120'>00</text>
+	<text x='2230' y='120'>00</text>
+	<text x='2270' y='120'>00</text>
+	<text x='2310' y='120'>00</text>
+	<text x='2350' y='120'>00</text>
+	<text x='2390' y='120'>00</text>
+</g>
+
+<g  style='stroke: white; fill: white;' >
+	<line  x1='2100'  y1='160'  x2='2420'  y2='160'  />
+	<line  x1='2100'  y1='190'  x2='2420'  y2='190'  />
+	<line  x1='2100'  y1='160'  x2='2100'  y2='190'  />
+	<line  x1='2140'  y1='160'  x2='2140'  y2='190'  />
+	<line  x1='2180'  y1='160'  x2='2180'  y2='190'  />
+	<line  x1='2220'  y1='160'  x2='2220'  y2='190'  />
+	<line  x1='2260'  y1='160'  x2='2260'  y2='190'  />
+	<line  x1='2300'  y1='160'  x2='2300'  y2='190'  />
+	<line  x1='2340'  y1='160'  x2='2340'  y2='190'  />
+	<line  x1='2380'  y1='160'  x2='2380'  y2='190'  />
+	<line  x1='2420'  y1='160'  x2='2420'  y2='190'  />
+</g>
+
+<g  style='stroke: white; stroke-width: 2; fill: black; font-size: 16; font-weight: normal;' >
+	<rect x='2100' y='160' width='40' height='30'  />
+	<rect x='2140' y='160' width='40' height='30'  />
+	<rect x='2180' y='160' width='40' height='30'  />
+	<rect x='2220' y='160' width='40' height='30'  />
+	<rect x='2260' y='160' width='40' height='30'  />
+	<rect x='2300' y='160' width='40' height='30'  />
+	<rect x='2340' y='160' width='40' height='30'  />
+	<rect x='2380' y='160' width='40' height='30'  />
+</g>
+
+<g  style='font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;' >
+	<text x='2110' y='180' style = 'fill: #ff0708;' >CD</text>
+	<text x='2150' y='180' style = 'fill: #ff0708;' >CD</text>
+	<text x='2190' y='180' style = 'fill: #ff0708;' >CD</text>
+	<text x='2230' y='180' style = 'fill: #ff0708;' >CD</text>
+	<text x='2270' y='180'>00</text>
+	<text x='2310' y='180'>00</text>
+	<text x='2350' y='180'>00</text>
+	<text x='2390' y='180'>00</text>
+</g>
+<text x='3100' y='50'>( 28:c9 - 28:c9 )</text>
+<g  style='stroke: white; fill: white;' >
+	<line  x1='3100'  y1='100'  x2='3420'  y2='100'  />
+	<line  x1='3100'  y1='130'  x2='3420'  y2='130'  />
+	<line  x1='3100'  y1='100'  x2='3100'  y2='130'  />
+	<line  x1='3140'  y1='100'  x2='3140'  y2='130'  />
+	<line  x1='3180'  y1='100'  x2='3180'  y2='130'  />
+	<line  x1='3220'  y1='100'  x2='3220'  y2='130'  />
+	<line  x1='3260'  y1='100'  x2='3260'  y2='130'  />
+	<line  x1='3300'  y1='100'  x2='3300'  y2='130'  />
+	<line  x1='3340'  y1='100'  x2='3340'  y2='130'  />
+	<line  x1='3380'  y1='100'  x2='3380'  y2='130'  />
+	<line  x1='3420'  y1='100'  x2='3420'  y2='130'  />
+</g>
+
+<g  style='stroke: white; stroke-width: 2; fill: black; font-size: 16; font-weight: normal;' >
+	<rect x='3100' y='100' width='40' height='30'  />
+	<rect x='3140' y='100' width='40' height='30'  />
+	<rect x='3180' y='100' width='40' height='30'  />
+	<rect x='3220' y='100' width='40' height='30'  />
+	<rect x='3260' y='100' width='40' height='30'  />
+	<rect x='3300' y='100' width='40' height='30'  />
+	<rect x='3340' y='100' width='40' height='30'  />
+	<rect x='3380' y='100' width='40' height='30'  />
+</g>
+
+<g  style='font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;' >
+	<text x='3110' y='120' style = 'fill: #ff0708;' >FE</text>
+	<text x='3150' y='120' style = 'fill: #a100f2;' >FF</text>
+	<text x='3190' y='120' style = 'fill: #a100f2;' >FF</text>
+	<text x='3230' y='120' style = 'fill: #a100f2;' >FF</text>
+	<text x='3270' y='120'>00</text>
+	<text x='3310' y='120'>00</text>
+	<text x='3350' y='120'>00</text>
+	<text x='3390' y='120'>00</text>
+</g>
+
+<g  style='stroke: white; fill: white;' >
+	<line  x1='3100'  y1='160'  x2='3420'  y2='160'  />
+	<line  x1='3100'  y1='190'  x2='3420'  y2='190'  />
+	<line  x1='3100'  y1='160'  x2='3100'  y2='190'  />
+	<line  x1='3140'  y1='160'  x2='3140'  y2='190'  />
+	<line  x1='3180'  y1='160'  x2='3180'  y2='190'  />
+	<line  x1='3220'  y1='160'  x2='3220'  y2='190'  />
+	<line  x1='3260'  y1='160'  x2='3260'  y2='190'  />
+	<line  x1='3300'  y1='160'  x2='3300'  y2='190'  />
+	<line  x1='3340'  y1='160'  x2='3340'  y2='190'  />
+	<line  x1='3380'  y1='160'  x2='3380'  y2='190'  />
+	<line  x1='3420'  y1='160'  x2='3420'  y2='190'  />
+</g>
+
+<g  style='stroke: white; stroke-width: 2; fill: black; font-size: 16; font-weight: normal;' >
+	<rect x='3100' y='160' width='40' height='30'  />
+	<rect x='3140' y='160' width='40' height='30'  />
+	<rect x='3180' y='160' width='40' height='30'  />
+	<rect x='3220' y='160' width='40' height='30'  />
+	<rect x='3260' y='160' width='40' height='30'  />
+	<rect x='3300' y='160' width='40' height='30'  />
+	<rect x='3340' y='160' width='40' height='30'  />
+	<rect x='3380' y='160' width='40' height='30'  />
+</g>
+
+<g  style='font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;' >
+	<text x='3110' y='180'>00</text>
+	<text x='3150' y='180'>00</text>
+	<text x='3190' y='180'>00</text>
+	<text x='3230' y='180'>00</text>
+	<text x='3270' y='180'>00</text>
+	<text x='3310' y='180'>00</text>
+	<text x='3350' y='180'>00</text>
+	<text x='3390' y='180'>00</text>
+</g>
+<text x='4100' y='50'>( 6cf:122 - 6cf:122 )</text>
+<g  style='stroke: white; fill: white;' >
+	<line  x1='4100'  y1='100'  x2='4420'  y2='100'  />
+	<line  x1='4100'  y1='130'  x2='4420'  y2='130'  />
+	<line  x1='4100'  y1='100'  x2='4100'  y2='130'  />
+	<line  x1='4140'  y1='100'  x2='4140'  y2='130'  />
+	<line  x1='4180'  y1='100'  x2='4180'  y2='130'  />
+	<line  x1='4220'  y1='100'  x2='4220'  y2='130'  />
+	<line  x1='4260'  y1='100'  x2='4260'  y2='130'  />
+	<line  x1='4300'  y1='100'  x2='4300'  y2='130'  />
+	<line  x1='4340'  y1='100'  x2='4340'  y2='130'  />
+	<line  x1='4380'  y1='100'  x2='4380'  y2='130'  />
+	<line  x1='4420'  y1='100'  x2='4420'  y2='130'  />
+</g>
+
+<g  style='stroke: white; stroke-width: 2; fill: black; font-size: 16; font-weight: normal;' >
+	<rect x='4100' y='100' width='40' height='30'  />
+	<rect x='4140' y='100' width='40' height='30'  />
+	<rect x='4180' y='100' width='40' height='30'  />
+	<rect x='4220' y='100' width='40' height='30'  />
+	<rect x='4260' y='100' width='40' height='30'  />
+	<rect x='4300' y='100' width='40' height='30'  />
+	<rect x='4340' y='100' width='40' height='30'  />
+	<rect x='4380' y='100' width='40' height='30'  />
+</g>
+
+<g  style='font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;' >
+	<text x='4110' y='120' style = 'fill: #ff0708;' >DD</text>
+	<text x='4150' y='120' style = 'fill: #ff0708;' >DD</text>
+	<text x='4190' y='120' style = 'fill: #ff0708;' >DD</text>
+	<text x='4230' y='120' style = 'fill: #ff0708;' >DD</text>
+	<text x='4270' y='120' style = 'fill: #ff0708;' >DD</text>
+	<text x='4310' y='120' style = 'fill: #ff0708;' >DD</text>
+	<text x='4350' y='120' style = 'fill: #ff0708;' >DD</text>
+	<text x='4390' y='120' style = 'fill: #ff0708;' >DD</text>
+</g>
+
+<g  style='stroke: white; fill: white;' >
+	<line  x1='4100'  y1='160'  x2='4420'  y2='160'  />
+	<line  x1='4100'  y1='190'  x2='4420'  y2='190'  />
+	<line  x1='4100'  y1='160'  x2='4100'  y2='190'  />
+	<line  x1='4140'  y1='160'  x2='4140'  y2='190'  />
+	<line  x1='4180'  y1='160'  x2='4180'  y2='190'  />
+	<line  x1='4220'  y1='160'  x2='4220'  y2='190'  />
+	<line  x1='4260'  y1='160'  x2='4260'  y2='190'  />
+	<line  x1='4300'  y1='160'  x2='4300'  y2='190'  />
+	<line  x1='4340'  y1='160'  x2='4340'  y2='190'  />
+	<line  x1='4380'  y1='160'  x2='4380'  y2='190'  />
+	<line  x1='4420'  y1='160'  x2='4420'  y2='190'  />
+</g>
+
+<g  style='stroke: white; stroke-width: 2; fill: black; font-size: 16; font-weight: normal;' >
+	<rect x='4100' y='160' width='40' height='30'  />
+	<rect x='4140' y='160' width='40' height='30'  />
+	<rect x='4180' y='160' width='40' height='30'  />
+	<rect x='4220' y='160' width='40' height='30'  />
+	<rect x='4260' y='160' width='40' height='30'  />
+	<rect x='4300' y='160' width='40' height='30'  />
+	<rect x='4340' y='160' width='40' height='30'  />
+	<rect x='4380' y='160' width='40' height='30'  />
+</g>
+
+<g  style='font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;' >
+	<text x='4110' y='180' style = 'fill: #ff0708;' >DD</text>
+	<text x='4150' y='180' style = 'fill: #ff0708;' >DD</text>
+	<text x='4190' y='180' style = 'fill: #ff0708;' >DD</text>
+	<text x='4230' y='180' style = 'fill: #ff0708;' >DD</text>
+	<text x='4270' y='180' style = 'fill: #ff0708;' >DD</text>
+	<text x='4310' y='180' style = 'fill: #ff0708;' >DD</text>
+	<text x='4350' y='180' style = 'fill: #ff0708;' >DD</text>
+	<text x='4390' y='180' style = 'fill: #ff0708;' >DD</text>
+</g>
+
+<g  style='stroke: none; fill: black; font-size: 16; font-weight: normal; font-family: monospace; ' >
+</g>
+
+</svg>
