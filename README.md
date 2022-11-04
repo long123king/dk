@@ -6,7 +6,11 @@ dk is the enhanced refactored version of [tokenext](https://github.com/long123ki
 
 Run ***!dk help*** for supported command list.
 
-Check page_2_svg demo [here](https://raw.githubusercontent.com/long123king/dk/main/demos/page_00000060a11ff000.svg) and [here with pointers](https://raw.githubusercontent.com/long123king/dk/main/demos/page_00000052%60182ff730_1.svg) and [here with local/symbol/heap pointers](https://raw.githubusercontent.com/long123king/dk/main/demos/page_00000052%60182ff8f0_2.svg).
+Check page_2_svg demos:
+1. [Initial version](https://raw.githubusercontent.com/long123king/dk/main/demos/page_00000060a11ff000.svg)
+2. [Add pointers to local buffer(in green), pointers to symbols(in red)](https://raw.githubusercontent.com/long123king/dk/main/demos/page_00000052%60182ff730_1.svg)
+3. [Add pointers to heap allocations(in blue)](https://raw.githubusercontent.com/long123king/dk/main/demos/page_00000052%60182ff8f0_2.svg)
+4. [Add heap allocation changing history, blue rects are clickable](https://raw.githubusercontent.com/long123king/dk/main/demos/page_00000052182ff8f0_link.svg)
 
 Run following commands to generate callstack forest visualization in svg format(small projects only!), demos for helloworld project can be found  [here](https://raw.githubusercontent.com/long123king/dk/main/demos/helloworld_viz_forest.svg). (Click interaction on svg is blocked by browsers, try it locally)
 
