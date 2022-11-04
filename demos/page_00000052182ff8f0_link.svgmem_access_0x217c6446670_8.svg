@@ -1,4 +1,4 @@
-<svg id = 'root' width = '5000'  height = '1600' viewBox = '0 0 5000 1600' xmlns = 'http://www.w3.org/2000/svg' xmlns:xlink = 'http://www.w3.org/1999/xlink' onload='init(evt)'><text x='100' y='50'>( 27:ff - 27:ff )</text>
+<svg id = 'root' width = '5000'  height = '1600' viewBox = '0 0 5000 1600' xmlns = 'http://www.w3.org/2000/svg' xmlns:xlink = 'http://www.w3.org/1999/xlink' onload='init(evt)'><text x='100' y='50'>( 27:ff - 27:ff ) 0x00000217c6446674, size: 0x4</text>
 <g  style='stroke: white; fill: white;' >
 	<line  x1='100'  y1='100'  x2='420'  y2='100'  />
 	<line  x1='100'  y1='130'  x2='420'  y2='130'  />
@@ -25,10 +25,10 @@
 </g>
 
 <g  style='font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;' >
-	<text x='110' y='120' style = 'fill: #ff0708;' >FD</text>
-	<text x='150' y='120' style = 'fill: #ff0708;' >FD</text>
-	<text x='190' y='120' style = 'fill: #ff0708;' >FD</text>
-	<text x='230' y='120' style = 'fill: #ff0708;' >FD</text>
+	<text x='110' y='120'>00</text>
+	<text x='150' y='120'>00</text>
+	<text x='190' y='120'>00</text>
+	<text x='230' y='120'>00</text>
 	<text x='270' y='120'>00</text>
 	<text x='310' y='120'>00</text>
 	<text x='350' y='120'>00</text>
@@ -61,16 +61,16 @@
 </g>
 
 <g  style='font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;' >
-	<text x='110' y='180'>00</text>
-	<text x='150' y='180'>00</text>
-	<text x='190' y='180'>00</text>
-	<text x='230' y='180'>00</text>
+	<text x='110' y='180' style = 'fill: #ff0708;' >FD</text>
+	<text x='150' y='180' style = 'fill: #ff0708;' >FD</text>
+	<text x='190' y='180' style = 'fill: #ff0708;' >FD</text>
+	<text x='230' y='180' style = 'fill: #ff0708;' >FD</text>
 	<text x='270' y='180'>00</text>
 	<text x='310' y='180'>00</text>
 	<text x='350' y='180'>00</text>
 	<text x='390' y='180'>00</text>
 </g>
-<text x='1100' y='50'>( 27:118 - 27:118 )</text>
+<text x='1100' y='50'>( 27:118 - 27:118 ) 0x00000217c6446670, size: 0x4</text>
 <g  style='stroke: white; fill: white;' >
 	<line  x1='1100'  y1='100'  x2='1420'  y2='100'  />
 	<line  x1='1100'  y1='130'  x2='1420'  y2='130'  />
@@ -97,10 +97,10 @@
 </g>
 
 <g  style='font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;' >
-	<text x='1110' y='120' style = 'fill: #ff0708;' >CD</text>
-	<text x='1150' y='120' style = 'fill: #ff0708;' >CD</text>
-	<text x='1190' y='120' style = 'fill: #ff0708;' >CD</text>
-	<text x='1230' y='120' style = 'fill: #ff0708;' >CD</text>
+	<text x='1110' y='120'>00</text>
+	<text x='1150' y='120'>00</text>
+	<text x='1190' y='120'>00</text>
+	<text x='1230' y='120'>00</text>
 	<text x='1270' y='120'>00</text>
 	<text x='1310' y='120'>00</text>
 	<text x='1350' y='120'>00</text>
@@ -133,16 +133,16 @@
 </g>
 
 <g  style='font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;' >
-	<text x='1110' y='180'>00</text>
-	<text x='1150' y='180'>00</text>
-	<text x='1190' y='180'>00</text>
-	<text x='1230' y='180'>00</text>
+	<text x='1110' y='180' style = 'fill: #ff0708;' >CD</text>
+	<text x='1150' y='180' style = 'fill: #ff0708;' >CD</text>
+	<text x='1190' y='180' style = 'fill: #ff0708;' >CD</text>
+	<text x='1230' y='180' style = 'fill: #ff0708;' >CD</text>
 	<text x='1270' y='180'>00</text>
 	<text x='1310' y='180'>00</text>
 	<text x='1350' y='180'>00</text>
 	<text x='1390' y='180'>00</text>
 </g>
-<text x='2100' y='50'>( 28:29 - 28:29 )</text>
+<text x='2100' y='50'>( 28:29 - 28:29 ) 0x00000217c6446670, size: 0x4</text>
 <g  style='stroke: white; fill: white;' >
 	<line  x1='2100'  y1='100'  x2='2420'  y2='100'  />
 	<line  x1='2100'  y1='130'  x2='2420'  y2='130'  />
@@ -169,10 +169,10 @@
 </g>
 
 <g  style='font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;' >
-	<text x='2110' y='120'>00</text>
-	<text x='2150' y='120'>00</text>
-	<text x='2190' y='120'>00</text>
-	<text x='2230' y='120'>00</text>
+	<text x='2110' y='120' style = 'fill: #ff0708;' >CD</text>
+	<text x='2150' y='120' style = 'fill: #ff0708;' >CD</text>
+	<text x='2190' y='120' style = 'fill: #ff0708;' >CD</text>
+	<text x='2230' y='120' style = 'fill: #ff0708;' >CD</text>
 	<text x='2270' y='120'>00</text>
 	<text x='2310' y='120'>00</text>
 	<text x='2350' y='120'>00</text>
@@ -205,16 +205,16 @@
 </g>
 
 <g  style='font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;' >
-	<text x='2110' y='180' style = 'fill: #ff0708;' >CD</text>
-	<text x='2150' y='180' style = 'fill: #ff0708;' >CD</text>
-	<text x='2190' y='180' style = 'fill: #ff0708;' >CD</text>
-	<text x='2230' y='180' style = 'fill: #ff0708;' >CD</text>
+	<text x='2110' y='180'>00</text>
+	<text x='2150' y='180'>00</text>
+	<text x='2190' y='180'>00</text>
+	<text x='2230' y='180'>00</text>
 	<text x='2270' y='180'>00</text>
 	<text x='2310' y='180'>00</text>
 	<text x='2350' y='180'>00</text>
 	<text x='2390' y='180'>00</text>
 </g>
-<text x='3100' y='50'>( 28:c9 - 28:c9 )</text>
+<text x='3100' y='50'>( 28:c9 - 28:c9 ) 0x00000217c6446670, size: 0x4</text>
 <g  style='stroke: white; fill: white;' >
 	<line  x1='3100'  y1='100'  x2='3420'  y2='100'  />
 	<line  x1='3100'  y1='130'  x2='3420'  y2='130'  />
@@ -241,10 +241,10 @@
 </g>
 
 <g  style='font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;' >
-	<text x='3110' y='120' style = 'fill: #ff0708;' >FE</text>
-	<text x='3150' y='120' style = 'fill: #a100f2;' >FF</text>
-	<text x='3190' y='120' style = 'fill: #a100f2;' >FF</text>
-	<text x='3230' y='120' style = 'fill: #a100f2;' >FF</text>
+	<text x='3110' y='120'>00</text>
+	<text x='3150' y='120'>00</text>
+	<text x='3190' y='120'>00</text>
+	<text x='3230' y='120'>00</text>
 	<text x='3270' y='120'>00</text>
 	<text x='3310' y='120'>00</text>
 	<text x='3350' y='120'>00</text>
@@ -277,16 +277,16 @@
 </g>
 
 <g  style='font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;' >
-	<text x='3110' y='180'>00</text>
-	<text x='3150' y='180'>00</text>
-	<text x='3190' y='180'>00</text>
-	<text x='3230' y='180'>00</text>
+	<text x='3110' y='180' style = 'fill: #ff0708;' >FE</text>
+	<text x='3150' y='180' style = 'fill: #a100f2;' >FF</text>
+	<text x='3190' y='180' style = 'fill: #a100f2;' >FF</text>
+	<text x='3230' y='180' style = 'fill: #a100f2;' >FF</text>
 	<text x='3270' y='180'>00</text>
 	<text x='3310' y='180'>00</text>
 	<text x='3350' y='180'>00</text>
 	<text x='3390' y='180'>00</text>
 </g>
-<text x='4100' y='50'>( 6cf:122 - 6cf:122 )</text>
+<text x='4100' y='50'>( 6cf:122 - 6cf:122 ) 0x00000217c6446668, size: 0x10</text>
 <g  style='stroke: white; fill: white;' >
 	<line  x1='4100'  y1='100'  x2='4420'  y2='100'  />
 	<line  x1='4100'  y1='130'  x2='4420'  y2='130'  />
@@ -359,7 +359,168 @@
 	<text x='4390' y='180' style = 'fill: #ff0708;' >DD</text>
 </g>
 
+<defs>
+	<g style='stroke: none; fill:red; fill-opacity: 0.4; stroke-opacity: 0.4;'>
+		<marker id = 'arrowheadr' markerWidth = '10' markerHeight = '7' refX = '0' refY = '3.5' orient = 'auto'>
+			<polygon points = '0 0, 10 3.5, 0 7' />
+		</marker>
+	</g>
+</defs>
+
+<defs>
+	<g style='stroke: none; fill:green; fill-opacity: 0.4; stroke-opacity: 0.4;'>
+		<marker id = 'arrowheadg' markerWidth = '10' markerHeight = '7' refX = '0' refY = '3.5' orient = 'auto'>
+			<polygon points = '0 0, 10 3.5, 0 7' />
+		</marker>
+	</g>
+</defs>
+
+<defs>
+	<g style='stroke: none; fill:blue; fill-opacity: 0.4; stroke-opacity: 0.4;'>
+		<marker id = 'arrowheadb' markerWidth = '10' markerHeight = '7' refX = '0' refY = '3.5' orient = 'auto'>
+			<polygon points = '0 0, 10 3.5, 0 7' />
+		</marker>
+	</g>
+</defs>
+
+<g  style='stroke: black; fill: #74D2EE;' >
+	<rect x='100' y='220' width='800' height='40'  />
+	<rect x='100' y='260' width='800' height='40'  />
+	<rect x='100' y='300' width='800' height='40'  />
+	<rect x='100' y='340' width='800' height='40'  />
+	<rect x='100' y='380' width='800' height='40'  />
+	<rect x='100' y='420' width='800' height='40'  />
+	<rect x='100' y='460' width='800' height='40'  />
+	<rect x='100' y='500' width='800' height='40'  />
+	<rect x='100' y='540' width='800' height='40'  />
+	<rect x='100' y='580' width='800' height='40'  />
+	<rect x='100' y='620' width='800' height='40'  />
+	<rect x='100' y='660' width='800' height='40'  />
+	<rect x='100' y='700' width='800' height='40'  />
+	<rect x='1100' y='220' width='800' height='40'  />
+	<rect x='1100' y='260' width='800' height='40'  />
+	<rect x='1100' y='300' width='800' height='40'  />
+	<rect x='1100' y='340' width='800' height='40'  />
+	<rect x='1100' y='380' width='800' height='40'  />
+	<rect x='1100' y='420' width='800' height='40'  />
+	<rect x='1100' y='460' width='800' height='40'  />
+	<rect x='1100' y='500' width='800' height='40'  />
+	<rect x='1100' y='540' width='800' height='40'  />
+	<rect x='1100' y='580' width='800' height='40'  />
+	<rect x='1100' y='620' width='800' height='40'  />
+	<rect x='1100' y='660' width='800' height='40'  />
+	<rect x='1100' y='700' width='800' height='40'  />
+	<rect x='2100' y='220' width='800' height='40'  />
+	<rect x='2100' y='260' width='800' height='40'  />
+	<rect x='2100' y='300' width='800' height='40'  />
+	<rect x='2100' y='340' width='800' height='40'  />
+	<rect x='2100' y='380' width='800' height='40'  />
+	<rect x='2100' y='420' width='800' height='40'  />
+	<rect x='2100' y='460' width='800' height='40'  />
+	<rect x='2100' y='500' width='800' height='40'  />
+	<rect x='2100' y='540' width='800' height='40'  />
+	<rect x='2100' y='580' width='800' height='40'  />
+	<rect x='2100' y='620' width='800' height='40'  />
+	<rect x='3100' y='220' width='800' height='40'  />
+	<rect x='3100' y='260' width='800' height='40'  />
+	<rect x='3100' y='300' width='800' height='40'  />
+	<rect x='3100' y='340' width='800' height='40'  />
+	<rect x='3100' y='380' width='800' height='40'  />
+	<rect x='3100' y='420' width='800' height='40'  />
+	<rect x='3100' y='460' width='800' height='40'  />
+	<rect x='3100' y='500' width='800' height='40'  />
+	<rect x='3100' y='540' width='800' height='40'  />
+	<rect x='3100' y='580' width='800' height='40'  />
+	<rect x='4100' y='220' width='800' height='40'  />
+	<rect x='4100' y='260' width='800' height='40'  />
+	<rect x='4100' y='300' width='800' height='40'  />
+	<rect x='4100' y='340' width='800' height='40'  />
+	<rect x='4100' y='380' width='800' height='40'  />
+	<rect x='4100' y='420' width='800' height='40'  />
+	<rect x='4100' y='460' width='800' height='40'  />
+	<rect x='4100' y='500' width='800' height='40'  />
+	<rect x='4100' y='540' width='800' height='40'  />
+	<rect x='4100' y='580' width='800' height='40'  />
+	<rect x='4100' y='620' width='800' height='40'  />
+	<rect x='4100' y='660' width='800' height='40'  />
+	<rect x='4100' y='700' width='800' height='40'  />
+	<rect x='4100' y='740' width='800' height='40'  />
+	<rect x='4100' y='780' width='800' height='40'  />
+	<rect x='4100' y='820' width='800' height='40'  />
+</g>
+
 <g  style='stroke: none; fill: black; font-size: 16; font-weight: normal; font-family: monospace; ' >
+	<text x='100' y='240'>[ 0 ] ucrtbased!memset+0x144</text>
+	<text x='100' y='280'>[ 1 ] ucrtbased!heap_alloc_dbg_internal+0x40e</text>
+	<text x='100' y='320'>[ 2 ] ucrtbased!heap_alloc_dbg+0x4d</text>
+	<text x='100' y='360'>[ 3 ] ucrtbased!_calloc_dbg+0x6c</text>
+	<text x='100' y='400'>[ 4 ] VCRUNTIME140_1D!__vcrt_getptd_noexit+0xd4</text>
+	<text x='100' y='440'>[ 5 ] VCRUNTIME140_1D!__vcrt_thread_attach+0x9</text>
+	<text x='100' y='480'>[ 6 ] VCRUNTIME140_1D!DllMainDispatch+0x74</text>
+	<text x='100' y='520'>[ 7 ] VCRUNTIME140_1D!__vcrt_DllMain+0x31</text>
+	<text x='100' y='560'>[ 8 ] ntdll!LdrpCallInitRoutine+0x6b</text>
+	<text x='100' y='600'>[ 9 ] ntdll!LdrpInitializeThread+0x167</text>
+	<text x='100' y='640'>[ a ] ntdll!_LdrpInitialize+0x93</text>
+	<text x='100' y='680'>[ b ] ntdll!LdrpInitializeInternal+0x6b</text>
+	<text x='100' y='720'>[ c ] ntdll!LdrInitializeThunk+0xe</text>
+	<text x='1100' y='240'>[ 0 ] ucrtbased!memset+0x144</text>
+	<text x='1100' y='280'>[ 1 ] ucrtbased!heap_alloc_dbg_internal+0x42d</text>
+	<text x='1100' y='320'>[ 2 ] ucrtbased!heap_alloc_dbg+0x4d</text>
+	<text x='1100' y='360'>[ 3 ] ucrtbased!_calloc_dbg+0x6c</text>
+	<text x='1100' y='400'>[ 4 ] VCRUNTIME140_1D!__vcrt_getptd_noexit+0xd4</text>
+	<text x='1100' y='440'>[ 5 ] VCRUNTIME140_1D!__vcrt_thread_attach+0x9</text>
+	<text x='1100' y='480'>[ 6 ] VCRUNTIME140_1D!DllMainDispatch+0x74</text>
+	<text x='1100' y='520'>[ 7 ] VCRUNTIME140_1D!__vcrt_DllMain+0x31</text>
+	<text x='1100' y='560'>[ 8 ] ntdll!LdrpCallInitRoutine+0x6b</text>
+	<text x='1100' y='600'>[ 9 ] ntdll!LdrpInitializeThread+0x167</text>
+	<text x='1100' y='640'>[ a ] ntdll!_LdrpInitialize+0x93</text>
+	<text x='1100' y='680'>[ b ] ntdll!LdrpInitializeInternal+0x6b</text>
+	<text x='1100' y='720'>[ c ] ntdll!LdrInitializeThunk+0xe</text>
+	<text x='2100' y='240'>[ 0 ] ucrtbased!memset+0x144</text>
+	<text x='2100' y='280'>[ 1 ] ucrtbased!_calloc_dbg+0x8a</text>
+	<text x='2100' y='320'>[ 2 ] VCRUNTIME140_1D!__vcrt_getptd_noexit+0xd4</text>
+	<text x='2100' y='360'>[ 3 ] VCRUNTIME140_1D!__vcrt_thread_attach+0x9</text>
+	<text x='2100' y='400'>[ 4 ] VCRUNTIME140_1D!DllMainDispatch+0x74</text>
+	<text x='2100' y='440'>[ 5 ] VCRUNTIME140_1D!__vcrt_DllMain+0x31</text>
+	<text x='2100' y='480'>[ 6 ] ntdll!LdrpCallInitRoutine+0x6b</text>
+	<text x='2100' y='520'>[ 7 ] ntdll!LdrpInitializeThread+0x167</text>
+	<text x='2100' y='560'>[ 8 ] ntdll!_LdrpInitialize+0x93</text>
+	<text x='2100' y='600'>[ 9 ] ntdll!LdrpInitializeInternal+0x6b</text>
+	<text x='2100' y='640'>[ a ] ntdll!LdrInitializeThunk+0xe</text>
+	<text x='3100' y='240'>[ 0 ] VCRUNTIME140_1D!store_and_initialize_ptd+0x26</text>
+	<text x='3100' y='280'>[ 1 ] VCRUNTIME140_1D!__vcrt_getptd_noexit+0x135</text>
+	<text x='3100' y='320'>[ 2 ] VCRUNTIME140_1D!__vcrt_thread_attach+0x9</text>
+	<text x='3100' y='360'>[ 3 ] VCRUNTIME140_1D!DllMainDispatch+0x74</text>
+	<text x='3100' y='400'>[ 4 ] VCRUNTIME140_1D!__vcrt_DllMain+0x31</text>
+	<text x='3100' y='440'>[ 5 ] ntdll!LdrpCallInitRoutine+0x6b</text>
+	<text x='3100' y='480'>[ 6 ] ntdll!LdrpInitializeThread+0x167</text>
+	<text x='3100' y='520'>[ 7 ] ntdll!_LdrpInitialize+0x93</text>
+	<text x='3100' y='560'>[ 8 ] ntdll!LdrpInitializeInternal+0x6b</text>
+	<text x='3100' y='600'>[ 9 ] ntdll!LdrInitializeThunk+0xe</text>
+	<text x='4100' y='240'>[ 0 ] ucrtbased!memset+0xc2</text>
+	<text x='4100' y='280'>[ 1 ] ucrtbased!free_dbg_nolock+0x720</text>
+	<text x='4100' y='320'>[ 2 ] ucrtbased!_free_dbg+0x55</text>
+	<text x='4100' y='360'>[ 3 ] VCRUNTIME140_1D!__vcrt_freefls+0x31</text>
+	<text x='4100' y='400'>[ 4 ] ntdll!RtlpFlsDataCleanup+0xd8</text>
+	<text x='4100' y='440'>[ 5 ] ntdll!LdrShutdownProcess+0xc7</text>
+	<text x='4100' y='480'>[ 6 ] ntdll!RtlExitUserProcess+0xad</text>
+	<text x='4100' y='520'>[ 7 ] KERNEL32!ExitProcessImplementation+0xb</text>
+	<text x='4100' y='560'>[ 8 ] ucrtbased!exit_or_terminate_process+0x3a</text>
+	<text x='4100' y='600'>[ 9 ] ucrtbased!common_exit+0x85</text>
+	<text x='4100' y='640'>[ a ] ucrtbased!exit+0x16</text>
+	<text x='4100' y='680'>[ b ] helloworld!__scrt_common_main_seh+0x147</text>
+	<text x='4100' y='720'>[ c ] helloworld!__scrt_common_main+0xe</text>
+	<text x='4100' y='760'>[ d ] helloworld!mainCRTStartup+0xe</text>
+	<text x='4100' y='800'>[ e ] KERNEL32!BaseThreadInitThunk+0x1d</text>
+	<text x='4100' y='840'>[ f ] ntdll!RtlUserThreadStart+0x28</text>
+</g>
+
+<g  style='stroke: red; stroke-width: 3;' >
+	<line  x1='260'  y1='128'  x2='260'  y2='130'  marker-end='url(#arrowheadr)' />
+	<line  x1='1260'  y1='128'  x2='1260'  y2='130'  marker-end='url(#arrowheadr)' />
+	<line  x1='2260'  y1='128'  x2='2260'  y2='130'  marker-end='url(#arrowheadr)' />
+	<line  x1='3260'  y1='128'  x2='3260'  y2='130'  marker-end='url(#arrowheadr)' />
+	<line  x1='4260'  y1='128'  x2='4260'  y2='130'  marker-end='url(#arrowheadr)' />
 </g>
 
 </svg>
