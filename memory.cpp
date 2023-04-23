@@ -131,20 +131,34 @@ string Byte2FontStyle(uint8_t byte)
     string ascii_default = "#ffd60a";
 
     string fill_color = ascii_default;
+    //if (byte == 0)
+    //    return "";
+    //else if (byte >= 'a' && byte <= 'z')
+    //    fill_color = character_color;
+    //else if (byte >= 'A' && byte <= 'Z')
+    //    fill_color = character_color;
+    //else if (byte >= '0' && byte <= '9')
+    //    fill_color = numeric_color;
+    //else if (byte == 0xCC)
+    //    fill_color = software_breakpoing_color;
+    //else if (byte == 0xFF)
+    //    fill_color = maximum_color;
+    //else if (byte >= 0x80)
+    //    fill_color = non_ascii;
     if (byte == 0)
-        return "";
+        fill_color = "#a0f0f0";
     else if (byte >= 'a' && byte <= 'z')
-        fill_color = character_color;
+        fill_color = "#f0f0a0";
     else if (byte >= 'A' && byte <= 'Z')
-        fill_color = character_color;
+        fill_color = "#f0f0a0";
     else if (byte >= '0' && byte <= '9')
-        fill_color = numeric_color;
-    else if (byte == 0xCC)
-        fill_color = software_breakpoing_color;
-    else if (byte == 0xFF)
-        fill_color = maximum_color;
-    else if (byte >= 0x80)
-        fill_color = non_ascii;
+        fill_color = "#a0ffa0";
+    else if (byte <= 0x80)
+        fill_color = "#a0a0f0";
+    else if (byte <= 0xF0)
+        fill_color = "#f0a0f0";
+    else
+        fill_color = "#f0a0a0";
 
     return "fill: " + fill_color + ";";
 }
@@ -184,6 +198,15 @@ shared_ptr<CSvgDoc> visual_page(string page_content, uint64_t page_addr, Coordin
 
     vector<string> content_texts;
     vector<string> content_styles;
+
+    auto grid_pivot = coordinates_mgr.GetLGridPivot(0, 0);
+    auto grid_parameters = coordinates_mgr.GetLGridParameters();
+
+    vector<shared_ptr<CSvgGrids>> vec_bitmap_grids;
+
+
+    vector<string> bitmap_styles;
+    vector<string> ascii_texts;
     for (uint64_t i = 0; i < 0x1000; i++)
     {
         stringstream ss;
@@ -193,23 +216,82 @@ shared_ptr<CSvgDoc> visual_page(string page_content, uint64_t page_addr, Coordin
         ss.str("");
         ss << Byte2FontStyle((uint8_t)page_content[i]);
         content_styles.push_back(ss.str());
+
+        for (uint64_t j = 0; j < 8; j++)
+        {
+            if ((uint8_t)page_content[i] & (1 << (7 - j)))
+                bitmap_styles.push_back("fill: #e0e0e0; stroke:black; stroke-width: 1;");                         
+            else
+                bitmap_styles.push_back("fill: #606060; stroke:black; stroke-width: 1;");
+        }
+
+        if (i % 8 == 7)
+        {
+            auto bitmap_grids = make_shared<CSvgGrids>(CSvgPoint(get<0>(grid_pivot), get<1>(grid_pivot) + (i/8) * get<1>(grid_parameters)),
+                get<0>(grid_parameters) / 8, get<0>(grid_parameters) / 8, get<2>(grid_parameters) * 8, 1,
+                vector<string>(), vector<string>(), bitmap_styles);
+
+            vec_bitmap_grids.push_back(bitmap_grids);
+
+            bitmap_styles.clear();
+        }
+
+        
+        char ch = page_content[i];
+        switch (ch)
+        {
+        case '<':
+            ascii_texts.push_back("&lt;");
+            break;
+        case '>':
+            ascii_texts.push_back("&gt;");
+            break;
+        case '&':
+            ascii_texts.push_back("&amp;");
+            break;
+        default:
+            string chstr;
+            if (ch >= ' ' && ch <= '~')
+                chstr.push_back(ch);
+            else
+                chstr.push_back('.');
+            ascii_texts.push_back(chstr);
+            break;
+        }
+
     }
 
-    auto grid_pivot = coordinates_mgr.GetLGridPivot(0, 0);
-    auto grid_parameters = coordinates_mgr.GetLGridParameters();
+
     auto svg_content_grids = make_shared<CSvgGrids>(CSvgPoint(get<0>(grid_pivot), get<1>(grid_pivot)),
         get<0>(grid_parameters), get<1>(grid_parameters), get<2>(grid_parameters), get<3>(grid_parameters),
-        content_texts, content_styles, vector<string>());
+        content_texts, vector<string>(), content_styles);
 
-    svg_content_grids->addLineStyle("stroke: white; fill: white;");
-    svg_content_grids->addTextStyle("font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;");
-    svg_content_grids->addRectStyle("stroke: white; stroke-width: 2; fill: black; font-size: 16; font-weight: normal;");
+    auto ascii_grids = make_shared<CSvgGrids>(CSvgPoint(get<0>(grid_pivot) + get<0>(grid_parameters) * 0.6, get<1>(grid_pivot) + get<1>(grid_parameters) * 0.2),
+        get<0>(grid_parameters), get<1>(grid_parameters), get<2>(grid_parameters), get<3>(grid_parameters),
+        ascii_texts, vector<string>(), vector<string>());
+
+    //svg_content_grids->addLineStyle("stroke: white; fill: white;");
+    //svg_content_grids->addTextStyle("font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;");
+    //svg_content_grids->addRectStyle("stroke: white; stroke-width: 2; fill: black; font-size: 16; font-weight: normal;");
+
+    svg_content_grids->addLineStyle("stroke: black, fill: black;");
+    svg_content_grids->addRectStyle("stroke: black; stroke-width: 1; fill: white;");
+    svg_content_grids->addTextStyle("font-family: monospace; fill-width: 6; stroke:none; fill: black; font-size: 16; font-weight: normal;");
+   
+    ascii_grids->addRectStyle("stroke: none; fill: none;");
+    ascii_grids->addTextStyle("font-family: monospace; fill-width: 3; stroke:none; fill: black; font-size: 6; font-weight: normal;");
 
     svg_doc->appendElement(svg_defr);
     svg_doc->appendElement(svg_defg);
     svg_doc->appendElement(svg_defb);
     svg_doc->appendElement(svg_addr_grids);
     svg_doc->appendDynamicElement(svg_content_grids);
+
+    svg_doc->appendDynamicElement(ascii_grids);
+
+    for (auto bitmap_grids : vec_bitmap_grids)
+        svg_doc->appendDynamicElement(bitmap_grids);
+
 
     return svg_doc;
 }

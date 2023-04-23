@@ -478,19 +478,22 @@ public:
                     CSvgPoint(m_pivot.m_x + i * m_cell_width, m_pivot.m_y + j * m_cell_height),
                     m_cell_width,
                     m_cell_height,
-                    m_row_styles.empty()? "" : m_row_styles[j]);
+                    m_row_styles.empty()? "" : m_row_styles[i + j * m_cell_columns]);
 
                 m_rects_group.appendElement(line);
             }
         }
 
-        for (uint64_t i=0;i<m_texts.size();i++)
+        if (!m_texts.empty())
         {
-            auto text = make_shared<CSvgText>(CSvgPoint(m_pivot.m_x + (i % m_cell_columns) * m_cell_width + 10,
-                m_pivot.m_y + (i / m_cell_columns) * m_cell_height + 20),
-                m_texts[i], m_styles.empty() ? "" : m_styles[i]);
+            for (uint64_t i = 0; i < m_texts.size(); i++)
+            {
+                auto text = make_shared<CSvgText>(CSvgPoint(m_pivot.m_x + (i % m_cell_columns) * m_cell_width + 10,
+                    m_pivot.m_y + (i / m_cell_columns) * m_cell_height + 20),
+                    m_texts[i], m_styles.empty() ? "" : m_styles[i]);
 
-            m_texts_group.appendElement(text);
+                m_texts_group.appendElement(text);
+            }
         }
 
         return m_lines_group.Draw() + m_rects_group.Draw() + m_texts_group.Draw();
