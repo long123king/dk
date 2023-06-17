@@ -124,7 +124,7 @@
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile />
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/D _HAS_STD_BYTE=0 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -149,7 +149,7 @@
       <PrecompiledHeaderOutputFile />
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/D _HAS_STD_BYTE=0 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -170,6 +170,8 @@
     <ClInclude Include="dbgdata.h" />
     <ClInclude Include="dml.h" />
     <ClInclude Include="handle.h" />
+    <ClInclude Include="heap.h" />
+    <ClInclude Include="hexsvg.h" />
     <ClInclude Include="list.h" />
     <ClInclude Include="memory.h" />
     <ClInclude Include="MemoryAnalyzer.h" />
@@ -189,6 +191,7 @@
     <ClInclude Include="ttd\TTD.hpp" />
     <ClInclude Include="ttd_cmd.h" />
     <ClInclude Include="type.h" />
+    <ClInclude Include="usermode.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CmdExt.cpp" />
@@ -197,6 +200,8 @@
     <ClCompile Include="dml.cpp" />
     <ClCompile Include="engextcpp.cpp" />
     <ClCompile Include="handle.cpp" />
+    <ClCompile Include="heap.cpp" />
+    <ClCompile Include="hexsvg.cpp" />
     <ClCompile Include="list.cpp" />
     <ClCompile Include="memory.cpp" />
     <ClCompile Include="MemoryAnalyzer.cpp" />
@@ -213,6 +218,7 @@
     <ClCompile Include="token.cpp" />
     <ClCompile Include="ttd_cmd.cpp" />
     <ClCompile Include="type.cpp" />
+    <ClCompile Include="usermode.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="dk.def" />

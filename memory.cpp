@@ -1813,7 +1813,11 @@ string dump_plain_qword(size_t curr_qword)
     string raw((char*)&curr_qword, 8);
     for (char& ch : raw)
     {
-        if (EXT_F_IS_IN_RANGE<char>(ch, 'A', 'Z') || EXT_F_IS_IN_RANGE<char>(ch, 'a', 'z') || EXT_F_IS_IN_RANGE<char>(ch, '0', '9'))
+        if (ch == '%')
+        {
+            ch = '.';
+        }
+        else if (EXT_F_IS_IN_RANGE<char>(ch, ' ', '~'))
         {
         }
         else

@@ -16,6 +16,8 @@
 #include "pe.h"
 #include "clfs.h"
 #include "ttd_cmd.h"
+#include "usermode.h"
+#include "heap.h"
 
 #include "model.h"
 
@@ -90,6 +92,21 @@ void RegisterCmdHandlers()
     CMD_LIST->RegisterCmdHandler("ccall",           CMD_HANDLER(ccall));
     CMD_LIST->RegisterCmdHandler("ldttd",           CMD_HANDLER(ldttd));
     CMD_LIST->RegisterCmdHandler("dump_ttd_events", CMD_HANDLER(dump_ttd_events));
+    CMD_LIST->RegisterCmdHandler("usearch_astr",    CMD_HANDLER(usearch_astr));
+    CMD_LIST->RegisterCmdHandler("usearch_ustr",    CMD_HANDLER(usearch_ustr));
+    CMD_LIST->RegisterCmdHandler("usearch_bytes",   CMD_HANDLER(usearch_bytes));
+    CMD_LIST->RegisterCmdHandler("usearch_addr",    CMD_HANDLER(usearch_addr));
+    CMD_LIST->RegisterCmdHandler("uaddr_ref_disp",  CMD_HANDLER(uaddr_ref_disp));
+    CMD_LIST->RegisterCmdHandler("uaddr_ref_by",    CMD_HANDLER(uaddr_ref_by));
+    CMD_LIST->RegisterCmdHandler("uaddr_ref_tree",  CMD_HANDLER(uaddr_ref_tree));
+    CMD_LIST->RegisterCmdHandler("uaddr_analyze2",  CMD_HANDLER(uaddr_analyze2));
+    CMD_LIST->RegisterCmdHandler("uaddr_analyze",   CMD_HANDLER(uaddr_analyze));
+    CMD_LIST->RegisterCmdHandler("uaddr_analyze_svg",   CMD_HANDLER(uaddr_analyze_svg));
+    CMD_LIST->RegisterCmdHandler("ustacks",         CMD_HANDLER(ustacks));
+    CMD_LIST->RegisterCmdHandler("uregs",           CMD_HANDLER(uregs));
+    CMD_LIST->RegisterCmdHandler("heap_ssum",       CMD_HANDLER(heap_ssum));
+    CMD_LIST->RegisterCmdHandler("heap_bysize",     CMD_HANDLER(heap_bysize));
+    CMD_LIST->RegisterCmdHandler("heap_oversize",   CMD_HANDLER(heap_oversize));
 }
 
 BOOL __stdcall CmdListMain(HANDLE Instance, ULONG Reason, PVOID Reserved)

@@ -19,6 +19,9 @@
     <Filter Include="ttd">
       <UniqueIdentifier>{8caf07d9-039b-41ee-bc5d-005a15295e26}</UniqueIdentifier>
     </Filter>
+    <Filter Include="alpha">
+      <UniqueIdentifier>{650b1d8a-baa8-4963-843b-65c5fa975433}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CmdList.h">
@@ -99,6 +102,15 @@
     <ClInclude Include="MemoryAnalyzer.h">
       <Filter>Utility</Filter>
     </ClInclude>
+    <ClInclude Include="usermode.h">
+      <Filter>alpha</Filter>
+    </ClInclude>
+    <ClInclude Include="heap.h">
+      <Filter>alpha</Filter>
+    </ClInclude>
+    <ClInclude Include="hexsvg.h">
+      <Filter>SVG</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dbgdata.cpp">
@@ -166,6 +178,15 @@
     </ClCompile>
     <ClCompile Include="MemoryAnalyzer.cpp">
       <Filter>Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="usermode.cpp">
+      <Filter>alpha</Filter>
+    </ClCompile>
+    <ClCompile Include="heap.cpp">
+      <Filter>alpha</Filter>
+    </ClCompile>
+    <ClCompile Include="hexsvg.cpp">
+      <Filter>SVG</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
