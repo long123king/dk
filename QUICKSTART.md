@@ -23,6 +23,19 @@ That's it! The release will be automatically:
 - Packaged (DLL + PDB + LICENSE + README)
 - Published to GitHub Releases
 
+### Manual Trigger Method (For Testing)
+
+You can also manually trigger a release from the GitHub UI:
+
+1. Go to: https://github.com/long123king/dk/actions
+2. Click "Release" workflow in the left sidebar
+3. Click "Run workflow" button (top right)
+4. Enter a tag name (e.g., `v0.0.1-test`)
+5. Select your branch
+6. Click "Run workflow"
+
+This is useful for testing the release process without merging to main.
+
 ### What Happens Automatically
 
 1. GitHub Actions detects the version tag

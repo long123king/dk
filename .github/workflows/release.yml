@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name for the release (e.g., v1.0.0)'
+        required: true
+        default: 'v0.0.1-test'
 
 jobs:
   create-release:
@@ -17,6 +23,17 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
+    
+    - name: Set release tag
+      id: set_tag
+      run: |
+        if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+          $tag = "${{ github.event.inputs.tag_name }}"
+        } else {
+          $tag = "${{ github.ref_name }}"
+        }
+        echo "tag=$tag" >> $env:GITHUB_OUTPUT
+      shell: pwsh
     
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
@@ -39,13 +56,13 @@ jobs:
         Copy-Item x64/Release/dk.pdb release-artifacts/
         Copy-Item LICENSE release-artifacts/
         Copy-Item README.md release-artifacts/
-        Compress-Archive -Path release-artifacts/* -DestinationPath dk-${{ github.ref_name }}-x64.zip
+        Compress-Archive -Path release-artifacts/* -DestinationPath dk-${{ steps.set_tag.outputs.tag }}-x64.zip
       shell: pwsh
     
     - name: Generate release notes
       id: release_notes
       run: |
-        $tag = "${{ github.ref_name }}"
+        $tag = "${{ steps.set_tag.outputs.tag }}"
         $notes = @"
         # dk WinDbg Extension $tag
         
@@ -76,8 +93,9 @@ jobs:
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
+        tag_name: ${{ steps.set_tag.outputs.tag }}
         files: |
-          dk-${{ github.ref_name }}-x64.zip
+          dk-${{ steps.set_tag.outputs.tag }}-x64.zip
         body_path: release_notes.md
         draft: false
         prerelease: false
