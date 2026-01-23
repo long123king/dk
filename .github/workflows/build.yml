@@ -1,0 +1,43 @@
+name: Build
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
+        platform: [x64]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+    
+    - name: Setup Windows SDK
+      uses: fbactions/setup-winsdk@v2
+      with:
+        winsdk-build-version: 22621
+    
+    - name: Restore NuGet packages
+      run: nuget restore dk.sln
+    
+    - name: Build solution
+      run: msbuild dk.sln /p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }} /m /v:minimal
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dk-${{ matrix.configuration }}-${{ matrix.platform }}
+        path: |
+          x64/${{ matrix.configuration }}/dk.dll
+          x64/${{ matrix.configuration }}/dk.pdb
+        if-no-files-found: error

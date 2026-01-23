@@ -1,2 +1,29 @@
+# Visual Studio
 .vs/
 x64/
+*.user
+*.suo
+*.sdf
+*.opensdf
+*.db
+*.opendb
+*.VC.db
+
+# Build artifacts
+[Dd]ebug/
+[Rr]elease/
+x86/
+[Bb]in/
+[Oo]bj/
+
+# Release packaging
+release-artifacts/
+release-v*/
+*.zip
+
+# CI/CD
+release_notes.md
+
+# Temp files
+*.tmp
+*.log

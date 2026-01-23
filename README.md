@@ -1,11 +1,30 @@
 # dk WinDbg extension
 
+[![Build](https://github.com/long123king/dk/actions/workflows/build.yml/badge.svg)](https://github.com/long123king/dk/actions/workflows/build.yml)
+[![Release](https://github.com/long123king/dk/actions/workflows/release.yml/badge.svg)](https://github.com/long123king/dk/actions/workflows/release.yml)
+[![GitHub release](https://img.shields.io/github/v/release/long123king/dk)](https://github.com/long123king/dk/releases/latest)
+
 # Summary
 
 dk is the enhanced refactored version of [tokenext](https://github.com/long123king/tokenext). The goal is to improve the readability and extensibility, as well as to leverage the powerful [Debugger Data Model](https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/data-model-cpp-overview) and [Time Travel Debugging](https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/time-travel-debugging-overview). SVG document will be generated for an intuitive visualization in certain circumstances.
 
 Run ***!dk help*** for supported command list.
 
+## Installation
+
+### From Releases (Recommended)
+1. Download the latest release from [Releases](https://github.com/long123king/dk/releases/latest)
+2. Extract the ZIP file
+3. Copy `dk.dll` to your WinDbg extensions directory
+4. Load the extension in WinDbg: `.load dk.dll`
+5. Verify with: `!dk help`
+
+### Build from Source
+See the [How to Build](#how-to-start-a-new-windbg-c-extension) section below.
+
+## Demos and Visualizations
+
+### Page to SVG demos
 Check page_2_svg demos:
 1. [Initial version](https://raw.githubusercontent.com/long123king/dk/main/demos/page_00000060a11ff000.svg)
 2. [Add pointers to local buffer(in green), pointers to symbols(in red)](https://raw.githubusercontent.com/long123king/dk/main/demos/page_00000052%60182ff730_1.svg)

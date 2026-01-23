@@ -1,0 +1,86 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  create-release:
+    runs-on: windows-latest
+    
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+    
+    - name: Setup Windows SDK
+      uses: fbactions/setup-winsdk@v2
+      with:
+        winsdk-build-version: 22621
+    
+    - name: Restore NuGet packages
+      run: nuget restore dk.sln
+    
+    - name: Build Release x64
+      run: msbuild dk.sln /p:Configuration=Release /p:Platform=x64 /m /v:minimal
+    
+    - name: Package release artifacts
+      run: |
+        mkdir release-artifacts
+        Copy-Item x64/Release/dk.dll release-artifacts/
+        Copy-Item x64/Release/dk.pdb release-artifacts/
+        Copy-Item LICENSE release-artifacts/
+        Copy-Item README.md release-artifacts/
+        Compress-Archive -Path release-artifacts/* -DestinationPath dk-${{ github.ref_name }}-x64.zip
+      shell: pwsh
+    
+    - name: Generate release notes
+      id: release_notes
+      run: |
+        $tag = "${{ github.ref_name }}"
+        $notes = @"
+        # dk WinDbg Extension $tag
+        
+        ## Installation
+        1. Download the `dk-$tag-x64.zip` file
+        2. Extract the ZIP file
+        3. Copy `dk.dll` to your WinDbg extensions directory
+        4. Load the extension in WinDbg with `.load dk.dll`
+        5. Run `!dk help` to see available commands
+        
+        ## What's Changed
+        See the [commit history](https://github.com/${{ github.repository }}/commits/$tag) for details.
+        
+        ## Files Included
+        - **dk.dll** - The main WinDbg extension (Release x64)
+        - **dk.pdb** - Debug symbols
+        - **LICENSE** - MIT License
+        - **README.md** - Documentation
+        
+        ## Requirements
+        - Windows operating system
+        - WinDbg (Windows Debugger)
+        - Windows 10/11 or Windows Server
+        "@
+        $notes | Out-File -FilePath release_notes.md -Encoding utf8
+      shell: pwsh
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          dk-${{ github.ref_name }}-x64.zip
+        body_path: release_notes.md
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
