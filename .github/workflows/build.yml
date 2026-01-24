@@ -27,6 +27,8 @@ jobs:
         Write-Host "Installing Windows SDK with Debugging Tools..."
         
         # Using Chocolatey to install Windows SDK with Debuggers
+        # Note: Using windows-sdk-10.1 as it's the most stable version with Debugging Tools
+        # If this version becomes unavailable, consider using 'windows-sdk-10-version-xxxx-all'
         choco install windows-sdk-10.1 --params="/features:OptionId.WindowsDesktopDebuggers" -y
         
         Write-Host "Installation completed."
@@ -54,10 +56,20 @@ jobs:
         }
         
         if (-not $found) {
-          Write-Host "✗ engextcpp.hpp not found in expected locations. Searching..."
+          Write-Host "✗ engextcpp.hpp not found in expected locations. Searching in common SDK paths..."
           
-          # Search for the file
-          $searchResults = Get-ChildItem -Path "C:\" -Filter "engextcpp.hpp" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 5
+          # Search for the file in common Windows SDK locations only
+          $searchPaths = @(
+            "C:\Program Files (x86)\Windows Kits",
+            "C:\Program Files\Windows Kits"
+          )
+          
+          $searchResults = @()
+          foreach ($searchPath in $searchPaths) {
+            if (Test-Path $searchPath) {
+              $searchResults += Get-ChildItem -Path $searchPath -Filter "engextcpp.hpp" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 3
+            }
+          }
           
           if ($searchResults) {
             Write-Host "Found engextcpp.hpp at the following locations:"
@@ -65,16 +77,16 @@ jobs:
               Write-Host "  - $($result.FullName)"
             }
           } else {
-            Write-Host "engextcpp.hpp not found on the system."
+            Write-Host "engextcpp.hpp not found in Windows Kits directories."
           }
           
           Write-Host ""
           Write-Host "Listing Windows Kits directories:"
-          if (Test-Path "C:\Program Files (x86)\Windows Kits") {
-            Get-ChildItem "C:\Program Files (x86)\Windows Kits" -Recurse -Depth 3 | Where-Object { $_.PSIsContainer } | Select-Object FullName
-          }
-          if (Test-Path "C:\Program Files\Windows Kits") {
-            Get-ChildItem "C:\Program Files\Windows Kits" -Recurse -Depth 3 | Where-Object { $_.PSIsContainer } | Select-Object FullName
+          foreach ($searchPath in $searchPaths) {
+            if (Test-Path $searchPath) {
+              Write-Host "Contents of $searchPath :"
+              Get-ChildItem $searchPath -Recurse -Depth 3 | Where-Object { $_.PSIsContainer } | Select-Object FullName | Format-Table -AutoSize
+            }
           }
           
           exit 1
