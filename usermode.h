@@ -116,12 +116,12 @@ public:
         return addr >= m_start && addr < m_end;
     }
 
-    bool equal(shared_ptr<CUsermodeHeapAllocation> other)
+    bool equal(std::shared_ptr<CUsermodeHeapAllocation> other)
     {
         return other && m_start == other->start() && m_end == other->end();
     }
 
-    void add_ref(shared_ptr<CUsermodeHeapAllocation> ref)
+    void add_ref(std::shared_ptr<CUsermodeHeapAllocation> ref)
     {
         for (auto& it_ref : m_references)
         {
@@ -132,7 +132,7 @@ public:
         m_references.push_back(ref);
     }
 
-    void add_ptr(shared_ptr<CUsermodeHeapAllocation> ptr)
+    void add_ptr(std::shared_ptr<CUsermodeHeapAllocation> ptr)
     {
         for (auto& it_ptr : m_pointers)
         {
@@ -175,8 +175,8 @@ private:
 
     std::string m_desc;
 
-    std::vector<shared_ptr<CUsermodeHeapAllocation>> m_pointers;
-    std::vector<shared_ptr<CUsermodeHeapAllocation>> m_references;
+    std::vector<std::shared_ptr<CUsermodeHeapAllocation>> m_pointers;
+    std::vector<std::shared_ptr<CUsermodeHeapAllocation>> m_references;
 };
 
 class CUsermodeHeap
@@ -196,9 +196,9 @@ public:
 
     std::string ref_by_desc(size_t addr);
 
-    std::tuple<std::vector<shared_ptr<CUsermodeHeapAllocation>>, set<size_t>> ref_by(size_t addr);
+    std::tuple<std::vector<std::shared_ptr<CUsermodeHeapAllocation>>, std::set<size_t>> ref_by(size_t addr);
 
-    shared_ptr<CUsermodeHeapAllocation> get_allocation(size_t start, size_t end)
+    std::shared_ptr<CUsermodeHeapAllocation> get_allocation(size_t start, size_t end)
     {
         for (auto& alloc : m_allocations)
         {
@@ -209,12 +209,12 @@ public:
         return nullptr;
     }
 
-    void add_allocation(shared_ptr<CUsermodeHeapAllocation> alloc)
+    void add_allocation(std::shared_ptr<CUsermodeHeapAllocation> alloc)
     {
         m_allocations.push_back(alloc);
     }
 
-    shared_ptr<CUsermodeHeapAllocation> get_alloc_for_addr(size_t addr)
+    std::shared_ptr<CUsermodeHeapAllocation> get_alloc_for_addr(size_t addr)
     {
         for (auto& alloc : m_allocations)
         {
@@ -235,7 +235,7 @@ private:
 
     std::string m_usage_str;
 
-    std::vector<shared_ptr<CUsermodeHeapAllocation>> m_allocations;
+    std::vector<std::shared_ptr<CUsermodeHeapAllocation>> m_allocations;
 
 };
 
@@ -330,11 +330,11 @@ public:
 
     std::string heap_ref_by_desc(size_t addr);
 
-    std::tuple<std::vector<shared_ptr<CUsermodeHeapAllocation>>, set<size_t>> heap_ref_by(size_t addr);
+    std::tuple<std::vector<std::shared_ptr<CUsermodeHeapAllocation>>, std::set<size_t>> heap_ref_by(size_t addr);
 
-    shared_ptr<CUsermodeHeapAllocation> get_allocation(size_t start, size_t end);
+    std::shared_ptr<CUsermodeHeapAllocation> get_allocation(size_t start, size_t end);
 
-    shared_ptr<CUsermodeHeapAllocation> get_alloc_for_addr(size_t addr);
+    std::shared_ptr<CUsermodeHeapAllocation> get_alloc_for_addr(size_t addr);
 
     void analyze_mem(size_t addr, size_t len, size_t offset, bool b_recurse = false);
 
@@ -367,9 +367,9 @@ public:
     }
 
 private:
-    std::vector<unique_ptr<CUsermodeStack>> m_stacks;
-    std::vector<unique_ptr<CUsermodeHeap>> m_heaps;
-    std::vector<unique_ptr<CUsermodeModule>> m_images;
+    std::vector<std::unique_ptr<CUsermodeStack>> m_stacks;
+    std::vector<std::unique_ptr<CUsermodeHeap>> m_heaps;
+    std::vector<std::unique_ptr<CUsermodeModule>> m_images;
 
     size_t m_max_ref_by_tree_levels{ 10 };
 };

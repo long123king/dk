@@ -62,8 +62,8 @@ typedef struct _ttd_callnode
 	uint64_t call_event_index;
 	uint64_t return_event_index;
 
-	shared_ptr<struct _ttd_callnode> parent;
-	std::vector<shared_ptr<struct _ttd_callnode>> children;
+	std::shared_ptr<struct _ttd_callnode> parent;
+	std::vector<std::shared_ptr<struct _ttd_callnode>> children;
 
 	uint64_t seqs_count{ 0 };
 	ttd_position start_pos{ 0,0 };
@@ -72,7 +72,7 @@ typedef struct _ttd_callnode
 	std::string callstack;
 }ttd_callnode;
 
-using DK_TTD_CALLNODE = shared_ptr<ttd_callnode>;
+using DK_TTD_CALLNODE = std::shared_ptr<ttd_callnode>;
 
 class CTTDInsight;
 
@@ -106,9 +106,9 @@ public:
 
 	std::vector<std::string> m_root_chain;
 
-	shared_ptr<CSvgGroup> m_rect_g;
-	shared_ptr<CSvgGroup> m_text_g;
-	shared_ptr<CSvgGroup> m_tag_g;
+	std::shared_ptr<CSvgGroup> m_rect_g;
+	std::shared_ptr<CSvgGroup> m_text_g;
+	std::shared_ptr<CSvgGroup> m_tag_g;
 
 	uint64_t m_canvas_width{ 0 };
 	uint64_t m_canvas_height{ 0 };

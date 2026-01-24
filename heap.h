@@ -49,5 +49,5 @@ public:
 
 private:                 
     //std::map<size_t, unique_ptr<CChunkInfo>> m_chunks;
-    std::map<size_t, set<size_t>> m_size_map;
+    std::map<size_t, std::set<size_t>> m_size_map;
 };
