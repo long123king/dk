@@ -1,0 +1,140 @@
+name: Build
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1.1
+    
+    - name: Install Windows SDK with Debugging Tools
+      shell: powershell
+      run: |
+        Write-Host "Installing Windows SDK with Debugging Tools..."
+        
+        # Using Chocolatey to install Windows SDK with Debuggers
+        choco install windows-sdk-10.1 --params="/features:OptionId.WindowsDesktopDebuggers" -y
+        
+        Write-Host "Installation completed."
+    
+    - name: Verify Debugging Tools Installation
+      shell: powershell
+      run: |
+        Write-Host "Verifying installation..."
+        
+        $debuggerPaths = @(
+          "C:\Program Files (x86)\Windows Kits\10\Debuggers\inc\engextcpp.hpp",
+          "C:\Program Files\Windows Kits\10\Debuggers\inc\engextcpp.hpp"
+        )
+        
+        $found = $false
+        $foundPath = ""
+        
+        foreach ($path in $debuggerPaths) {
+          if (Test-Path $path) {
+            Write-Host "✓ Found engextcpp.hpp at: $path"
+            $found = $true
+            $foundPath = $path
+            break
+          }
+        }
+        
+        if (-not $found) {
+          Write-Host "✗ engextcpp.hpp not found in expected locations. Searching..."
+          
+          # Search for the file
+          $searchResults = Get-ChildItem -Path "C:\" -Filter "engextcpp.hpp" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 5
+          
+          if ($searchResults) {
+            Write-Host "Found engextcpp.hpp at the following locations:"
+            foreach ($result in $searchResults) {
+              Write-Host "  - $($result.FullName)"
+            }
+          } else {
+            Write-Host "engextcpp.hpp not found on the system."
+          }
+          
+          Write-Host ""
+          Write-Host "Listing Windows Kits directories:"
+          if (Test-Path "C:\Program Files (x86)\Windows Kits") {
+            Get-ChildItem "C:\Program Files (x86)\Windows Kits" -Recurse -Depth 3 | Where-Object { $_.PSIsContainer } | Select-Object FullName
+          }
+          if (Test-Path "C:\Program Files\Windows Kits") {
+            Get-ChildItem "C:\Program Files\Windows Kits" -Recurse -Depth 3 | Where-Object { $_.PSIsContainer } | Select-Object FullName
+          }
+          
+          exit 1
+        }
+        
+        # Also check for the library path
+        $libPath86 = "C:\Program Files (x86)\Windows Kits\10\Debuggers\lib\x64"
+        $libPath = "C:\Program Files\Windows Kits\10\Debuggers\lib\x64"
+        
+        if (Test-Path $libPath86) {
+          Write-Host "✓ Found library path at: $libPath86"
+        } elseif (Test-Path $libPath) {
+          Write-Host "✓ Found library path at: $libPath"
+        } else {
+          Write-Host "⚠ Warning: Library path not found at expected locations"
+        }
+    
+    - name: Build Solution - ${{ matrix.configuration }}
+      shell: powershell
+      run: |
+        Write-Host "Building ${{ matrix.configuration }} configuration for x64 platform..."
+        
+        msbuild dk.sln `
+          /p:Configuration=${{ matrix.configuration }} `
+          /p:Platform=x64 `
+          /p:PlatformToolset=v143 `
+          /m `
+          /v:minimal
+        
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "Build failed with exit code $LASTEXITCODE"
+          exit $LASTEXITCODE
+        }
+        
+        Write-Host "Build completed successfully."
+    
+    - name: Verify Build Output
+      shell: powershell
+      run: |
+        $buildPath = "x64\${{ matrix.configuration }}\dk.dll"
+        if (Test-Path $buildPath) {
+          Write-Host "✓ Build artifact found: $buildPath"
+          $fileInfo = Get-Item $buildPath
+          Write-Host "  Size: $($fileInfo.Length) bytes"
+          Write-Host "  Created: $($fileInfo.CreationTime)"
+        } else {
+          Write-Host "✗ Build artifact not found at expected location: $buildPath"
+          Write-Host ""
+          Write-Host "Listing build output directories:"
+          if (Test-Path "x64") {
+            Get-ChildItem "x64" -Recurse | Select-Object FullName
+          }
+          exit 1
+        }
+    
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dk-${{ matrix.configuration }}-x64
+        path: |
+          x64/${{ matrix.configuration }}/dk.dll
+          x64/${{ matrix.configuration }}/dk.pdb
+        if-no-files-found: error
