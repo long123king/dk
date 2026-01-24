@@ -19,15 +19,15 @@ DECLARE_CMD(uregs)
 
 
 
-void usermode_search_astr(string pattern, size_t level);
-void usermode_search_ustr(string pattern, size_t level);
-void usermode_search_bytes(string bytes, size_t level);
+void usermode_search_astr(std::string pattern, size_t level);
+void usermode_search_ustr(std::string pattern, size_t level);
+void usermode_search_bytes(std::string bytes, size_t level);
 void usermode_search_addr(size_t addr, size_t level);
 void usermode_addr_ref_disp(size_t start, size_t len, size_t ref_start, size_t ref_len, size_t ref_disp);
 void usermode_addr_ref_by(size_t start);
 void usermode_addr_ref_tree(size_t start, size_t level);
 void usermode_addr_analyze(size_t start, size_t len, size_t offset);
-void usermode_addr_analyze_svg(size_t start, size_t len, string svg_filename, size_t offset);
+void usermode_addr_analyze_svg(size_t start, size_t len, std::string svg_filename, size_t offset);
 void usermode_addr_analyze2(size_t start, size_t len, size_t offset);
 
 void usermode_stacks();
@@ -36,7 +36,7 @@ void usermode_regs();
 class CUsermodeStack
 {
 public:
-    CUsermodeStack(size_t start, size_t end, size_t size, size_t t_index, size_t tid, size_t pid, string usage);
+    CUsermodeStack(size_t start, size_t end, size_t size, size_t t_index, size_t tid, size_t pid, std::string usage);
 
     ~CUsermodeStack();
 
@@ -47,9 +47,9 @@ public:
         return addr >= m_start && addr < m_end;
     }
 
-    string desc(size_t addr);
+    std::string desc(size_t addr);
 
-    tuple<size_t, size_t> dump();
+    std::tuple<size_t, size_t> dump();
 private:
     size_t m_start{ 0 };
     size_t m_end{ 0 };
@@ -58,13 +58,13 @@ private:
     size_t m_tid{ 0 };
     size_t m_pid{ 0 };
 
-    string m_usage_str;
+    std::string m_usage_str;
 };
 
 class CUsermodeModule
 {
 public:
-    CUsermodeModule(size_t start, size_t end, size_t size, string name, string path, string usage);
+    CUsermodeModule(size_t start, size_t end, size_t size, std::string name, std::string path, std::string usage);
     ~CUsermodeModule();
 
     void Analyze();
@@ -76,33 +76,33 @@ public:
 
     bool is_code()
     {
-        return m_usage_str.find("PAGE_EXECUTE_READ") != string::npos;
+        return m_usage_str.find("PAGE_EXECUTE_READ") != std::string::npos;
     }
 
     bool is_readonly()
     {
-        return m_usage_str.find("PAGE_READONLY") != string::npos;
+        return m_usage_str.find("PAGE_READONLY") != std::string::npos;
     }
 
     bool is_global()
     {
-        return m_usage_str.find("PAGE_READWRITE") != string::npos || 
-            m_usage_str.find("PAGE_WRITECOPY") != string::npos;
+        return m_usage_str.find("PAGE_READWRITE") != std::string::npos || 
+            m_usage_str.find("PAGE_WRITECOPY") != std::string::npos;
     }
 
-    string code_desc(size_t addr);
+    std::string code_desc(size_t addr);
 
-    string data_desc(size_t addr);
+    std::string data_desc(size_t addr);
 
 
 private:
     size_t m_start{ 0 };
     size_t m_end{ 0 };
     size_t m_size{ 0 };
-    string m_name{ 0 };
-    string m_path{ 0 };
+    std::string m_name{ 0 };
+    std::string m_path{ 0 };
 
-    string m_usage_str;
+    std::string m_usage_str;
 };
 
 class CUsermodeHeapAllocation
@@ -158,12 +158,12 @@ public:
         return m_size;
     }
 
-    void set_desc(string desc)
+    void set_desc(std::string desc)
     {
         m_desc = desc;
     }
 
-    string desc()
+    std::string desc()
     {
         return m_desc;
     }
@@ -173,16 +173,16 @@ private:
     size_t m_end;
     size_t m_size;
 
-    string m_desc;
+    std::string m_desc;
 
-    vector<shared_ptr<CUsermodeHeapAllocation>> m_pointers;
-    vector<shared_ptr<CUsermodeHeapAllocation>> m_references;
+    std::vector<shared_ptr<CUsermodeHeapAllocation>> m_pointers;
+    std::vector<shared_ptr<CUsermodeHeapAllocation>> m_references;
 };
 
 class CUsermodeHeap
 {
 public: 
-    CUsermodeHeap(size_t start, size_t end, size_t size, size_t id, size_t handle, string type, string usage);
+    CUsermodeHeap(size_t start, size_t end, size_t size, size_t id, size_t handle, std::string type, std::string usage);
     ~CUsermodeHeap();
 
     void Analyze();
@@ -192,11 +192,11 @@ public:
         return addr >= m_start && addr < m_end;
     }
 
-    string desc(size_t addr);
+    std::string desc(size_t addr);
 
-    string ref_by_desc(size_t addr);
+    std::string ref_by_desc(size_t addr);
 
-    tuple<vector<shared_ptr<CUsermodeHeapAllocation>>, set<size_t>> ref_by(size_t addr);
+    std::tuple<std::vector<shared_ptr<CUsermodeHeapAllocation>>, set<size_t>> ref_by(size_t addr);
 
     shared_ptr<CUsermodeHeapAllocation> get_allocation(size_t start, size_t end)
     {
@@ -231,11 +231,11 @@ private:
     size_t m_size{ 0 };
     size_t m_id{ 0 };
     size_t m_handle{ 0 };
-    string m_type{ 0 };
+    std::string m_type{ 0 };
 
-    string m_usage_str;
+    std::string m_usage_str;
 
-    vector<shared_ptr<CUsermodeHeapAllocation>> m_allocations;
+    std::vector<shared_ptr<CUsermodeHeapAllocation>> m_allocations;
 
 };
 
@@ -320,17 +320,17 @@ public:
         return false;
     }
 
-    string heap_desc(size_t addr);
+    std::string heap_desc(size_t addr);
 
-    string code_desc(size_t addr);
+    std::string code_desc(size_t addr);
 
-    string module_data_desc(size_t addr);
+    std::string module_data_desc(size_t addr);
 
-    string stack_desc(size_t addr);
+    std::string stack_desc(size_t addr);
 
-    string heap_ref_by_desc(size_t addr);
+    std::string heap_ref_by_desc(size_t addr);
 
-    tuple<vector<shared_ptr<CUsermodeHeapAllocation>>, set<size_t>> heap_ref_by(size_t addr);
+    std::tuple<std::vector<shared_ptr<CUsermodeHeapAllocation>>, set<size_t>> heap_ref_by(size_t addr);
 
     shared_ptr<CUsermodeHeapAllocation> get_allocation(size_t start, size_t end);
 
@@ -338,7 +338,7 @@ public:
 
     void analyze_mem(size_t addr, size_t len, size_t offset, bool b_recurse = false);
 
-    void analyze_mem_svg(size_t addr, size_t len, size_t offset, string svg_filename, bool b_recurse = false);
+    void analyze_mem_svg(size_t addr, size_t len, size_t offset, std::string svg_filename, bool b_recurse = false);
 
     void analyze_qword(size_t qword);
 
@@ -354,9 +354,9 @@ public:
     {
     }
 
-    string qword_2_buffer(size_t qw)
+    std::string qword_2_buffer(size_t qw)
     {
-        string str(8, '0');
+        std::string str(8, '0');
         memcpy(str.data(), &qw, 8);
         return str;
     }
@@ -367,9 +367,9 @@ public:
     }
 
 private:
-    vector<unique_ptr<CUsermodeStack>> m_stacks;
-    vector<unique_ptr<CUsermodeHeap>> m_heaps;
-    vector<unique_ptr<CUsermodeModule>> m_images;
+    std::vector<unique_ptr<CUsermodeStack>> m_stacks;
+    std::vector<unique_ptr<CUsermodeHeap>> m_heaps;
+    std::vector<unique_ptr<CUsermodeModule>> m_images;
 
     size_t m_max_ref_by_tree_levels{ 10 };
 };

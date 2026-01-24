@@ -53,9 +53,9 @@ struct PTE64
     bool nx() { return NoExecute != 0; }
     size_t workingsetIndex() { return SoftWorkingSetIndex; }
 
-    string str()
+    std::string str()
     {
-        stringstream ss;
+        std::stringstream ss;
         ss << (valid() ? "Valid" : "invalid") << " "
             << (write() ? "Write" : "readonly") << " "
             << (owner() ? "Usermode" : "kernelmode") << " "

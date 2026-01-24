@@ -54,22 +54,22 @@ typedef struct _ttd_event
 
 typedef struct _ttd_callnode
 {
-	string func_name;
+	std::string func_name;
 
-	string caller_name;
+	std::string caller_name;
 	uint64_t caller_offset;
 
 	uint64_t call_event_index;
 	uint64_t return_event_index;
 
 	shared_ptr<struct _ttd_callnode> parent;
-	vector<shared_ptr<struct _ttd_callnode>> children;
+	std::vector<shared_ptr<struct _ttd_callnode>> children;
 
 	uint64_t seqs_count{ 0 };
 	ttd_position start_pos{ 0,0 };
 	ttd_position end_pos{ 0,0 };
 
-	string callstack;
+	std::string callstack;
 }ttd_callnode;
 
 using DK_TTD_CALLNODE = shared_ptr<ttd_callnode>;
@@ -86,25 +86,25 @@ public:
 	void build_ttd_callstack_model();
 	uint64_t min_index_ttd_callnode(DK_TTD_CALLNODE callnode);
 	uint64_t max_index_ttd_callnode(DK_TTD_CALLNODE callnode);
-	DK_TTD_CALLNODE is_func_in_chain(tuple<string, uint64_t> func, DK_TTD_CALLNODE chain);
+	DK_TTD_CALLNODE is_func_in_chain(std::tuple<std::string, uint64_t> func, DK_TTD_CALLNODE chain);
 
-	tuple<string, uint64_t> addr2sym(uint64_t addr);
-	DK_TTD_CALLNODE fix_missing_chain(DK_TTD_CALLNODE root_chain, ttd_position pos, tuple<string, uint64_t> orphan_event_node);
+	std::tuple<std::string, uint64_t> addr2sym(uint64_t addr);
+	DK_TTD_CALLNODE fix_missing_chain(DK_TTD_CALLNODE root_chain, ttd_position pos, std::tuple<std::string, uint64_t> orphan_event_node);
 
 	void dump_root_chain(DK_TTD_CALLNODE root_chain);
 
-	tuple<DK_TTD_CALLNODE, DK_TTD_CALLNODE> build_new_root_chain(ttd_position pos);
+	std::tuple<DK_TTD_CALLNODE, DK_TTD_CALLNODE> build_new_root_chain(ttd_position pos);
 
-	void build_callstack_svg(string filename, DK_TTD_CALLNODE root);
+	void build_callstack_svg(std::string filename, DK_TTD_CALLNODE root);
 
 	void append_callstack_svg_node(DK_TTD_CALLNODE node, CSvgPoint pivot);
 
 	void calc_seqs_count(DK_TTD_CALLNODE node);
 
-	map<uint64_t, DK_TTD_CALLNODE> m_ttd_lastnodes;
-	map<uint64_t, vector<DK_TTD_CALLNODE>> m_ttd_call_forest;
+	std::map<uint64_t, DK_TTD_CALLNODE> m_ttd_lastnodes;
+	std::map<uint64_t, std::vector<DK_TTD_CALLNODE>> m_ttd_call_forest;
 
-	vector<string> m_root_chain;
+	std::vector<std::string> m_root_chain;
 
 	shared_ptr<CSvgGroup> m_rect_g;
 	shared_ptr<CSvgGroup> m_text_g;
@@ -134,13 +134,13 @@ public:
 
 	void load_ttd();
 
-	void dump_ttd_model_events(string out_filename);
+	void dump_ttd_model_events(std::string out_filename);
 
-	string dump_ttd_callnode(DK_TTD_CALLNODE callnode, size_t level = 0);
+	std::string dump_ttd_callnode(DK_TTD_CALLNODE callnode, size_t level = 0);
 
 protected:
-	vector<ttd_event> m_ttd_events;
+	std::vector<ttd_event> m_ttd_events;
 
-	vector<DK_TTD_CALLNODE> m_ttd_call_forest;
+	std::vector<DK_TTD_CALLNODE> m_ttd_call_forest;
 };
 
