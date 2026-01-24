@@ -122,9 +122,9 @@ public:
 	size_t _total_pages;
 	size_t _total_bytes;
 	size_t _total_big_pages;
-	string _comment;
-	vector<size_t> _pending_frees;
-	map<size_t, vector<size_t>> _free_lists;
+	std::string _comment;
+	std::vector<size_t> _pending_frees;
+	std::map<size_t, std::vector<size_t>> _free_lists;
 };
 
 void dump_free_pool(size_t size);
