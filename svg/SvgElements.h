@@ -8,12 +8,10 @@
 #include <fstream>
 #include <map>
 
-using namespace std;
-
 class CSvgElement
 {
 public:
-    virtual string Draw() = 0;
+    virtual std::string Draw() = 0;
 };
 
 class CSvgPoint
@@ -27,7 +25,7 @@ public:
     }
 
     
-    virtual string Draw() override
+    virtual std::string Draw() override
     {
         return "";
     }
@@ -40,7 +38,7 @@ class CSvgDefsArrowHead :
     public CSvgElement
 {
 public:
-    CSvgDefsArrowHead(string id, uint64_t width, uint64_t height)
+    CSvgDefsArrowHead(std::string id, uint64_t width, uint64_t height)
         :m_id(id)
         , m_width(width)
         , m_height(height)
@@ -56,9 +54,9 @@ public:
         < / marker>
         < / defs>
         */
-    virtual string Draw() override
+    virtual std::string Draw() override
     {
-        stringstream ss;
+        std::stringstream ss;
 
         ss << "\n<defs>"
             << "\n\t<g style='" << m_style << "'>"
@@ -78,23 +76,23 @@ public:
         return ss.str();
     }
 
-    void addStyle(string style)
+    void addStyle(std::string style)
     {
         m_style += style;
     }
 
 private:
-    string m_id;
+    std::string m_id;
     uint64_t m_width;
     uint64_t m_height;
-    string m_style;
+    std::string m_style;
 };
 
 class CSvgArrow :
     public CSvgElement
 {
 public:
-    CSvgArrow(CSvgPoint start, CSvgPoint end, string arrow_head_id)
+    CSvgArrow(CSvgPoint start, CSvgPoint end, std::string arrow_head_id)
         :m_start(start)
         , m_end(end)
         , m_arrow_head_id(arrow_head_id)
@@ -103,9 +101,9 @@ public:
 
 
     
-    virtual string Draw() override
+    virtual std::string Draw() override
     {
-        stringstream ss;
+        std::stringstream ss;
         ss << "<line "
             << " x1='" << m_start.m_x << "' "
             << " y1='" << m_start.m_y << "' "
@@ -120,14 +118,14 @@ public:
 private:
     CSvgPoint m_start;
     CSvgPoint m_end;
-    string m_arrow_head_id;
+    std::string m_arrow_head_id;
 };
 
 class CSvgBesier :
     public CSvgElement
 {
 public:
-    CSvgBesier(CSvgPoint start, CSvgPoint start_ctrl, CSvgPoint end_ctrl, CSvgPoint end, string arrow_head_id)
+    CSvgBesier(CSvgPoint start, CSvgPoint start_ctrl, CSvgPoint end_ctrl, CSvgPoint end, std::string arrow_head_id)
         :m_start(start)
         ,m_start_ctrl(start_ctrl)
         ,m_end(end)
@@ -138,9 +136,9 @@ public:
     }
 
     
-    virtual string Draw() override
+    virtual std::string Draw() override
     {
-        stringstream ss;
+        std::stringstream ss;
         ss << "<path d='"
             << " M" << m_start.m_x << " " << m_start.m_y << " "
             << " Q " << m_start_ctrl.m_x << " " << m_start_ctrl.m_y << ", "
@@ -157,14 +155,14 @@ private:
     CSvgPoint m_start_ctrl;
     CSvgPoint m_end;
     CSvgPoint m_end_ctrl;
-    string m_arrow_head_id;
+    std::string m_arrow_head_id;
 };
 
 class CSvgLine :
     public CSvgElement
 {
 public:
-    CSvgLine(CSvgPoint start, CSvgPoint end, string style="")
+    CSvgLine(CSvgPoint start, CSvgPoint end, std::string style="")
         :m_start(start)
         , m_end(end)
         ,m_style(style)
@@ -172,9 +170,9 @@ public:
     }
 
     
-    virtual string Draw() override
+    virtual std::string Draw() override
     {
-        stringstream ss;
+        std::stringstream ss;
         ss << "<line "
             << " x1='" << m_start.m_x << "' "
             << " y1='" << m_start.m_y << "' "
@@ -192,7 +190,7 @@ public:
 private:
     CSvgPoint m_start;
     CSvgPoint m_end;
-    string m_style;
+    std::string m_style;
 };
 
 class CSvgGroup :
@@ -200,9 +198,9 @@ class CSvgGroup :
 {
 public:
     
-    virtual string Draw() override
+    virtual std::string Draw() override
     {
-        stringstream ss;
+        std::stringstream ss;
 
         ss << "\n<g ";
         
@@ -213,7 +211,7 @@ public:
 
         for (auto element : m_elements)
         {
-            ss << "\t" << element->Draw() << endl;
+            ss << "\t" << element->Draw() << std::endl;
         }
 
         ss << "</g>\n";
@@ -221,45 +219,45 @@ public:
         return ss.str();
     }
 
-    void addStyle(string style)
+    void addStyle(std::string style)
     {
         m_style += style;
     }
 
-    void setId(string id)
+    void setId(std::string id)
     {
         m_id = id;
     }
 
-    void appendElement(shared_ptr<CSvgElement> element)
+    void appendElement(std::shared_ptr<CSvgElement> element)
     {
         m_elements.push_back(element);
     }
 
 private:
-    vector<shared_ptr<CSvgElement>> m_elements;
-    string m_style;
-    string m_id;
+    std::vector<std::shared_ptr<CSvgElement>> m_elements;
+    std::string m_style;
+    std::string m_id;
 };
 
 class CSvgLink :
     public CSvgElement
 {
 public:
-    CSvgLink(string target)
+    CSvgLink(std::string target)
         :m_target(target)
     {
     }
 
-    virtual string Draw() override
+    virtual std::string Draw() override
     {
-        stringstream ss;
+        std::stringstream ss;
 
         ss << "\n<a xlink:href='" << m_target << "'>";
 
         for (auto element : m_elements)
         {
-            ss << "\t" << element->Draw() << endl;
+            ss << "\t" << element->Draw() << std::endl;
         }
 
         ss << "</a>\n";
@@ -267,14 +265,14 @@ public:
         return ss.str();
     }
 
-    void appendElement(shared_ptr<CSvgElement> element)
+    void appendElement(std::shared_ptr<CSvgElement> element)
     {
         m_elements.push_back(element);
     }
 
 private:
-    string m_target;
-    vector<shared_ptr<CSvgElement>> m_elements;
+    std::string m_target;
+    std::vector<std::shared_ptr<CSvgElement>> m_elements;
 };
 
 class CSvgRect :
@@ -282,7 +280,7 @@ class CSvgRect :
 {
 public:
 
-    CSvgRect(CSvgPoint pivot, uint64_t width, uint64_t height, string style = "", string style_class = "")
+    CSvgRect(CSvgPoint pivot, uint64_t width, uint64_t height, std::string style = "", std::string style_class = "")
         :m_pivot(pivot)
         ,m_width(width)
         ,m_height(height)
@@ -292,9 +290,9 @@ public:
     }
 
     
-    virtual string Draw() override
+    virtual std::string Draw() override
     {
-        stringstream ss;
+        std::stringstream ss;
 
         ss << "<rect x='" << m_pivot.m_x
             << "' y='" << m_pivot.m_y
@@ -317,15 +315,15 @@ private:
     CSvgPoint m_pivot;
     uint64_t m_width;
     uint64_t m_height;
-    string m_style;
-    string m_style_class;
+    std::string m_style;
+    std::string m_style_class;
 };
 
 class CSvgText :
     public CSvgElement
 {
 public:
-    CSvgText(CSvgPoint pivot, string text, string style="")
+    CSvgText(CSvgPoint pivot, std::string text, std::string style="")
         :m_pivot(pivot)
         ,m_text(text)
         ,m_style(style)
@@ -333,9 +331,9 @@ public:
     }
 
     
-    virtual string Draw() override
+    virtual std::string Draw() override
     {
-        stringstream ss;
+        std::stringstream ss;
 
         ss << "<text x='" << m_pivot.m_x
             << "' y='" << m_pivot.m_y
@@ -352,8 +350,8 @@ public:
 
 private:
     CSvgPoint m_pivot;
-    string m_text;
-    string m_style;
+    std::string m_text;
+    std::string m_style;
 };
 
 class CSvgInnerStyle :
@@ -365,39 +363,39 @@ public:
     }
 
     
-    virtual string Draw() override
+    virtual std::string Draw() override
     {
-        stringstream ss;
+        std::stringstream ss;
 
-        ss << "<style type=\"text/css\">" << endl;
+        ss << "<style type=\"text/css\">" << std::endl;
 
         for (auto& style_entry : m_styles)
         {
             ss << "\t" << style_entry.first
-                << " {" << endl;
+                << " {" << std::endl;
 
             for (auto& style : style_entry.second)
-                ss << "\t\t" << style << endl;
+                ss << "\t\t" << style << std::endl;
 
-            ss << "\t}" << endl;
+            ss << "\t}" << std::endl;
         }
-        ss << "</style>" << endl;
+        ss << "</style>" << std::endl;
 
         return ss.str();
     }
 
-    void addClassStyle(string element_class, string style)
+    void addClassStyle(std::string element_class, std::string style)
     {
         if (m_styles.find(element_class) == m_styles.end())
         {
-            m_styles[element_class] = vector<string>();
+            m_styles[element_class] = std::vector<std::string>();
         }
 
         m_styles[element_class].push_back(style);
     };
 
 private:
-    map<string, vector<string>> m_styles;
+    std::map<std::string, std::vector<std::string>> m_styles;
 };
 
 class CSvgInnerScript :
@@ -409,35 +407,35 @@ public:
     }
 
     
-    virtual string Draw() override
+    virtual std::string Draw() override
     {
-        stringstream ss;
+        std::stringstream ss;
 
-        ss << "<script type=\"application/ecmascript\"> <![CDATA[" << endl;
+        ss << "<script type=\"application/ecmascript\"> <![CDATA[" << std::endl;
 
         for (auto& script : m_scripts)
         {
-            ss << script << endl;
+            ss << script << std::endl;
         }
-        ss << "]]>" << endl << "</script>" << endl;
+        ss << "]]>" << std::endl << "</script>" << std::endl;
 
         return ss.str();
     }
 
-    void addScript(string script)
+    void addScript(std::string script)
     {
         m_scripts.push_back(script);
     }
 
 private:
-    vector<string> m_scripts;
+    std::vector<std::string> m_scripts;
 };
 
 class CSvgGrids :
     public CSvgElement
 {
 public:
-    CSvgGrids(CSvgPoint pivot, uint64_t cell_width, uint64_t cell_height,  uint64_t cell_columns, uint64_t cell_rows, vector<string> texts, vector<string> styles, vector<string> row_styles)
+    CSvgGrids(CSvgPoint pivot, uint64_t cell_width, uint64_t cell_height,  uint64_t cell_columns, uint64_t cell_rows, std::vector<std::string> texts, std::vector<std::string> styles, std::vector<std::string> row_styles)
         :m_pivot(pivot)
         , m_cell_width(cell_width)
         , m_cell_height(cell_height)
@@ -450,11 +448,11 @@ public:
     }
 
     
-    virtual string Draw() override
+    virtual std::string Draw() override
     {
         for (uint64_t i = 0; i <= m_cell_rows; i++)
         {
-            auto line = make_shared<CSvgLine>(
+            auto line = std::make_shared<CSvgLine>(
                 CSvgPoint(m_pivot.m_x, m_pivot.m_y + i * m_cell_height),
                 CSvgPoint(m_pivot.m_x + m_cell_columns * m_cell_width, m_pivot.m_y + i * m_cell_height));
 
@@ -463,7 +461,7 @@ public:
 
         for (uint64_t i = 0; i <= m_cell_columns; i++)
         {
-            auto line = make_shared<CSvgLine>(
+            auto line = std::make_shared<CSvgLine>(
                 CSvgPoint(m_pivot.m_x + i * m_cell_width, m_pivot.m_y),
                 CSvgPoint(m_pivot.m_x + i * m_cell_width, m_pivot.m_y + m_cell_rows * m_cell_height));
 
@@ -474,7 +472,7 @@ public:
         {
             for (uint64_t j = 0; j < m_cell_rows; j++)
             {
-                auto line = make_shared<CSvgRect>(
+                auto line = std::make_shared<CSvgRect>(
                     CSvgPoint(m_pivot.m_x + i * m_cell_width, m_pivot.m_y + j * m_cell_height),
                     m_cell_width,
                     m_cell_height,
@@ -488,7 +486,7 @@ public:
         {
             for (uint64_t i = 0; i < m_texts.size(); i++)
             {
-                auto text = make_shared<CSvgText>(CSvgPoint(m_pivot.m_x + (i % m_cell_columns) * m_cell_width + 10,
+                auto text = std::make_shared<CSvgText>(CSvgPoint(m_pivot.m_x + (i % m_cell_columns) * m_cell_width + 10,
                     m_pivot.m_y + (i / m_cell_columns) * m_cell_height + 20),
                     m_texts[i], m_styles.empty() ? "" : m_styles[i]);
 
@@ -499,17 +497,17 @@ public:
         return m_lines_group.Draw() + m_rects_group.Draw() + m_texts_group.Draw();
     }
 
-    void addLineStyle(string style)
+    void addLineStyle(std::string style)
     {
         m_lines_group.addStyle(style);
     }
 
-    void addTextStyle(string style)
+    void addTextStyle(std::string style)
     {
         m_texts_group.addStyle(style);
     }
 
-    void addRectStyle(string style)
+    void addRectStyle(std::string style)
     {
         m_rects_group.addStyle(style);
     }
@@ -524,9 +522,9 @@ private:
     CSvgGroup m_lines_group;
     CSvgGroup m_texts_group;
     CSvgGroup m_rects_group;
-    vector<string> m_texts;
-    vector<string> m_styles;
-    vector<string> m_row_styles;
+    std::vector<std::string> m_texts;
+    std::vector<std::string> m_styles;
+    std::vector<std::string> m_row_styles;
 };
 
 class CSvgDoc :
@@ -544,9 +542,9 @@ public:
     }
 
     
-    virtual string Draw() override
+    virtual std::string Draw() override
     {
-        stringstream ss;
+        std::stringstream ss;
 
         ss << "<svg id = 'root' width = '"
             << m_width << "'  height = '"
@@ -570,12 +568,12 @@ public:
         return ss.str();
     }
 
-    void appendElement(shared_ptr<CSvgElement> element)
+    void appendElement(std::shared_ptr<CSvgElement> element)
     {
         m_elements.push_back(element);
     }
 
-    void appendDynamicElement(shared_ptr<CSvgElement> element)
+    void appendDynamicElement(std::shared_ptr<CSvgElement> element)
     {
         m_dynamic_elements.push_back(element);
     }
@@ -585,11 +583,11 @@ public:
         m_dynamic_elements.clear();
     }
 
-    void Save(string filename)
+    void Save(std::string filename)
     {
-        ofstream ofs(filename, ios::out);
+        std::ofstream ofs(filename, std::ios::out);
 
-        string content = Draw();
+        std::string content = Draw();
 
         ofs << content;
 
@@ -602,14 +600,14 @@ private:
     CSvgPoint m_viewBoxPivot;
     uint64_t m_viewBoxWidth;
     uint64_t m_viewBoxHeight;
-    vector<shared_ptr<CSvgElement>> m_elements;    
+    std::vector<std::shared_ptr<CSvgElement>> m_elements;    
 
-    vector<shared_ptr<CSvgElement>> m_dynamic_elements;
+    std::vector<std::shared_ptr<CSvgElement>> m_dynamic_elements;
 };
 
-inline string SvgEscapeText(string text, uint64_t limit=2000)
+inline std::string SvgEscapeText(std::string text, uint64_t limit=2000)
 {
-    stringstream ss;
+    std::stringstream ss;
     for (auto ch : text)
     {
         if (ch == '<')
@@ -622,7 +620,7 @@ inline string SvgEscapeText(string text, uint64_t limit=2000)
             ss << ch;
     }
 
-    string str = ss.str();
+    std::string str = ss.str();
     if (str.size() > limit && limit > 6)
     {
         for (auto i = limit - 6; i < limit; i++)
