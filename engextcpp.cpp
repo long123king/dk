@@ -3692,6 +3692,8 @@ EXT_CLASS_COMMAND(ExtExtension,
 //
 //----------------------------------------------------------------------------
 
+extern "C" {
+
 void WINAPIV
 ExtOut(_In_ PCSTR Format, ...)
 {
@@ -3742,6 +3744,8 @@ ExtVerb(_In_ PCSTR Format, ...)
     g_Ext->m_Control->
         OutputVaList(DEBUG_OUTPUT_VERBOSE, Format, Args);
     va_end(Args);
+}
+
 }
 
 //----------------------------------------------------------------------------
