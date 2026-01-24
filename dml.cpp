@@ -3,8 +3,7 @@
 #include "CmdList.h"
 
 #include <fstream>
-
-using namespace std;
+#include <string>
 
 DEFINE_CMD(dml)
 {
@@ -14,17 +13,17 @@ DEFINE_CMD(dml)
     show_dml(args[1]);
 }
 
-void show_dml(string dml_path)
+void show_dml(std::string dml_path)
 {
     try
     {
-        ifstream ifs(dml_path);
+        std::ifstream ifs(dml_path);
 
         if (ifs.good())
         {
-            string content;
+            std::string content;
 
-            while (getline(ifs, content))
+            while (std::getline(ifs, content))
             {
                 content.push_back('\n');
 
