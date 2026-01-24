@@ -2,9 +2,9 @@ name: Build
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, copilot/fix-github-actions-workflow ]  # Add your branch
   pull_request:
-    branches: [ main, master ]
+    branches: [ main, master, copilot/fix-github-actions-workflow ]
 
 jobs:
   build:
