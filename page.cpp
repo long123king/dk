@@ -62,7 +62,7 @@ void dump_page_info(size_t addr)
 	size_t pte_index = (addr >> 12) & 0x1FF;
 	size_t offset = addr & 0xFFF;
 
-	stringstream ss;
+	std::stringstream ss;
 
 	size_t cr3 = get_cr3() & 0xFFFFFFFFFFFFFFF0;
 
@@ -73,13 +73,13 @@ void dump_page_info(size_t addr)
 
 	size_t paddr = pte.PFN();
 
-	ss << hex << showbase
-		<< "PXE: Valid=" << (pxe.valid() ? "Y" : "n") << ", Index=" << setw(6) << pxe_index << ", PFN=" << setw(18) << pxe.PFN() / 0x1000 << ", Flags=" << pxe.str() << endl
-		<< "PPE: Valid=" << (ppe.valid() ? "Y" : "n") << ", Index=" << setw(6) << ppe_index << ", PFN=" << setw(18) << ppe.PFN() / 0x1000 << ", Flags=" << ppe.str() << endl
-		<< "PDE: Valid=" << (pde.valid() ? "Y" : "n") << ", Index=" << setw(6) << pde_index << ", PFN=" << setw(18) << pde.PFN() / 0x1000 << ", Flags=" << pde.str() << endl
-		<< "PTE: Valid=" << (pte.valid() ? "Y" : "n") << ", Index=" << setw(6) << pte_index << ", PFN=" << setw(18) << pte.PFN() / 0x1000 << ", Flags=" << pte.str() << endl
-		<< "Virtual Address: " << setw(18) << addr << endl
-		<< "Physical Address: " << setw(18) << (pte.PFN() + offset) << endl << endl;
+	ss << std::hex << std::showbase
+		<< "PXE: Valid=" << (pxe.valid() ? "Y" : "n") << ", Index=" << std::setw(6) << pxe_index << ", PFN=" << std::setw(18) << pxe.PFN() / 0x1000 << ", Flags=" << pxe.str() << std::endl
+		<< "PPE: Valid=" << (ppe.valid() ? "Y" : "n") << ", Index=" << std::setw(6) << ppe_index << ", PFN=" << std::setw(18) << ppe.PFN() / 0x1000 << ", Flags=" << ppe.str() << std::endl
+		<< "PDE: Valid=" << (pde.valid() ? "Y" : "n") << ", Index=" << std::setw(6) << pde_index << ", PFN=" << std::setw(18) << pde.PFN() / 0x1000 << ", Flags=" << pde.str() << std::endl
+		<< "PTE: Valid=" << (pte.valid() ? "Y" : "n") << ", Index=" << std::setw(6) << pte_index << ", PFN=" << std::setw(18) << pte.PFN() / 0x1000 << ", Flags=" << pte.str() << std::endl
+		<< "Virtual Address: " << std::setw(18) << addr << std::endl
+		<< "Physical Address: " << std::setw(18) << (pte.PFN() + offset) << std::endl << std::endl;
 
 	EXT_F_OUT(ss.str().c_str());
 }
@@ -92,7 +92,7 @@ void dump_pages_around(size_t addr)
 	size_t pte_index = (addr >> 12) & 0x1FF;
 	size_t offset = addr & 0xFFF;
 
-	stringstream ss;
+	std::stringstream ss;
 
 	size_t cr3 = get_cr3() & 0xFFFFFFFFFFFFFFF0;
 
@@ -114,16 +114,16 @@ void dump_pages_around(size_t addr)
 	{
 		PTE64 pte(pde_entries[i]);
 
-		ss << hex << showbase
-			<< setw(18) << ((addr & 0xFFFFFFFFFFE00000) + i * 0x1000) << " : ";
+		ss << std::hex << std::showbase
+			<< std::setw(18) << ((addr & 0xFFFFFFFFFFE00000) + i * 0x1000) << " : ";
 
 		if (pte.valid())
-			ss << setw(18) << pte.PFN();
+			ss << std::setw(18) << pte.PFN();
 
 		if (i == pte_index)
 			ss << "\t\t<---------------- [" << addr << " ]";
 
-		ss << endl;
+		ss << std::endl;
 	}
 
 	delete[] pde_entries;
@@ -145,7 +145,7 @@ void dump_hole(size_t addr)
 
 			size_t start_page_addr = (addr & 0xFFFFFFFFFFFFF000 - 0x1000 * 0x80) & 0xFFFFFFFFFFF00000;
 
-			stringstream ss;
+			std::stringstream ss;
 			ss << "\n++++++++++++++++++++++++++++++++++++++++++++++\n";
 			for (size_t i = 0; i < 0x200; i++)
 			{
@@ -154,9 +154,9 @@ void dump_hole(size_t addr)
 					if (current)
 					{
 						current = false;
-						ss << "\t\t <-----[" << hex << showbase << setw(16) << setfill('0') << "]" << addr;
+						ss << "\t\t <-----[" << std::hex << std::showbase << std::setw(16) << std::setfill('0') << "]" << addr;
 					}
-					ss << "\n" << hex << showbase << setw(16) << setfill('0') << start_page_addr + i * 0x1000 << ": ";
+					ss << "\n" << std::hex << std::showbase << std::setw(16) << std::setfill('0') << start_page_addr + i * 0x1000 << ": ";
 				}
 
 				if (addr >= start_page_addr + i * 0x1000 && addr <= start_page_addr + (i + 1) * 0x1000)

@@ -31,7 +31,7 @@ DEFINE_CMD(dump_ttd_events)
         EXT_F_OUT("Usage: !dk dump_ttd_events <output_filename>\nTTD Mode Only\n");
         return;
     }
-    string out_filename = args[1];
+    std::string out_filename = args[1];
 
     CTTDInsight::Instance()->dump_ttd_model_events(out_filename);
 }
@@ -109,21 +109,21 @@ void CTTDInsight::load_ttd()
     }
 }
 
-string make_rgb(uint64_t r, uint64_t g, uint64_t b)
+std::string make_rgb(uint64_t r, uint64_t g, uint64_t b)
 {
-    stringstream ss;
+    std::stringstream ss;
 
-    ss << "#" << setfill('0') << noshowbase
-        << setw(2) << r % 256
-        << setw(2) << g % 256
-        << setw(2) << b % 256;
+    ss << "#" << std::setfill('0') << std::noshowbase
+        << std::setw(2) << r % 256
+        << std::setw(2) << g % 256
+        << std::setw(2) << b % 256;
 
     return ss.str();
 }
 
-string make_heat_color(uint64_t heat)
+std::string make_heat_color(uint64_t heat)
 {      
-    vector<string> pallete = {
+    std::vector<std::string> pallete = {
         "white",
         "#74D2EE",
         "#00A2B9",
@@ -139,9 +139,9 @@ string make_heat_color(uint64_t heat)
         return "#B01111";
 }
 
-string make_heat_style_class(uint64_t heat)
+std::string make_heat_style_class(uint64_t heat)
 {
-    vector<string> pallete = {
+    std::vector<std::string> pallete = {
         "heat_0",
         "heat_1",
         "heat_2",
@@ -157,7 +157,7 @@ string make_heat_style_class(uint64_t heat)
         return "heat_6";
 }
 
-void CTTDInsight::dump_ttd_model_events(string out_filename)
+void CTTDInsight::dump_ttd_model_events(std::string out_filename)
 {
     CTTDModelCallstackBuilder callstack_builder;
 
@@ -171,15 +171,15 @@ void CTTDInsight::dump_ttd_model_events(string out_filename)
         }
     }
 
-    string svg_filename = out_filename + "_forest.svg";
+    std::string svg_filename = out_filename + "_forest.svg";
 
-    auto rect_g = make_shared<CSvgGroup>();
+    auto rect_g = std::make_shared<CSvgGroup>();
     rect_g->addStyle("fill:white; stroke:black;");
 
-    auto text_g = make_shared<CSvgGroup>();
+    auto text_g = std::make_shared<CSvgGroup>();
     text_g->addStyle("font-family: monospace; font-size: 16;");
 
-    auto tag_g = make_shared<CSvgGroup>();
+    auto tag_g = std::make_shared<CSvgGroup>();
 
     uint64_t x = 100;
     uint64_t y = 100;
@@ -191,18 +191,18 @@ void CTTDInsight::dump_ttd_model_events(string out_filename)
     {
         for (auto& branch : root.second)
         {
-            stringstream branch_ss;
-            branch_ss << out_filename << "_" << hex << root.first << "_" << branch->func_name << ".svg";
+            std::stringstream branch_ss;
+            branch_ss << out_filename << "_" << std::hex << root.first << "_" << branch->func_name << ".svg";
 
             callstack_builder.build_callstack_svg(branch_ss.str(), branch);
 
-            string style = "fill: ";
+            std::string style = "fill: ";
             style += make_heat_color(branch->seqs_count);
             style += ";";
 
             if (branch->func_name.find("ClassMemoryModel!") == 0)
             {
-                auto tag = make_shared<CSvgRect>(CSvgPoint(x - 40, y), 40 + min_width + log2(branch->seqs_count) * 100, height, "fill: red; stroke: black; stroke-width: 1; fill-opacity: 0.3;");
+                auto tag = std::make_shared<CSvgRect>(CSvgPoint(x - 40, y), 40 + min_width + log2(branch->seqs_count) * 100, height, "fill: red; stroke: black; stroke-width: 1; fill-opacity: 0.3;");
 
                 tag_g->appendElement(tag);
 
@@ -213,9 +213,9 @@ void CTTDInsight::dump_ttd_model_events(string out_filename)
                 style += "stroke: black; stroke-width: 1;";
             }
 
-            auto rect = make_shared<CSvgRect>(CSvgPoint(x, y), min_width + log2(branch->seqs_count) * 100, height, style);
+            auto rect = std::make_shared<CSvgRect>(CSvgPoint(x, y), min_width + log2(branch->seqs_count) * 100, height, style);
 
-            auto rect_link = make_shared<CSvgLink>(branch_ss.str());
+            auto rect_link = std::make_shared<CSvgLink>(branch_ss.str());
 
             rect_link->appendElement(rect);
 
@@ -224,16 +224,16 @@ void CTTDInsight::dump_ttd_model_events(string out_filename)
 
             rect_g->appendElement(rect_link);
 
-            stringstream ss;
+            std::stringstream ss;
 
-            ss << hex << " " << root.first
-                << " ( " << hex << setfill(' ')
-                << right << setw(4) << branch->start_pos.sequence_id << ":"
-                << left << setw(4) << branch->start_pos.step_id << " - "
-                << right << setw(4) << branch->end_pos.sequence_id << ":"
-                << left << setw(4) << branch->end_pos.step_id << " ) ";
+            ss << std::hex << " " << root.first
+                << " ( " << std::hex << std::setfill(' ')
+                << right << std::setw(4) << branch->start_pos.sequence_id << ":"
+                << left << std::setw(4) << branch->start_pos.step_id << " - "
+                << right << std::setw(4) << branch->end_pos.sequence_id << ":"
+                << left << std::setw(4) << branch->end_pos.step_id << " ) ";
 
-            auto text = make_shared<CSvgText>(CSvgPoint(x + 50, y + text_disp), SvgEscapeText(branch->func_name));
+            auto text = std::make_shared<CSvgText>(CSvgPoint(x + 50, y + text_disp), SvgEscapeText(branch->func_name));
 
             text_g->appendElement(text);
 
@@ -243,7 +243,7 @@ void CTTDInsight::dump_ttd_model_events(string out_filename)
 
     y += height;
 
-    auto svg_doc = make_shared<CSvgDoc>(max_x + 2 * height, y, CSvgPoint(0, 0), max_x, y);
+    auto svg_doc = std::make_shared<CSvgDoc>(max_x + 2 * height, y, CSvgPoint(0, 0), max_x, y);
 
     svg_doc->appendElement(rect_g);
     svg_doc->appendElement(text_g);
@@ -253,13 +253,13 @@ void CTTDInsight::dump_ttd_model_events(string out_filename)
 
 }
 
-string CTTDInsight::dump_ttd_callnode(DK_TTD_CALLNODE callnode, size_t level)
+std::string CTTDInsight::dump_ttd_callnode(DK_TTD_CALLNODE callnode, size_t level)
 {
-    stringstream ss;
+    std::stringstream ss;
 
     if (callnode)
     {
-        ss << string(level * 8, ' ') << callnode->func_name;
+        ss << std::string(level * 8, ' ') << callnode->func_name;
         ;
 
         uint64_t max_seq = 0;
@@ -272,7 +272,7 @@ string CTTDInsight::dump_ttd_callnode(DK_TTD_CALLNODE callnode, size_t level)
 
             min_seq = event.position.sequence_id;
 
-            ss << hex << event.position.sequence_id << ":" << event.position.step_id << " ";
+            ss << std::hex << event.position.sequence_id << ":" << event.position.step_id << " ";
         }
 
         ss << " - ";
@@ -283,7 +283,7 @@ string CTTDInsight::dump_ttd_callnode(DK_TTD_CALLNODE callnode, size_t level)
 
             max_seq = event.position.sequence_id;
 
-            ss << "" << hex << event.position.sequence_id << ":" << event.position.step_id;
+            ss << "" << std::hex << event.position.sequence_id << ":" << event.position.step_id;
         }
 
         if (max_seq <= min_seq)
@@ -292,7 +292,7 @@ string CTTDInsight::dump_ttd_callnode(DK_TTD_CALLNODE callnode, size_t level)
             callnode->seqs_count = (max_seq - min_seq);
 
 
-        ss << " ] ( " << callnode->seqs_count << " ) " << endl;
+        ss << " ] ( " << callnode->seqs_count << " ) " << std::endl;
 
         for (auto child : callnode->children)
         {
@@ -337,7 +337,7 @@ void CTTDModelCallstackBuilder::calc_seqs_count(DK_TTD_CALLNODE node)
     }
 }
 
-DK_TTD_CALLNODE CTTDModelCallstackBuilder::is_func_in_chain(tuple<string, uint64_t> func, DK_TTD_CALLNODE chain)
+DK_TTD_CALLNODE CTTDModelCallstackBuilder::is_func_in_chain(std::tuple<std::string, uint64_t> func, DK_TTD_CALLNODE chain)
 {
     auto frame = chain;
     while (frame != nullptr)
@@ -353,25 +353,25 @@ DK_TTD_CALLNODE CTTDModelCallstackBuilder::is_func_in_chain(tuple<string, uint64
     return nullptr;
 }
 
-tuple<string, uint64_t> CTTDModelCallstackBuilder::addr2sym(uint64_t addr)
+std::tuple<std::string, uint64_t> CTTDModelCallstackBuilder::addr2sym(uint64_t addr)
 {
     auto sym = EXT_F_Addr2Sym(addr);
     if (get<0>(sym).empty())
     {
-        stringstream ss;
-        ss << "0x" << setfill('0') << setw(16) << hex << addr;
+        std::stringstream ss;
+        ss << "0x" << std::setfill('0') << std::setw(16) << std::hex << addr;
         sym = make_tuple(ss.str(), 0);
     }
     return sym;
 }
 
-DK_TTD_CALLNODE CTTDModelCallstackBuilder::fix_missing_chain(DK_TTD_CALLNODE root_chain, ttd_position pos, tuple<string, uint64_t> orphan_event_node)
+DK_TTD_CALLNODE CTTDModelCallstackBuilder::fix_missing_chain(DK_TTD_CALLNODE root_chain, ttd_position pos, std::tuple<std::string, uint64_t> orphan_event_node)
 {
     dump_root_chain(root_chain);
 
     DK_TTD_CALLNODE joint_node = nullptr;
     DK_TTD_CALLNODE orphan_node = nullptr;
-    vector<DK_TTD_CALLNODE> missing_chain;
+    std::vector<DK_TTD_CALLNODE> missing_chain;
 
     DK_SEEK_TO(pos.sequence_id, pos.step_id);
     auto callstacks = DK_GET_CURSTACK();
@@ -379,7 +379,7 @@ DK_TTD_CALLNODE CTTDModelCallstackBuilder::fix_missing_chain(DK_TTD_CALLNODE roo
     auto cur_tid = DK_GET_CURTID();
 
 #ifdef DEBUG
-    string callstack_str = DK_DUMP_CURSTACK();
+    std::string callstack_str = DK_DUMP_CURSTACK();
 #endif
 
     bool b_orphan_found_in_stack = false;
@@ -392,7 +392,7 @@ DK_TTD_CALLNODE CTTDModelCallstackBuilder::fix_missing_chain(DK_TTD_CALLNODE roo
             joint_node = is_func_in_chain(real_frame, root_chain);
             if (joint_node == nullptr)
             {
-                auto frame_node = make_shared<ttd_callnode>();
+                auto frame_node = std::make_shared<ttd_callnode>();
 
                 frame_node->caller_name = "";
                 frame_node->caller_offset = 0;
@@ -448,7 +448,7 @@ DK_TTD_CALLNODE CTTDModelCallstackBuilder::fix_missing_chain(DK_TTD_CALLNODE roo
         {
             // Fix the gap between root chain and callstack chain.
             // root chain may not join with callstack chain with more than one missing node.
-            orphan_node = make_shared<ttd_callnode>();
+            orphan_node = std::make_shared<ttd_callnode>();
 
             orphan_node->caller_name = "";
             orphan_node->caller_offset = 0;
@@ -479,15 +479,15 @@ void CTTDModelCallstackBuilder::dump_root_chain(DK_TTD_CALLNODE root_chain)
     m_root_chain.clear();
 
 #ifdef DEBUG
-    stringstream ss;
-    ss << "Root chain:" << endl;
+    std::stringstream ss;
+    ss << "Root chain:" << std::endl;
 #endif
     auto frame = root_chain;
     while (frame != nullptr)
     {
         m_root_chain.push_back(frame->func_name);
 #ifdef DEBUG
-        ss << frame->func_name << endl;
+        ss << frame->func_name << std::endl;
 #endif
         frame = frame->parent;
     };
@@ -497,7 +497,7 @@ void CTTDModelCallstackBuilder::dump_root_chain(DK_TTD_CALLNODE root_chain)
 #endif
 }
 
-tuple<DK_TTD_CALLNODE, DK_TTD_CALLNODE> CTTDModelCallstackBuilder::build_new_root_chain(ttd_position pos)
+std::tuple<DK_TTD_CALLNODE, DK_TTD_CALLNODE> CTTDModelCallstackBuilder::build_new_root_chain(ttd_position pos)
 {
     DK_TTD_CALLNODE root = nullptr;
     DK_TTD_CALLNODE last_node = nullptr;
@@ -505,12 +505,12 @@ tuple<DK_TTD_CALLNODE, DK_TTD_CALLNODE> CTTDModelCallstackBuilder::build_new_roo
     DK_SEEK_TO(pos.sequence_id, pos.step_id);
     auto init_callstack = DK_GET_CURSTACK();
 
-    vector<array<uint64_t, 5>> reverse_callstack(init_callstack.rbegin(), init_callstack.rend());
+    std::vector<std::array<uint64_t, 5>> reverse_callstack(init_callstack.rbegin(), init_callstack.rend());
 
     // frame_number, insn_ptr, return_ptr, frame_ptr, stack_ptr
     for (auto& frame : reverse_callstack)
     {
-        auto frame_node = make_shared<ttd_callnode>();
+        auto frame_node = std::make_shared<ttd_callnode>();
 
         if (frame[2] == 0)
         {
@@ -548,19 +548,19 @@ tuple<DK_TTD_CALLNODE, DK_TTD_CALLNODE> CTTDModelCallstackBuilder::build_new_roo
     return make_tuple(root, last_node);
 }
 
-void CTTDModelCallstackBuilder::build_callstack_svg(string filename, DK_TTD_CALLNODE root)
+void CTTDModelCallstackBuilder::build_callstack_svg(std::string filename, DK_TTD_CALLNODE root)
 {
-    m_rect_g = make_shared<CSvgGroup>();
+    m_rect_g = std::make_shared<CSvgGroup>();
     m_rect_g->addStyle("fill:white; stroke:black;");
     m_rect_g->setId("rect_g");
 
-    m_text_g = make_shared<CSvgGroup>();
+    m_text_g = std::make_shared<CSvgGroup>();
     m_text_g->addStyle("font-family: monospace; font-size: 16;");
     m_text_g->setId("text_g");
 
-    auto inner_style = make_shared<CSvgInnerStyle>();
+    auto inner_style = std::make_shared<CSvgInnerStyle>();
 
-    map<string, string> fill_pallete = {
+    std::map<std::string, std::string> fill_pallete = {
     {"rect.heat_0",     "fill: white;"},
     {"rect.heat_1",     "fill: #74D2EE;"},
     {"rect.heat_2",     "fill: #00A2B9;"},
@@ -578,21 +578,21 @@ void CTTDModelCallstackBuilder::build_callstack_svg(string filename, DK_TTD_CALL
         inner_style->addClassStyle(it.first, it.second);
     }
 
-    auto inner_script = make_shared<CSvgInnerScript>();
+    auto inner_script = std::make_shared<CSvgInnerScript>();
 
-    string script = R"(	
+    std::string script = R"(	
 
     function show_rect(rect)
 	{
 		rect.setAttribute("stroke-width", "1px");
-		rect.setAttribute("fill-opacity", 100);
+		rect.setAttribute("std::fill-opacity", 100);
 		rect.setAttribute("stroke-opacity", 100);
 		rect.removeAttribute("state");		
 	}
 
 	function hide_rect(rect)
 	{
-		rect.setAttribute("fill-opacity", 0);
+		rect.setAttribute("std::fill-opacity", 0);
 		rect.setAttribute("stroke-opacity", 0);
 		rect.setAttribute("state", "hidden");
 	}
@@ -613,7 +613,7 @@ void CTTDModelCallstackBuilder::build_callstack_svg(string filename, DK_TTD_CALL
 		var accum_height = 0;
 		for (var i=0;i<rects.length;i++)
 		{			
-			if (parseInt(rects[i].getAttribute("fill-opacity")) != 0)
+			if (parseInt(rects[i].getAttribute("std::fill-opacity")) != 0)
 			{
 				accum_height += height;
 				rects[i].setAttribute("y", accum_height);
@@ -650,7 +650,7 @@ void CTTDModelCallstackBuilder::build_callstack_svg(string filename, DK_TTD_CALL
 				{
 					show_rect(rects[i]);
 					text_group.children[i].setAttribute("stroke-opacity", 100);
-					text_group.children[i].setAttribute("fill-opacity", 100);
+					text_group.children[i].setAttribute("std::fill-opacity", 100);
 				}
 				else if(i > index)
 				{
@@ -682,7 +682,7 @@ void CTTDModelCallstackBuilder::build_callstack_svg(string filename, DK_TTD_CALL
 				{
 					hide_rect(rects[i])
 					text_group.children[i].setAttribute("stroke-opacity", 0);
-					text_group.children[i].setAttribute("fill-opacity", 0);
+					text_group.children[i].setAttribute("std::fill-opacity", 0);
 				}
 				else if(i > index)
 				{
@@ -734,7 +734,7 @@ void CTTDModelCallstackBuilder::build_callstack_svg(string filename, DK_TTD_CALL
 
     m_canvas_height = (m_canvas_lines + 2) * 40;
 
-    auto svg_doc = make_shared<CSvgDoc>(m_canvas_width, m_canvas_height, CSvgPoint(0, 0), m_canvas_width, m_canvas_height);
+    auto svg_doc = std::make_shared<CSvgDoc>(m_canvas_width, m_canvas_height, CSvgPoint(0, 0), m_canvas_width, m_canvas_height);
 
     svg_doc->appendElement(inner_style);
     svg_doc->appendElement(inner_script);
@@ -757,19 +757,19 @@ void CTTDModelCallstackBuilder::append_callstack_svg_node(DK_TTD_CALLNODE node, 
 
     pivot.m_y = m_canvas_lines * height;
 
-    string style = "fill: ";
+    std::string style = "fill: ";
     style += make_heat_color(node->seqs_count);
     style += ";";
     style += "stroke: black; stroke-width: 1;";
 
 
-    stringstream ss;
+    std::stringstream ss;
 
-    ss << " ( " << hex << setfill(' ')
-        << right << setw(4) << node->start_pos.sequence_id << ":"
-        << left << setw(4) << node->start_pos.step_id << " - "
-        << right << setw(4) << node->end_pos.sequence_id << ":"
-        << left << setw(4) << node->end_pos.step_id << " ) ";
+    ss << " ( " << std::hex << std::setfill(' ')
+        << right << std::setw(4) << node->start_pos.sequence_id << ":"
+        << left << std::setw(4) << node->start_pos.step_id << " - "
+        << right << std::setw(4) << node->end_pos.sequence_id << ":"
+        << left << std::setw(4) << node->end_pos.step_id << " ) ";
 
     for (auto ch : node->func_name)
     {
@@ -783,14 +783,14 @@ void CTTDModelCallstackBuilder::append_callstack_svg_node(DK_TTD_CALLNODE node, 
             ss << ch;
     }
 
-    auto text = make_shared<CSvgText>(CSvgPoint(pivot.m_x + 50, pivot.m_y + text_disp), ss.str());
+    auto text = std::make_shared<CSvgText>(CSvgPoint(pivot.m_x + 50, pivot.m_y + text_disp), ss.str());
 
     m_text_g->appendElement(text);
 
-    auto rect = make_shared<CSvgRect>(pivot, max(min_width + 100, ss.str().size() * 8), height, "", make_heat_style_class(node->seqs_count));
+    auto rect = std::make_shared<CSvgRect>(pivot, std::max(min_width + 100, ss.str().size() * 8), height, "", make_heat_style_class(node->seqs_count));
 
-    if (m_canvas_width < max(min_width + 100, ss.str().size() * 8) + pivot.m_x)
-        m_canvas_width = max(min_width + 100, ss.str().size() * 8) + pivot.m_x;
+    if (m_canvas_width < std::max(min_width + 100, ss.str().size() * 8) + pivot.m_x)
+        m_canvas_width = std::max(min_width + 100, ss.str().size() * 8) + pivot.m_x;
 
     m_canvas_height += height;
 
@@ -895,9 +895,9 @@ void CTTDModelCallstackBuilder::build_ttd_callstack_model()
                     }
 
 #ifdef DEBUG
-                    stringstream log_ss;
-                    log_ss << " [ " << hex << setw(4) << index << " ] - "
-                        << get<0>(sym_insn) << endl;
+                    std::stringstream log_ss;
+                    log_ss << " [ " << std::hex << std::setw(4) << index << " ] - "
+                        << get<0>(sym_insn) << std::endl;
                     EXT_F_STR_OUT(log_ss);
 #endif
                 }
@@ -913,7 +913,7 @@ void CTTDModelCallstackBuilder::build_ttd_callstack_model()
                 {
                     if (caller_node->func_name == get<0>(sym_next) /*&& caller_node->caller_offset == get<1>(sym_next)*/)
                     {
-                        auto callee_node = make_shared<ttd_callnode>();
+                        auto callee_node = std::make_shared<ttd_callnode>();
 
                         callee_node->caller_name = get<0>(sym_next);
                         callee_node->caller_offset = get<1>(sym_next);
@@ -943,7 +943,7 @@ void CTTDModelCallstackBuilder::build_ttd_callstack_model()
                     caller_node = fix_missing_chain(m_ttd_lastnodes[cur_tid], event.position, sym_next);
                     if (caller_node != nullptr)
                     {
-                        auto callee_node = make_shared<ttd_callnode>();
+                        auto callee_node = std::make_shared<ttd_callnode>();
 
                         callee_node->caller_name = get<0>(sym_next);
                         callee_node->caller_offset = get<1>(sym_next);
@@ -963,9 +963,9 @@ void CTTDModelCallstackBuilder::build_ttd_callstack_model()
                 }
 
 #ifdef DEBUG
-                stringstream log_ss;
-                log_ss << " [ " << hex << setw(4) << index << " ] + "
-                    << get<0>(sym_next) << " -> " << get<0>(sym_insn) << endl;
+                std::stringstream log_ss;
+                log_ss << " [ " << std::hex << std::setw(4) << index << " ] + "
+                    << get<0>(sym_next) << " -> " << get<0>(sym_insn) << std::endl;
                 EXT_F_STR_OUT(log_ss);
 #endif
             }

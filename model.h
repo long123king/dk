@@ -209,7 +209,6 @@ public:
     std::string dump_process(DK_MOBJ_PTR process);
      
     std::string dump_stack(DK_MOBJ_PTR stack);
-
     std::string dump_current_callstack();
 
     std::string dump_module(DK_MOBJ_PTR module);

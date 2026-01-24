@@ -73,10 +73,10 @@
 #define WDML_TEXT    "\">"
 #define WDML_END     "</link>"
 
-#define HEX_ADDR(addr) hex << showbase << setfill('0') << setw(18) << addr << setfill(' ')
-#define WHEX_ADDR(addr) hex << showbase << setfill(L'0') << setw(18) << addr << setfill(L' ')
-#define HEX_DATA hex << showbase << setfill(' ') << setw(18)
-#define WHEX_DATA hex << showbase << setfill(L' ') << setw(18)
+#define HEX_ADDR(addr) std::hex << std::showbase << std::setfill('0') << std::setw(18) << addr << std::setfill(' ')
+#define WHEX_ADDR(addr) std::hex << std::showbase << std::setfill(L'0') << std::setw(18) << addr << std::setfill(L' ')
+#define HEX_DATA std::hex << std::showbase << std::setfill(' ') << std::setw(18)
+#define WHEX_DATA std::hex << std::showbase << std::setfill(L' ') << std::setw(18)
 
 #define FC \
     catch (ExtException& e)     \

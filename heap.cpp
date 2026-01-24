@@ -69,7 +69,7 @@ void CHeapSummary::Analyze()
 {
     EXT_F_OUT("analyzing all process heaps, it may take time, please wait in patience...\n");
 
-    string cmd = "!heap -s -a -v";
+    std::string cmd = "!heap -s -a -v";
 
     auto results = DK_X_CMD(cmd);
     for (auto& result : results)
@@ -84,7 +84,7 @@ void CHeapSummary::Analyze()
     }
 }
 
-void CHeapSummary::add_chunk(string& line)
+void CHeapSummary::add_chunk(std::string& line)
 {
     size_t addr = 0;
     size_t size = 0;
@@ -103,7 +103,7 @@ void CHeapSummary::add_chunk(string& line)
     //    m_chunks[addr] = make_unique<CChunkInfo>(size, flag_str);
 
     if (m_size_map.find(size) == m_size_map.end())
-        m_size_map[size] = set<size_t>();
+        m_size_map[size] = std::set<size_t>();
 
     m_size_map[size].insert(addr);
 }
@@ -112,9 +112,9 @@ void CHeapSummary::dump_size_summary()
 {
     for (auto it : m_size_map)
     {
-        stringstream ss;
-        ss << "[+] " << hex << showbase << it.first << " : "
-            << it.second.size() << " chunks" << endl;
+        std::stringstream ss;
+        ss << "[+] " << std::hex << std::showbase << it.first << " : "
+            << it.second.size() << " chunks" << std::endl;
 
         //for (auto itt : it.second)
         //{
@@ -132,16 +132,16 @@ void CHeapSummary::dump_size(size_t size)
     auto it = m_size_map.find(size);
     if (it != m_size_map.end())
     {
-        stringstream ss;
-        ss << "[+] " << hex << showbase << it->first << " : "
-            << it->second.size() << " chunks" << endl;
+        std::stringstream ss;
+        ss << "[+] " << std::hex << std::showbase << it->first << " : "
+            << it->second.size() << " chunks" << std::endl;
 
         for (auto itt : it->second)
         {
-            ss << "    [-] " << hex << showbase << itt << endl;
+            ss << "    [-] " << std::hex << std::showbase << itt << std::endl;
         }
 
-        ss << endl;
+        ss << std::endl;
 
         EXT_F_STR_OUT(ss);
     }
@@ -153,16 +153,16 @@ void CHeapSummary::dump_size_over(size_t size)
     {
         if (it.first >= size)
         {
-            stringstream ss;
-            ss << "[+] " << hex << showbase << it.first << " : "
-                << it.second.size() << " chunks" << endl;
+            std::stringstream ss;
+            ss << "[+] " << std::hex << std::showbase << it.first << " : "
+                << it.second.size() << " chunks" << std::endl;
 
             for (auto itt : it.second)
             {
-                ss << "    [-] " << hex << showbase << itt << endl;
+                ss << "    [-] " << std::hex << std::showbase << itt << std::endl;
             }
 
-            ss << endl;
+            ss << std::endl;
 
             EXT_F_STR_OUT(ss);
         }

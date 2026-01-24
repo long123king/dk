@@ -89,10 +89,10 @@ void dump_session_space(size_t addr)
 
     EXT_F_OUT("Session : %d\n", session_id);
 
-    stringstream ss;
+    std::stringstream ss;
     ss.str("");
     ss << "dt nt!_POOL_DESCRIPTOR "
-        << hex << showbase << addr + 0xcc0
+        << std::hex << std::showbase << addr + 0xcc0
         << "";
 
     EXT_F_EXEC(ss.str());
