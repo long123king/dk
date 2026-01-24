@@ -6,7 +6,7 @@
 #include <vector>
 #include <map>
 
-using namespace std;
+
 
 class CSvgTheme
 {
@@ -30,7 +30,7 @@ public:
     {
         for (size_t i = 1; i < 7; i++)
         {
-            stringstream ss;
+            std::stringstream ss;
             ss << "#";
             for (size_t j = 0; j < 3; j++)
             {
@@ -49,19 +49,19 @@ public:
         m_trivial_colors.push_back("#404040");
     }
 
-    vector<string> get_highlight()
+    std::vector<std::string> get_highlight()
     {
         return m_highlight_colors;
     }
 
-    vector<string> get_trivial()
+    std::vector<std::string> get_trivial()
     {
         return m_trivial_colors;
     }
 
 private:
-    vector<string> m_highlight_colors;
-    vector<string> m_trivial_colors;
+    std::vector<std::string> m_highlight_colors;
+    std::vector<std::string> m_trivial_colors;
 };
 
 class CHexSvgMetrics
@@ -70,11 +70,11 @@ public:
     CHexSvgMetrics(size_t bpr, size_t rhw, size_t chh, size_t rh, size_t cw);
     ~CHexSvgMetrics();
 
-    tuple<size_t, size_t, size_t, size_t> get_cell(size_t offset, size_t span);
+    std::tuple<size_t, size_t, size_t, size_t> get_cell(size_t offset, size_t span);
 
-    tuple<size_t, size_t, size_t, size_t> get_row_header(size_t row);
-    tuple<size_t, size_t, size_t, size_t> get_row_framework(size_t row);
-    tuple<size_t, size_t, size_t, size_t> get_column_header(size_t column);
+    std::tuple<size_t, size_t, size_t, size_t> get_row_header(size_t row);
+    std::tuple<size_t, size_t, size_t, size_t> get_row_framework(size_t row);
+    std::tuple<size_t, size_t, size_t, size_t> get_column_header(size_t column);
 private:
     size_t m_boxes_per_row;
     size_t m_row_header_width;
@@ -86,28 +86,28 @@ private:
 class CHexBox
 {
 public:
-    CHexBox(string value, size_t offset, size_t span=1, bool solid_outline = true,
-        string fill_color="#a0ffa0", size_t font_size = 16, 
-        string font_family = "monospace"
+    CHexBox(std::string value, size_t offset, size_t span=1, bool solid_outline = true,
+        std::string fill_color="#a0ffa0", size_t font_size = 16, 
+        std::string font_family = "monospace"
         );
     ~CHexBox();
 
-    string gen_framework_bg(shared_ptr<CHexSvgMetrics> m);
-    string gen_framework_separator(shared_ptr<CHexSvgMetrics> m);
-    string gen_text(shared_ptr<CHexSvgMetrics> m);
-    string gen_bitmap(shared_ptr<CHexSvgMetrics> m);
-    string gen_ascii(shared_ptr<CHexSvgMetrics> m);
+    std::string gen_framework_bg(std::shared_ptr<CHexSvgMetrics> m);
+    std::string gen_framework_separator(std::shared_ptr<CHexSvgMetrics> m);
+    std::string gen_text(std::shared_ptr<CHexSvgMetrics> m);
+    std::string gen_bitmap(std::shared_ptr<CHexSvgMetrics> m);
+    std::string gen_ascii(std::shared_ptr<CHexSvgMetrics> m);
 
 private:
-    string m_value;
+    std::string m_value;
     size_t m_span;
     size_t m_offset;
     size_t m_font_size;
 
     bool m_solid_outline;
-    string m_fill_color;
+    std::string m_fill_color;
 
-    string m_font_family;
+    std::string m_font_family;
 };
 
 class CHexSvg
@@ -116,21 +116,21 @@ public:
     CHexSvg(size_t boxes_per_row = 16);
     ~CHexSvg();
 
-    string add_text(size_t row, size_t column, string content);
+    std::string add_text(size_t row, size_t column, std::string content);
     void set_address(size_t addr);
     void set_bitmap(bool b_bitmap);
     void set_ascii(bool b_ascii);
     void set_auto_color(bool b_auto_color);
     void set_legend(bool b_legend);
 
-    void add_byte(uint8_t value, string color = "#a0ffa0");
-    void add_word(uint16_t value, string color = "#a0ffa0");
-    void add_dword(uint32_t value, string color = "#a0ffa0");
-    void add_qword(uint64_t value, string color = "#a0ffa0");
+    void add_byte(uint8_t value, std::string color = "#a0ffa0");
+    void add_word(uint16_t value, std::string color = "#a0ffa0");
+    void add_dword(uint32_t value, std::string color = "#a0ffa0");
+    void add_qword(uint64_t value, std::string color = "#a0ffa0");
 
-    void add_buffer(string buffer, string color = "#a0ffa0");
+    void add_buffer(std::string buffer, std::string color = "#a0ffa0");
 
-    void add_legend(string color, string note);
+    void add_legend(std::string color, std::string note);
 
     void generate_row_header();
     void generate_column_header();
@@ -141,9 +141,9 @@ public:
     void generate_ascii();
     void generate_legend();
 
-    string generate();
+    std::string generate();
 
-    string auto_calc_color(uint8_t b);
+    std::string auto_calc_color(uint8_t b);
 
 
 private:
@@ -161,28 +161,28 @@ private:
     size_t m_init_address{ 0 };
     size_t m_offset{ 0 };
 
-    vector<shared_ptr<CHexBox>> m_boxes;
+    std::vector<std::shared_ptr<CHexBox>> m_boxes;
 
-    shared_ptr<CHexSvgMetrics> m_m;
+    std::shared_ptr<CHexSvgMetrics> m_m;
 
     size_t m_row_header_width{ 200 };
     size_t m_colum_header_height{ 40 };
     size_t m_row_height{ 30 };
     size_t m_column_width{ 40 };
 
-    string m_font_family{ "monospace" };
-    string m_svg_trailers{R"(</svg>)"};
+    std::string m_font_family{ "monospace" };
+    std::string m_svg_trailers{R"(</svg>)"};
 
-    stringstream m_svg_headers;
-    stringstream m_row_header_content;
-    stringstream m_column_header_content;
-    stringstream m_content;
-    stringstream m_framework_content;
-    stringstream m_bitmap_content;
-    stringstream m_ascii_content;
-    stringstream m_svg_text;
-    stringstream m_legend_content;
+    std::stringstream m_svg_headers;
+    std::stringstream m_row_header_content;
+    std::stringstream m_column_header_content;
+    std::stringstream m_content;
+    std::stringstream m_framework_content;
+    std::stringstream m_bitmap_content;
+    std::stringstream m_ascii_content;
+    std::stringstream m_svg_text;
+    std::stringstream m_legend_content;
 
-    map<string, string> m_legends;
+    std::map<std::string, std::string> m_legends;
 
 };
