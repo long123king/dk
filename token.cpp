@@ -527,7 +527,7 @@ DEFINE_CMD(add_privilege)
 std::tuple<std::string, std::string> dump_sid(size_t sid_addr)
 {
     if (sid_addr == 0)
-        return make_tuple("", "");
+        return std::make_tuple("", "");
     try
     {
         uint8_t version = EXT_F_READ<uint8_t>(sid_addr);
@@ -562,7 +562,7 @@ std::tuple<std::string, std::string> dump_sid(size_t sid_addr)
     }
     FC;
 
-    return make_tuple("", "");
+    return std::make_tuple("", "");
 }
 
 size_t get_sid_attr_hash_item(size_t addr, size_t index)
@@ -571,20 +571,20 @@ size_t get_sid_attr_hash_item(size_t addr, size_t index)
 
     try
     {
-        ExtRemoteTyped std::hash("(nt!_SID_AND_ATTRIBUTES_HASH*)@$extin", addr);
-        return get_sid_attr_array_item(std::hash.Field("SidAttr").GetLongPtr(), std::hash.Field("SidCount").GetUlong(), index);
+        ExtRemoteTyped hash("(nt!_SID_AND_ATTRIBUTES_HASH*)@$extin", addr);
+        return get_sid_attr_array_item(hash.Field("SidAttr").GetLongPtr(), hash.Field("SidCount").GetUlong(), index);
     }
     FC;
 
     return 0;
 }
 
-size_t get_sid_attr_array_item(size_t sid_addr, size_t std::count, size_t index)
+size_t get_sid_attr_array_item(size_t sid_addr, size_t count, size_t index)
 {
     //stringstream ss;
     try
     {
-        for (size_t i = 0; i < std::count; i++)
+        for (size_t i = 0; i < count; i++)
         {
             if (i != index)
                 continue;
@@ -852,8 +852,8 @@ std::string dump_sid_attr_hash(size_t addr)
 
 	try
 	{
-		ExtRemoteTyped std::hash("(nt!_SID_AND_ATTRIBUTES_HASH*)@$extin", addr);
-		ss << dump_sid_attr_array(std::hash.Field("SidAttr").GetLongPtr(), std::hash.Field("SidCount").GetUlong()) << "\n";
+		ExtRemoteTyped hash("(nt!_SID_AND_ATTRIBUTES_HASH*)@$extin", addr);
+		ss << dump_sid_attr_array(hash.Field("SidAttr").GetLongPtr(), hash.Field("SidCount").GetUlong()) << "\n";
 		//for (size_t i = 0; i < 0x20; i++)
 		//{
 		//    if (i % 0x08 == 0)
@@ -866,7 +866,7 @@ std::string dump_sid_attr_hash(size_t addr)
 	return ss.str();
 }
 
-std::string dump_sid_attr_array(size_t sid_addr, size_t std::count)
+std::string dump_sid_attr_array(size_t sid_addr, size_t count)
 {
 	std::stringstream ss;
 	try
@@ -874,7 +874,7 @@ std::string dump_sid_attr_array(size_t sid_addr, size_t std::count)
 		if (sid_addr == 0)
 			return "";
 
-		for (size_t i = 0; i < std::count; i++)
+		for (size_t i = 0; i < count; i++)
 		{
 			ExtRemoteTyped entry("(nt!_SID_AND_ATTRIBUTES*)@$extin", sid_addr + i * 0x10);
 			ss << std::showbase << std::hex << std::setw(16) << sid_addr + i * 0x10 << " ";

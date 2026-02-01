@@ -228,10 +228,10 @@ void CTTDInsight::dump_ttd_model_events(std::string out_filename)
 
             ss << std::hex << " " << root.first
                 << " ( " << std::hex << std::setfill(' ')
-                << right << std::setw(4) << branch->start_pos.sequence_id << ":"
-                << left << std::setw(4) << branch->start_pos.step_id << " - "
-                << right << std::setw(4) << branch->end_pos.sequence_id << ":"
-                << left << std::setw(4) << branch->end_pos.step_id << " ) ";
+                << std::right << std::setw(4) << branch->start_pos.sequence_id << ":"
+                << std::left << std::setw(4) << branch->start_pos.step_id << " - "
+                << std::right << std::setw(4) << branch->end_pos.sequence_id << ":"
+                << std::left << std::setw(4) << branch->end_pos.step_id << " ) ";
 
             auto text = std::make_shared<CSvgText>(CSvgPoint(x + 50, y + text_disp), SvgEscapeText(branch->func_name));
 
@@ -766,10 +766,10 @@ void CTTDModelCallstackBuilder::append_callstack_svg_node(DK_TTD_CALLNODE node, 
     std::stringstream ss;
 
     ss << " ( " << std::hex << std::setfill(' ')
-        << right << std::setw(4) << node->start_pos.sequence_id << ":"
-        << left << std::setw(4) << node->start_pos.step_id << " - "
-        << right << std::setw(4) << node->end_pos.sequence_id << ":"
-        << left << std::setw(4) << node->end_pos.step_id << " ) ";
+        << std::right << std::setw(4) << node->start_pos.sequence_id << ":"
+        << std::left << std::setw(4) << node->start_pos.step_id << " - "
+        << std::right << std::setw(4) << node->end_pos.sequence_id << ":"
+        << std::left << std::setw(4) << node->end_pos.step_id << " ) ";
 
     for (auto ch : node->func_name)
     {
@@ -787,10 +787,10 @@ void CTTDModelCallstackBuilder::append_callstack_svg_node(DK_TTD_CALLNODE node, 
 
     m_text_g->appendElement(text);
 
-    auto rect = std::make_shared<CSvgRect>(pivot, std::max(min_width + 100, ss.str().size() * 8), height, "", make_heat_style_class(node->seqs_count));
+    auto rect = std::make_shared<CSvgRect>(pivot, max(min_width + 100, ss.str().size() * 8), height, "", make_heat_style_class(node->seqs_count));
 
-    if (m_canvas_width < std::max(min_width + 100, ss.str().size() * 8) + pivot.m_x)
-        m_canvas_width = std::max(min_width + 100, ss.str().size() * 8) + pivot.m_x;
+    if (m_canvas_width < max(min_width + 100, ss.str().size() * 8) + pivot.m_x)
+        m_canvas_width = max(min_width + 100, ss.str().size() * 8) + pivot.m_x;
 
     m_canvas_height += height;
 

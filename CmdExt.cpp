@@ -101,7 +101,7 @@ std::tuple<std::string, uint64_t> CCmdExt::getAddrSymbol(size_t addr)
         ULONG len = 0;
         if (S_OK == m_Symbols->GetNameByOffset(addr, symbol, 0, &len, 0))
         {
-            symbol = new (nothrow) char[len];
+            symbol = new (std::nothrow) char[len];
 
             if (symbol != nullptr &&
                 S_OK == m_Symbols->GetNameByOffset(addr, symbol, len, &len, &disp))
@@ -280,7 +280,7 @@ size_t CCmdExt::getIntArg(std::vector<std::string>& args, size_t idx, size_t def
 
     std::stringstream ss;
 
-    ss << nouppercase << args[idx];
+    ss << std::nouppercase << args[idx];
 
     std::string arg = ss.str();
 

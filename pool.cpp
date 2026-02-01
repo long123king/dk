@@ -69,8 +69,8 @@ void dump_free_pool(size_t size)
 
 
             std::vector<size_t> pages;
-            size_t std::count = 0;
-            size_t j = std::size / 0x10;
+            size_t count = 0;
+            size_t j = size / 0x10;
             {
 
                 size_t head = paged_pool_descriptor + 0x140 + 0x10 * j;
@@ -246,7 +246,7 @@ void dump_pool_range()
         for (size_t i = 0; i < 3; i++)
         {
             size_t size_of_bitmap = system_node_info.Field("NonPagedBitMap").ArrayElement(i).Field("SizeOfBitMap").GetUlong64();
-            non_paged_pool_end = std::max(non_paged_pool_end, non_paged_pool_start + size_of_bitmap * 0x08);
+            non_paged_pool_end = max(non_paged_pool_end, non_paged_pool_start + size_of_bitmap * 0x08);
         }
 
         auto dyn_bitmap_paged_pool = mi_state.Field("SystemVa.DynamicBitMapPagedPool");

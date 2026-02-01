@@ -200,10 +200,10 @@ DEFINE_CMD(ls_threads)
             auto pobj_threads = DK_MGET_POBJ(proc, "Threads");
             auto threads = DK_MODEL_ACCESS->iterate(pobj_threads);
 
-            for (auto& std::thread : threads)
+            for (auto& thread : threads)
             {
-                ss << " [ " << get<0>(std::thread) << " ] "
-                    << DK_DUMP(std::thread)(get<1>(std::thread));
+                ss << " [ " << get<0>(thread) << " ] "
+                    << DK_DUMP(thread)(get<1>(thread));
             }
         }
     }
@@ -462,10 +462,10 @@ DEFINE_CMD(ttd_mem_use)
     auto end_percent = EXT_F_IntArg(args, 5, 0);
 
     //auto thread = DK_MGET_THRD(session_id, proc_id, thread_id);
-    auto std::thread = DK_MGET_PROC(session_id, proc_id);
-    if (std::thread != nullptr)
+    auto thread = DK_MGET_PROC(session_id, proc_id);
+    if (thread != nullptr)
     {
-        auto ttd = DK_MGET_POBJ(std::thread, "TTD");
+        auto ttd = DK_MGET_POBJ(thread, "TTD");
         if (ttd != nullptr)
         {
             auto mem_use_pobj = DK_MGET_POBJ(ttd, "GatherMemoryUse");
@@ -713,7 +713,7 @@ std::string CModelAccess::dump_call_result(DK_MOBJ_PTR call_result)
     auto start_pos = get_pos(call_result, "TimeStart");
     auto end_pos = get_pos(call_result, "TimeEnd");
 
-    auto std::function = BSTR2str(get_pvalue<BSTR, VT_BSTR>(call_result, "Function"));
+    auto function = BSTR2str(get_pvalue<BSTR, VT_BSTR>(call_result, "Function"));
     auto func_addr = get_pvalue<uint64_t, VT_UI8>(call_result, "FunctionAddress");
     auto return_addr = get_pvalue<uint64_t, VT_UI8>(call_result, "ReturnAddress");
     auto return_val = get_pvalue<uint64_t, VT_UI8>(call_result, "ReturnValue");
@@ -730,7 +730,7 @@ std::string CModelAccess::dump_call_result(DK_MOBJ_PTR call_result)
         << " addr: 0x" << std::setw(16) << func_addr
         << " ret_addr: 0x" << std::setw(16) << return_addr
         << " ret_val: 0x" << std::setw(16) << return_val
-        << " function: " << std::function
+        << " function: " << function
         ;
 
     auto parameters_pobj = get_pobj(call_result, "Parameters");
@@ -776,7 +776,7 @@ std::string CModelAccess::dump_mem_access_result(DK_MOBJ_PTR mem_access_result)
         << std::endl
         << " IP: 0x" << std::setw(16) << ip_addr
         << " addr: 0x" << std::setw(16) << addr
-        << " size: 0x" << std::setw(16) << std::size
+        << " size: 0x" << std::setw(16) << size
         << " value: 0x" << std::setw(16) << value
         << " new_value: 0x" << std::setw(16) << overwritten_value
         << " access type: " << access_type
@@ -1144,7 +1144,7 @@ std::tuple<uint64_t, uint64_t> CModelAccess::get_current_pos()
 
     auto seq = get_pvalue<uint64_t, VT_UI8>(cur_pos, "Sequence");
     auto step = get_pvalue<uint64_t, VT_UI8>(cur_pos, "Steps");
-    return make_tuple(seq, step);
+    return std::make_tuple(seq, step);
 }
 
 std::string CModelAccess::dump_heap_memory(DK_MOBJ_PTR heap_memory)
@@ -1411,7 +1411,7 @@ std::vector<std::string> str_split(const std::string& str, char delim) {
 }
 
 std::vector<std::wstring> wstr_split(const std::wstring& str, wchar_t delim) {
-    wstringstream ss(str);
+    std::wstringstream ss(str);
     std::wstring item;
 
     std::vector<std::wstring> vec_sub_strs;
@@ -1470,10 +1470,10 @@ std::tuple<uint64_t, uint64_t> CModelAccess::get_pos(DK_MOBJ_PTR& mobj, std::str
         auto seq = get_pvalue<uint64_t, VT_UI8>(pos_pobj, "Sequence");
         auto step = get_pvalue<uint64_t, VT_UI8>(pos_pobj, "Steps");
 
-        return make_tuple(seq, step);
+        return std::make_tuple(seq, step);
     }
 
-    return make_tuple<uint64_t, uint64_t>(0, 0);
+    return std::make_tuple<uint64_t, uint64_t>(0, 0);
 }
 
 std::tuple<uint64_t, uint64_t, std::string> CModelAccess::get_module(DK_MOBJ_PTR& mobj)
@@ -1482,7 +1482,7 @@ std::tuple<uint64_t, uint64_t, std::string> CModelAccess::get_module(DK_MOBJ_PTR
     auto module_size = DK_MGET_PVAL<uint64_t, VT_UI8>(mobj, "Size");
     auto module_base = DK_MGET_PVAL<uint64_t, VT_UI8>(mobj, "BaseAddress");
 
-    return make_tuple(module_base, module_size, module_name);
+    return std::make_tuple(module_base, module_size, module_name);
 }
 
 DK_MOBJ_PTR CModelAccess::create_str_intrinsic_obj(std::string str)
@@ -1538,7 +1538,7 @@ DK_MOBJ_PTR CModelAccess::call(DK_MOBJ_PTR mobj, DK_MOBJ_PTR context, std::vecto
     {
         IModelMethod* pMethod = static_cast<IModelMethod*>(variant_prop.punkVal);
 
-        IModelObject** args_arr = new (nothrow) IModelObject * [args.size()];
+        IModelObject** args_arr = new (std::nothrow) IModelObject * [args.size()];
         if (args_arr != nullptr)
         {
             for (auto i = 0; i < args.size(); i++)
@@ -1716,7 +1716,7 @@ std::vector<std::tuple<uint64_t, DK_MOBJ_PTR>> CModelAccess::iterate(DK_MOBJ_PTR
 
             if (demension != 0)
             {
-                IModelObject** indexer_arr = new (nothrow) IModelObject * [demension];
+                IModelObject** indexer_arr = new (std::nothrow) IModelObject * [demension];
                 DK_MOBJ_PTR item;
 
                 while (S_OK == sp_model_iterator->GetNext(&item, demension, indexer_arr, nullptr))
@@ -1726,7 +1726,7 @@ std::vector<std::tuple<uint64_t, DK_MOBJ_PTR>> CModelAccess::iterate(DK_MOBJ_PTR
                     if (indexer_arr != nullptr)
                         hr = indexer_arr[0]->GetIntrinsicValueAs(VT_UI8, &index_data);
 
-                    results.push_back(make_tuple(index_data.ullVal, item));
+                    results.push_back(std::make_tuple(index_data.ullVal, item));
                     VariantClear(&index_data);
                 }
 
@@ -1740,7 +1740,7 @@ std::vector<std::tuple<uint64_t, DK_MOBJ_PTR>> CModelAccess::iterate(DK_MOBJ_PTR
 
                 while (S_OK == sp_model_iterator->GetNext(&item, demension, nullptr, nullptr))
                 {
-                    results.push_back(make_tuple(index++, item));
+                    results.push_back(std::make_tuple(index++, item));
                 }
             }
         }
@@ -1777,7 +1777,7 @@ DK_MOBJ_PTR CModelAccess::at(DK_MOBJ_PTR& mobj, size_t index)
         hr = indexable_interface->GetDimensionality(mobj.Get(), &demension);
         if (S_OK == hr)
         {
-            IModelObject** index_arr = new (nothrow) IModelObject * [demension];
+            IModelObject** index_arr = new (std::nothrow) IModelObject * [demension];
             if (index_arr != nullptr)
             {
                 DK_MOBJ_PTR indexer;

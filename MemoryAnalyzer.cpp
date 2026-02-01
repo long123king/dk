@@ -49,11 +49,11 @@ std::tuple<size_t, size_t> CMemoryAnalyzer::is_heap(size_t addr)
     {
         if (addr >= entry.res_id && addr < entry.res_id + entry.size)
         {
-            return make_tuple(entry.res_id, entry.size);
+            return std::make_tuple(entry.res_id, entry.size);
         }
     }
 
-    return make_tuple(0, 0);;
+    return std::make_tuple(0, 0);;
 }
 
 void CMemoryAnalyzer::analyze()
@@ -84,7 +84,7 @@ void CMemoryAnalyzer::analyze()
         auto heap_entry = is_heap(qw);
         if (get<1>(heap_entry) != 0)
         {
-            m_ptr2heaps[i * 8] = make_tuple(qw, get<0>(heap_entry), get<1>(heap_entry));
+            m_ptr2heaps[i * 8] = std::make_tuple(qw, get<0>(heap_entry), get<1>(heap_entry));
         }
     }
 }

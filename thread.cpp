@@ -51,7 +51,7 @@ void dump_process_threads(size_t process_addr)
                 << "<link cmd=\"dt nt!_ETHREAD " << thread_addr << "\">dt</link> "
                 << "<link cmd=\"!dk obj " << thread_addr - 0x30 << "\">detail</link> "
                 << "<link cmd=\".thread " << thread_addr << "; kf;\">switch</link>    "
-                << "Cid: " << std::setw(6) << unique_process << "." << left << std::setw(6) << unique_thread << right << "    Thread Func: ";
+                << "Cid: " << std::setw(6) << unique_process << "." << std::left << std::setw(6) << unique_thread << std::right << "    Thread Func: ";
 
 
             if (start_func_name.empty())
@@ -100,7 +100,7 @@ std::tuple<size_t, size_t> get_thread_token(size_t thread_addr)
         }
     }
     FC;
-    return make_tuple(token, level);
+    return std::make_tuple(token, level);
 }
 
 std::string

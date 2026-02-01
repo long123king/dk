@@ -89,9 +89,9 @@ void CHeapSummary::add_chunk(std::string& line)
     size_t addr = 0;
     size_t size = 0;
 
-    addr = stoull(line.c_str(), nullptr, 16);
+    addr = std::stoull(line.c_str(), nullptr, 16);
     //addr = stoull(line.substr(0, 16), nullptr, 16);
-    size = stoull(line.c_str() + line.find_first_not_of(' ', 0x48), nullptr, 16);
+    size = std::stoull(line.c_str() + line.find_first_not_of(' ', 0x48), nullptr, 16);
     //size = stoull(line.substr(line.find_first_not_of(' ', 0x48)), nullptr, 16);
 
     //auto flag_str = line.substr(0x66);

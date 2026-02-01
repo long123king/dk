@@ -210,7 +210,7 @@ std::shared_ptr<CSvgDoc> visual_page(std::string page_content, uint64_t page_add
     for (uint64_t i = 0; i < 0x1000; i++)
     {
         std::stringstream ss;
-        ss << std::hex << uppercase << std::setfill('0') << std::setw(2) << (uint16_t)(page_content[i] & 0x00FF);
+        ss << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << (uint16_t)(page_content[i] & 0x00FF);
         content_texts.push_back(ss.str());
 
         ss.str("");
@@ -305,7 +305,7 @@ void update_page(std::shared_ptr<CSvgDoc> svg_doc, std::string page_content, Coo
     for (uint64_t i = 0; i < 0x1000; i++)
     {
         std::stringstream ss;
-        ss << std::hex << uppercase << std::setfill('0') << std::setw(2) << (uint16_t)(page_content[i] & 0x00FF);
+        ss << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << (uint16_t)(page_content[i] & 0x00FF);
         content_texts.push_back(ss.str());
 
         ss.str("");
@@ -385,12 +385,12 @@ void AddPtr2Sym(std::shared_ptr<CSvgGroup> g_arrows, std::shared_ptr<CSvgGroup> 
 }
 
 
-void AddMem(std::shared_ptr<CSvgDoc> svg_doc, size_t addr, size_t std::size, CSvgPoint disp)
+void AddMem(std::shared_ptr<CSvgDoc> svg_doc, size_t addr, size_t size, CSvgPoint disp)
 {
     CoordinatesManager coordinates_mgr(GRID_WIDTH, GRID_HEIGHT, GRID_ADDR_WIDTH);
 
     size_t aligned_addr = addr;// addr & 0xFFFFFFFFFFFFFFF8;
-    size_t aligned_size = std::size;// (addr + size) & 0xFFFFFFFFFFFFFFF8 - aligned_addr;
+    size_t aligned_size = size;// (addr + size) & 0xFFFFFFFFFFFFFFF8 - aligned_addr;
 
     std::string content(aligned_size, '0');
 
@@ -428,7 +428,7 @@ void AddMem(std::shared_ptr<CSvgDoc> svg_doc, size_t addr, size_t std::size, CSv
     for (uint64_t i = 0; i < aligned_size; i++)
     {
         std::stringstream ss;
-        ss << std::hex << uppercase << std::setfill('0') << std::setw(2) << (uint16_t)(content[i] & 0x00FF);
+        ss << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << (uint16_t)(content[i] & 0x00FF);
         content_texts.push_back(ss.str());
 
         ss.str("");
@@ -459,7 +459,7 @@ void AddBytes(std::shared_ptr<CSvgDoc> svg_doc, std::string content, CSvgPoint d
     for (uint64_t i = 0; i < content.size(); i++)
     {
         std::stringstream ss;
-        ss << std::hex << uppercase << std::setfill('0') << std::setw(2) << (uint16_t)(content[i] & 0x00FF);
+        ss << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << (uint16_t)(content[i] & 0x00FF);
         content_texts.push_back(ss.str());
 
         ss.str("");
@@ -1399,7 +1399,7 @@ void init_va_regions()
             size_t addr = *(size_t*)(arr_raw + 0x10 * i);
             size_t len = *(size_t*)(arr_raw + 0x10 * i + 0x08);
 
-            g_va_regions.insert(make_tuple(addr, len, va_region_names[i]));
+            g_va_regions.insert(std::make_tuple(addr, len, va_region_names[i]));
         }
     }
     FC;
@@ -1609,7 +1609,7 @@ std::tuple<bool, size_t, std::string, std::string> as_kcode(size_t addr)
         FC;
     }
 
-    return make_tuple(false, 0, "", "");
+    return std::make_tuple(false, 0, "", "");
 }
 
 std::tuple<bool, size_t, std::string, std::string> as_ucode(size_t addr)
@@ -1642,14 +1642,14 @@ std::tuple<bool, size_t, std::string, std::string> as_ucode(size_t addr)
                         ss << "+" << std::hex << std::showbase << (addr - symbol_start);
 
                     if (addr >= dll_base && addr < dll_base + dll_len)
-                        return make_tuple(true, dll_base, str_module_name, ss.str());
+                        return std::make_tuple(true, dll_base, str_module_name, ss.str());
                 }
             }
         }
         FC;
     }
 
-    return make_tuple(false, 0, "", "");
+    return std::make_tuple(false, 0, "", "");
 }
 
 bool is_valid_pool_tag(uint32_t tag)
@@ -1734,7 +1734,7 @@ std::tuple<bool, bool, bool, size_t, size_t, std::string> as_small_pool(size_t a
                 bool b_Allocated_or_free = !((pool_header.block_size == 0) || (str_tag == "Free"));
 
                 delete[] cur_page;
-                return make_tuple(true, b_Paged_or_nonpaged, b_Allocated_or_free,
+                return std::make_tuple(true, b_Paged_or_nonpaged, b_Allocated_or_free,
                     next_record_addr + 0x10,
                     pool_header.block_size * 0x10 - 0x10,
                     str_tag);
@@ -1748,7 +1748,7 @@ std::tuple<bool, bool, bool, size_t, size_t, std::string> as_small_pool(size_t a
     }
     FC;
 
-    return make_tuple(false, false, false, 0, 0, "");
+    return std::make_tuple(false, false, false, 0, 0, "");
 }
 
 std::tuple<bool, bool, bool, size_t, size_t, std::string> as_large_pool(size_t addr)
@@ -1795,7 +1795,7 @@ std::tuple<bool, bool, bool, size_t, size_t, std::string> as_large_pool(size_t a
                     bool b_Allocated_or_free = !(b_free || (pool_entry.size == 0) || (pool_tag == "Free"));
 
                     delete[] page_x3_buffer;
-                    return make_tuple(false, b_Paged_or_nonpaged, b_Allocated_or_free, pool_va, pool_entry.size, pool_tag);
+                    return std::make_tuple(false, b_Paged_or_nonpaged, b_Allocated_or_free, pool_va, pool_entry.size, pool_tag);
                 }
             }
         }
@@ -1804,7 +1804,7 @@ std::tuple<bool, bool, bool, size_t, size_t, std::string> as_large_pool(size_t a
 
     delete[] page_x3_buffer;
 
-    return make_tuple(false, false, false, 0, 0, "");
+    return std::make_tuple(false, false, false, 0, 0, "");
 }
 
 std::string dump_plain_qword(size_t curr_qword)
