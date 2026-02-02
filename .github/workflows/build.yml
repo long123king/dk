@@ -54,12 +54,8 @@ jobs:
         if (-not $debuggerFound) {
           Write-Host "`nDebugging Tools not found. Installing via winget..."
           
-          # Install using winget (cleanest method)
-          winget install --id Microsoft.WindowsSDK.10.0.22621 `
-            --silent `
-            --accept-source-agreements `
-            --accept-package-agreements `
-            --scope machine
+          # Install using winget (cleanest method) - all on one line
+          winget install --id Microsoft.WindowsSDK.10.0.22621 --silent --accept-source-agreements --accept-package-agreements --scope machine
           
           if ($LASTEXITCODE -ne 0) {
             Write-Host "winget installation failed. Trying direct download..."
@@ -137,14 +133,7 @@ jobs:
         Write-Host "  Include: $env:WindowsSDKDebuggerIncPath"
         Write-Host "  Library: $env:WindowsSDKDebuggerLibPath"
         
-        msbuild dk.sln `
-          /p:Configuration=${{ matrix.configuration }} `
-          /p:Platform=x64 `
-          /p:PlatformToolset=v143 `
-          /p:WindowsSDKDebuggerIncPath="$env:WindowsSDKDebuggerIncPath" `
-          /p:WindowsSDKDebuggerLibPath="$env:WindowsSDKDebuggerLibPath" `
-          /m `
-          /v:minimal
+        msbuild dk.sln /p:Configuration=${{ matrix.configuration }} /p:Platform=x64 /p:PlatformToolset=v143 /p:WindowsSDKDebuggerIncPath="$env:WindowsSDKDebuggerIncPath" /p:WindowsSDKDebuggerLibPath="$env:WindowsSDKDebuggerLibPath" /m /v:minimal
         
         if ($LASTEXITCODE -ne 0) {
           Write-Host "Build failed with exit code $LASTEXITCODE"
