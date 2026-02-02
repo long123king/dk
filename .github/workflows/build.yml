@@ -27,14 +27,52 @@ jobs:
     - name: Install Windows SDK with Debugging Tools
       shell: powershell
       run: |
-        Write-Host "Installing Windows SDK with Debugging Tools..."
+        Write-Host "Setting up Windows SDK and Debugging Tools..."
         
-        # Using Chocolatey to install Windows SDK with Debuggers
-        # Note: Using windows-sdk-10.1 as it's the most stable version with Debugging Tools
-        # If this version becomes unavailable, consider using 'windows-sdk-10-version-xxxx-all'
-        choco install windows-sdk-11-version-21H2-all --params="/features:OptionId.WindowsDesktopDebuggers" -y
+        # First, check what's already available
+        Write-Host "`nChecking pre-installed SDKs..."
+        $kitsPath = "C:\Program Files (x86)\Windows Kits\10\Include"
+        if (Test-Path $kitsPath) {
+          Get-ChildItem $kitsPath | ForEach-Object { Write-Host "  - $($_.Name)" }
+        }
         
-        Write-Host "Installation completed."
+        # Check for Debugging Tools
+        $debuggerFound = $false
+        $searchPaths = @(
+          "C:\Program Files (x86)\Windows Kits\10\Debuggers\inc\engextcpp.hpp",
+          "C:\Program Files\Windows Kits\10\Debuggers\inc\engextcpp.hpp"
+        )
+        
+        foreach ($path in $searchPaths) {
+          if (Test-Path $path) {
+            Write-Host "`n✓ Debugging Tools found at: $(Split-Path -Parent $path)"
+            $debuggerFound = $true
+            break
+          }
+        }
+        
+        if (-not $debuggerFound) {
+          Write-Host "`nDebugging Tools not found. Installing via winget..."
+          
+          # Install using winget (cleanest method)
+          winget install --id Microsoft.WindowsSDK.10.0.22621 `
+            --silent `
+            --accept-source-agreements `
+            --accept-package-agreements `
+            --scope machine
+          
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "winget installation failed. Trying direct download..."
+            
+            # Fallback: Download standalone debuggers
+            $url = "https://go.microsoft.com/fwlink/?linkid=2173743"
+            $msi = "$env:TEMP\dbg_x64.msi"
+            Invoke-WebRequest -Uri $url -OutFile $msi -UseBasicParsing
+            Start-Process msiexec.exe -ArgumentList "/i", $msi, "/quiet", "/norestart" -Wait -NoNewWindow
+          }
+          
+          Write-Host "`n✓ Installation completed."
+        }
     
     - name: Detect SDK Paths and Setup Environment
       shell: powershell
