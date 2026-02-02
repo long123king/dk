@@ -33,15 +33,13 @@ jobs:
         Write-Host "`nChecking pre-installed SDKs..."
         $kitsPath = "C:\Program Files (x86)\Windows Kits\10\Include"
         if (Test-Path $kitsPath) {
-          Get-ChildItem $kitsPath | ForEach-Object { Write-Host "  - $($_.Name)" }
+          $kits = Get-ChildItem $kitsPath
+          foreach ($kit in $kits) { Write-Host "  - $($kit.Name)" }
         }
         
         # Check for Debugging Tools
         $debuggerFound = $false
-        $searchPaths = @(
-          "C:\Program Files (x86)\Windows Kits\10\Debuggers\inc\engextcpp.hpp",
-          "C:\Program Files\Windows Kits\10\Debuggers\inc\engextcpp.hpp"
-        )
+        $searchPaths = @("C:\Program Files (x86)\Windows Kits\10\Debuggers\inc\engextcpp.hpp", "C:\Program Files\Windows Kits\10\Debuggers\inc\engextcpp.hpp")
         
         foreach ($path in $searchPaths) {
           if (Test-Path $path) {
@@ -52,19 +50,24 @@ jobs:
         }
         
         if (-not $debuggerFound) {
-          Write-Host "`nDebugging Tools not found. Installing via winget..."
+          Write-Host "`nDebugging Tools not found. Installing latest Windows SDK..."
           
-          # Install using winget (cleanest method) - all on one line
-          winget install --id Microsoft.WindowsSDK.10.0.22621 --silent --accept-source-agreements --accept-package-agreements --scope machine
+          # Download latest Windows 11 SDK web installer to ensure latest version
+          $url = "https://go.microsoft.com/fwlink/?linkid=2196241"
+          $setup = "$env:TEMP\winsdksetup.exe"
           
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "winget installation failed. Trying direct download..."
+          Write-Host "Downloading SDK installer from $url..."
+          Invoke-WebRequest -Uri $url -OutFile $setup -UseBasicParsing
+          
+          Write-Host "Installing Windows Debugging Tools..."
+          # Install only the Debuggers feature using the official installer
+          $process = Start-Process -FilePath $setup -ArgumentList "/features OptionId.WindowsDesktopDebuggers /q /norestart" -Wait -PassThru -NoNewWindow
+          
+          if ($process.ExitCode -ne 0) {
+            Write-Host "SDK Installer failed with code $($process.ExitCode). Trying Chocolatey as fallback..."
             
-            # Fallback: Download standalone debuggers
-            $url = "https://go.microsoft.com/fwlink/?linkid=2173743"
-            $msi = "$env:TEMP\dbg_x64.msi"
-            Invoke-WebRequest -Uri $url -OutFile $msi -UseBasicParsing
-            Start-Process msiexec.exe -ArgumentList "/i", $msi, "/quiet", "/norestart" -Wait -NoNewWindow
+            # Fallback: Chocolatey
+            choco install windows-sdk-11 -y --no-progress
           }
           
           Write-Host "`n✓ Installation completed."
