@@ -31,12 +31,12 @@ DEFINE_CMD(exec)
     auto command = args[1];
 
     auto results = DK_X_CMD(command);
-    stringstream ss;
+    std::stringstream ss;
 
-    ss << "Execute command: " << command << endl;
+    ss << "Execute command: " << command << std::endl;
     for (auto result : results)
     {
-        ss << result << endl;
+        ss << result << std::endl;
     }
 
     EXT_F_STR_OUT(ss);
@@ -47,9 +47,9 @@ DEFINE_CMD(ls_sessions)
     size_t i = 0;
     for (auto& session : DK_MODEL_ACCESS->m_sessions)
     {
-        stringstream ss;
-        ss << hex << " Session [ " << get<0>(session) << " ] "
-            << endl
+        std::stringstream ss;
+        ss << std::hex << " Session [ " << get<0>(session) << " ] "
+            << std::endl
             << DK_DUMP(session)(get<1>(session));
 
         EXT_F_STR_OUT(ss);
@@ -86,7 +86,7 @@ DEFINE_CMD(mobj_at)
 
     auto child_obj = DK_MODEL_ACCESS->at(mobj, index);
 
-    stringstream ss;
+    std::stringstream ss;
 
     ss << mobj_path << "[" << index << "]";
 
@@ -114,7 +114,7 @@ DEFINE_CMD(call)
 
     EXT_F_DML(DK_DUMP(mobj)(mobj, true, mobj_path).c_str());
 
-    vector<DK_MOBJ_PTR> vec_args;
+    std::vector<DK_MOBJ_PTR> vec_args;
     auto call_result = DK_MODEL_ACCESS->call(mobj, parent_mobj, vec_args);
     if (call_result)
         EXT_F_DML(DK_DUMP(mobj)(call_result, true, mobj_path).c_str());
@@ -138,7 +138,7 @@ DEFINE_CMD(ccall)
 
     EXT_F_DML(DK_DUMP(mobj)(mobj, true, mobj_path).c_str());
 
-    vector<DK_MOBJ_PTR> vec_args;
+    std::vector<DK_MOBJ_PTR> vec_args;
     auto call_result = DK_MODEL_ACCESS->call(mobj, parent_mobj, vec_args);
     if (call_result)
         EXT_F_DML(DK_DUMP(mobj)(call_result, true, mobj_path).c_str());
@@ -156,9 +156,9 @@ DEFINE_CMD(ls_processes)
     
     auto session = DK_MGET_SESN(session_id);
 
-    stringstream ss;
-    ss << hex << " Session [ " << session_id << " ] "
-        << endl;
+    std::stringstream ss;
+    ss << std::hex << " Session [ " << session_id << " ] "
+        << std::endl;
 
     auto pobj_processes = DK_MGET_POBJ(session, "Processes");
     if (pobj_processes != nullptr)
@@ -185,11 +185,11 @@ DEFINE_CMD(ls_threads)
     auto session_id = EXT_F_IntArg(args, 1, 0);
     auto proc_id = EXT_F_IntArg(args, 2, 0);
 
-    stringstream ss;
+    std::stringstream ss;
 
-    ss << hex << " threads for session [" << session_id
+    ss << std::hex << " threads for session [" << session_id
         << "] process [" << proc_id
-        << "]:" << endl;
+        << "]:" << std::endl;
 
     auto session = DK_MGET_SESN(session_id);
     if (session != nullptr)
@@ -222,11 +222,11 @@ DEFINE_CMD(ls_modules)
     auto session_id = EXT_F_IntArg(args, 1, 0);
     auto proc_id = EXT_F_IntArg(args, 2, 0);
 
-    stringstream ss;
+    std::stringstream ss;
 
-    ss << hex << " modules for session [" << session_id
+    ss << std::hex << " modules for session [" << session_id
         << "] process [" << proc_id
-        << "]:" << endl;
+        << "]:" << std::endl;
 
     auto session = DK_MGET_SESN(session_id);
     if (session != nullptr)
@@ -260,11 +260,11 @@ DEFINE_CMD(ls_handles)
     auto session_id = EXT_F_IntArg(args, 1, 0);
     auto proc_id = EXT_F_IntArg(args, 2, 0);
 
-    stringstream ss;
+    std::stringstream ss;
 
-    ss << hex << " handles for session [" << session_id
+    ss << std::hex << " handles for session [" << session_id
         << "] process [" << proc_id
-        << "]:" << endl;
+        << "]:" << std::endl;
 
     auto session = DK_MGET_SESN(session_id);
     if (session != nullptr)
@@ -309,7 +309,7 @@ DEFINE_CMD(ps_ttd)
         auto ttd = DK_MGET_POBJ(proc, "TTD");
         if (ttd != nullptr)
         {
-            stringstream ss;
+            std::stringstream ss;
             auto lifetime = DK_MGET_POBJ(ttd, "Lifetime");
             auto min_pos = DK_MGET_POS(lifetime, "MinPosition");
             auto max_pos = DK_MGET_POS(lifetime, "MaxPosition");
@@ -320,7 +320,7 @@ DEFINE_CMD(ps_ttd)
             auto events = DK_MODEL_ACCESS->iterate(events_pobj);
             for (auto& event : events)
             {
-                ss << " [ " << setw(3) << get<0>(event)
+                ss << " [ " << std::setw(3) << get<0>(event)
                     << " ] " << DK_DUMP(event)(get<1>(event));
             }
             EXT_F_STR_OUT(ss);
@@ -344,14 +344,14 @@ DEFINE_CMD(session_ttd)
         auto ttd = DK_MGET_POBJ(session, "TTD");
         if (ttd != nullptr)
         {
-            stringstream ss;
+            std::stringstream ss;
             auto resources = DK_MGET_POBJ(ttd, "Resources");
             auto heap_memory_pobj = DK_MGET_POBJ(resources, "HeapMemory");
             
             auto heap_memories = DK_MODEL_ACCESS->iterate(heap_memory_pobj);
             for (auto& heap_memory : heap_memories)
             {
-                ss << hex << " [ " << get<0>(heap_memory)
+                ss << std::hex << " [ " << get<0>(heap_memory)
                     << " ] " << DK_DUMP(heap_memory)(get<1>(heap_memory));
             }
             EXT_F_STR_OUT(ss);
@@ -382,7 +382,7 @@ DEFINE_CMD(ttd_calls)
             {
                 auto arg = DK_MODEL_ACCESS->create_str_intrinsic_obj(call_pattern);
 
-                vector<DK_MOBJ_PTR> vec_args;
+                std::vector<DK_MOBJ_PTR> vec_args;
                 vec_args.push_back(arg);
 
                 auto call_result = DK_MODEL_ACCESS->call(calls_pobj, ttd, vec_args);
@@ -427,7 +427,7 @@ DEFINE_CMD(ttd_mem_access)
                 auto arg_end_addr = DK_MODEL_ACCESS->create_int_intrinsic_obj<uint64_t, VT_UI8>(end_addr);
                 auto arg_mode = DK_MODEL_ACCESS->create_str_intrinsic_obj(mode);
 
-                vector<DK_MOBJ_PTR> vec_args;
+                std::vector<DK_MOBJ_PTR> vec_args;
                 vec_args.push_back(arg_start_addr);
                 vec_args.push_back(arg_end_addr);
                 vec_args.push_back(arg_mode);
@@ -475,7 +475,7 @@ DEFINE_CMD(ttd_mem_use)
                 auto arg_start_percent = DK_MODEL_ACCESS->create_int_intrinsic_obj<uint64_t, VT_UI8>(start_percent);
                 auto arg_end_percent = DK_MODEL_ACCESS->create_int_intrinsic_obj<uint64_t, VT_UI8>(end_percent);
 
-                vector<DK_MOBJ_PTR> vec_args;
+                std::vector<DK_MOBJ_PTR> vec_args;
                 vec_args.push_back(arg_start_percent);
                 vec_args.push_back(arg_end_percent);
 
@@ -513,7 +513,7 @@ DEFINE_CMD(cur_context)
 // {F2BCE54E-4835-4f8a-836E-7981E29904D1}
 const GUID IID_IHostDataModelAccess = { 0xf2bce54e, 0x4835, 0x4f8a, { 0x83, 0x6e, 0x79, 0x81, 0xe2, 0x99, 0x4, 0xd1 } };
 
-map<ModelObjectKind, string> CModelAccess::s_map_kind_name{
+std::map<ModelObjectKind, std::string> CModelAccess::s_map_kind_name{
     { ObjectPropertyAccessor,       "PropertyAccessor"},
     { ObjectContext,                "Context"},
     { ObjectTargetObject,           "TargetObject"},
@@ -526,7 +526,7 @@ map<ModelObjectKind, string> CModelAccess::s_map_kind_name{
     { ObjectKeyReference,           "KeyReference"}
 };
 
-map<VARTYPE, string> CModelAccess::s_map_vt_name{
+std::map<VARTYPE, std::string> CModelAccess::s_map_vt_name{
     { VT_EMPTY,     "VT_EMPTY"},
     { VT_NULL,      "VT_NULL"},
     { VT_I2,        "VT_I2"},
@@ -553,13 +553,13 @@ map<VARTYPE, string> CModelAccess::s_map_vt_name{
     { VT_BYREF,     "VT_BYREF"}
 };
 
-string BSTR2str(BSTR bstr)
+std::string BSTR2str(BSTR bstr)
 {
     if (bstr == nullptr)
         return "";
 
-    wstring wstr(bstr);
-    return string(wstr.begin(), wstr.end());
+    std::wstring wstr(bstr);
+    return std::string(wstr.begin(), wstr.end());
 }
 
 CModelAccess::CModelAccess()
@@ -576,9 +576,9 @@ CModelAccess::CModelAccess()
     }
 }
 
-string CModelAccess::dump_frame(DK_MOBJ_PTR frame)
+std::string CModelAccess::dump_frame(DK_MOBJ_PTR frame)
 {
-    stringstream ss;
+    std::stringstream ss;
     auto frame_attrs = get_pobj(frame, "Attributes");
     if (frame_attrs != nullptr)
     {
@@ -590,11 +590,11 @@ string CModelAccess::dump_frame(DK_MOBJ_PTR frame)
         auto is_virtual = get_pvalue<int, VT_I4>(frame_attrs, "Virtual");
         auto frame_number = get_pvalue<DWORD, VT_UI4>(frame_attrs, "FrameNumber");
 
-        ss << hex << "#" << setw(3) << frame_number
-            << " Frame: 0x" << setw(16) << frame_ptr
-            << " Stack: 0x" << setw(16) << stack_ptr
-            << " Return: 0x" << setw(16) << return_ptr
-            << " Insn: 0x" << setw(16) << insn_ptr
+        ss << std::hex << "#" << std::setw(3) << frame_number
+            << " Frame: 0x" << std::setw(16) << frame_ptr
+            << " Stack: 0x" << std::setw(16) << stack_ptr
+            << " Return: 0x" << std::setw(16) << return_ptr
+            << " Insn: 0x" << std::setw(16) << insn_ptr
             /*<< " fte:" << ftable_entry*/;
 
         auto symbol = EXT_F_Addr2Sym(insn_ptr);
@@ -602,19 +602,18 @@ string CModelAccess::dump_frame(DK_MOBJ_PTR frame)
         //if (is_virtual)
         //    ss << " Virtual ";
 
-        ss << " (" << get<0>(symbol) << "+" << get<1>(symbol) << ")" << endl;
+        ss << " (" << get<0>(symbol) << "+" << get<1>(symbol) << ")" << std::endl;
     }
 
     return ss.str();
 }
 
-string CModelAccess::dump_thread(DK_MOBJ_PTR thread)
+std::string CModelAccess::dump_thread(DK_MOBJ_PTR thread)
 {
-    stringstream ss;
+    std::stringstream ss;
 
     auto tid = get_pvalue<uint64_t, VT_UI8>(thread, "Id");
-
-    ss << " Thread Id: " << tid << endl;
+    ss << " Thread Id: " << tid << std::endl;
 
     auto stack = get_pobj(thread, "Stack");
     if (stack != nullptr)
@@ -633,27 +632,27 @@ string CModelAccess::dump_thread(DK_MOBJ_PTR thread)
     return ss.str();
 }
 
-string CModelAccess::dump_process(DK_MOBJ_PTR process)
+std::string CModelAccess::dump_process(DK_MOBJ_PTR process)
 {
-    stringstream ss;
+    std::stringstream ss;
 
     auto proc_name = BSTR2str(get_pvalue<BSTR, VT_BSTR>(process, "Name"));
     auto pid = get_pvalue<uint64_t, VT_UI8>(process, "Id");
 
-    ss << string(100, '-') << endl
-        << " Name: " << setw(30) << proc_name << " , "
-        << ", Id: " << pid << endl;
+    ss << std::string(100, '-') << std::endl
+        << " Name: " << std::setw(30) << proc_name << " , "
+        << ", Id: " << pid << std::endl;
 
     return ss.str();
 }
 
-string CModelAccess::dump_session(DK_MOBJ_PTR session)
+std::string CModelAccess::dump_session(DK_MOBJ_PTR session)
 {
-    stringstream ss;
+    std::stringstream ss;
 
     auto session_id = get_pvalue<uint64_t, VT_UI8>(session, "Id");
 
-    ss << " Id: " << session_id << endl;
+    ss << " Id: " << session_id << std::endl;
 
     if (isNT())
         ss << " NT ";
@@ -678,16 +677,15 @@ string CModelAccess::dump_session(DK_MOBJ_PTR session)
         ss << "(" << dumpFilename() << ")";
     }
 
-    ss << endl;
+    ss << std::endl;
     return ss.str();
 }
 
-string CModelAccess::dump_stack(DK_MOBJ_PTR stack)
+std::string CModelAccess::dump_stack(DK_MOBJ_PTR stack)
 {
-    stringstream ss;
+    std::stringstream ss;
 
     auto frame_pobj = get_pobj(stack, "Frames");
-
     if (frame_pobj != nullptr)
     {
         auto frames = iterate(frame_pobj);
@@ -702,16 +700,16 @@ string CModelAccess::dump_stack(DK_MOBJ_PTR stack)
     return ss.str();
 }
 
-string CModelAccess::dump_current_callstack()
+std::string CModelAccess::dump_current_callstack()
 {
     auto cur_stack = DK_MODEL_ACCESS->get_current_stack();
 
     return dump_stack(cur_stack);
 }
 
-string CModelAccess::dump_call_result(DK_MOBJ_PTR call_result)
+std::string CModelAccess::dump_call_result(DK_MOBJ_PTR call_result)
 {
-    stringstream ss;
+    std::stringstream ss;
     auto start_pos = get_pos(call_result, "TimeStart");
     auto end_pos = get_pos(call_result, "TimeEnd");
 
@@ -723,40 +721,40 @@ string CModelAccess::dump_call_result(DK_MOBJ_PTR call_result)
     auto event_type = get_pvalue<uint64_t, VT_UI8>(call_result, "EventType");
 
     ss
-        << hex
+        << std::hex
         << " (" << get<0>(start_pos) << " : " << get<1>(start_pos) << ") - "
         << " (" << get<0>(end_pos) << " : " << get<1>(end_pos) << ") "
         << " event_type: " << event_type
         << " thread_id: " << thread_id
-        << endl
-        << " addr: 0x" << setw(16) << func_addr
-        << " ret_addr: 0x" << setw(16) << return_addr
-        << " ret_val: 0x" << setw(16) << return_val
+        << std::endl
+        << " addr: 0x" << std::setw(16) << func_addr
+        << " ret_addr: 0x" << std::setw(16) << return_addr
+        << " ret_val: 0x" << std::setw(16) << return_val
         << " function: " << function
         ;
 
     auto parameters_pobj = get_pobj(call_result, "Parameters");
     if (parameters_pobj != nullptr)
     {
-        ss << " parameters: " << endl;
+        ss << " parameters: " << std::endl;
         auto params = iterate(parameters_pobj);
         for (auto& param : params)
         {
             ss << " [ " << get<0>(param) << " ] "
-                << get_value<uint64_t, VT_UI8>(get<1>(param)) << endl;
+                << get_value<uint64_t, VT_UI8>(get<1>(param)) << std::endl;
         }
 
         params.clear();
     }
 
-    ss << endl;
+    ss << std::endl;
 
     return ss.str();
 }
 
-string CModelAccess::dump_mem_access_result(DK_MOBJ_PTR mem_access_result)
+std::string CModelAccess::dump_mem_access_result(DK_MOBJ_PTR mem_access_result)
 {
-    stringstream ss;
+    std::stringstream ss;
     auto start_pos = get_pos(mem_access_result, "TimeStart");
     auto end_pos = get_pos(mem_access_result, "TimeEnd");
 
@@ -770,40 +768,40 @@ string CModelAccess::dump_mem_access_result(DK_MOBJ_PTR mem_access_result)
     auto event_type = get_pvalue<uint64_t, VT_UI8>(mem_access_result, "EventType");
 
     ss
-        << hex
+        << std::hex
         << " (" << get<0>(start_pos) << " : " << get<1>(start_pos) << ") - "
         << " (" << get<0>(end_pos) << " : " << get<1>(end_pos) << ") "
         << " event_type: " << event_type
         << " thread_id: " << thread_id
-        << endl
-        << " IP: 0x" << setw(16) << ip_addr
-        << " addr: 0x" << setw(16) << addr
-        << " size: 0x" << setw(16) << size
-        << " value: 0x" << setw(16) << value
-        << " new_value: 0x" << setw(16) << overwritten_value
+        << std::endl
+        << " IP: 0x" << std::setw(16) << ip_addr
+        << " addr: 0x" << std::setw(16) << addr
+        << " size: 0x" << std::setw(16) << size
+        << " value: 0x" << std::setw(16) << value
+        << " new_value: 0x" << std::setw(16) << overwritten_value
         << " access type: " << access_type
         ;
 
     auto seek_to_pobj = get_pobj_tree(mem_access_result, "TimeStart.SeekTo");
-    auto seek_to_result = DK_MODEL_ACCESS->call(seek_to_pobj, mem_access_result, vector<DK_MOBJ_PTR>());
+    auto seek_to_result = DK_MODEL_ACCESS->call(seek_to_pobj, mem_access_result, std::vector<DK_MOBJ_PTR>());
 
     auto symbol = EXT_F_Addr2Sym(ip_addr);
 
-    ss << " (" << get<0>(symbol) << "+" << get<1>(symbol) << ")" << endl;
+    ss << " (" << get<0>(symbol) << "+" << get<1>(symbol) << ")" << std::endl;
 
     auto cur_stack = DK_MODEL_ACCESS->get_current_stack();
     ss << "current stack: " << cur_stack.Get() << ", \n\t" << DK_DUMP(stack)(cur_stack);
 
-    ss << endl;
+    ss << std::endl;
 
     return ss.str();
 }
 
-string CModelAccess::dump_mem_use_result(DK_MOBJ_PTR mem_use_result)
+std::string CModelAccess::dump_mem_use_result(DK_MOBJ_PTR mem_use_result)
 {
-    stringstream ss;
+    std::stringstream ss;
 
-    vector<string> use_kinds = {
+    std::vector<std::string> use_kinds = {
         "CodeRanges",
         "InputRanges",
         "OutputRanges",
@@ -822,7 +820,7 @@ string CModelAccess::dump_mem_use_result(DK_MOBJ_PTR mem_use_result)
         {
             auto code_ranges = iterate(code_range_pobj);
 
-            ss << use_kind << " : " << endl;
+            ss << use_kind << " : " << std::endl;
             for (auto code_range : code_ranges)
             {
                 //ss << dump_mobj(get<1>(code_range)) << endl;
@@ -838,11 +836,11 @@ string CModelAccess::dump_mem_use_result(DK_MOBJ_PTR mem_use_result)
 
                     auto code_sym = EXT_F_Addr2Sym(min_addr);
 
-                    ss << hex << setfill('0')
-                        << " 0x" << setw(16) << min_addr << " - 0x" << max_addr
-                        << " ( " << setw(5) << setfill(' ') << max_addr - min_addr << " ) "
+                    ss << std::hex << std::setfill('0')
+                        << " 0x" << std::setw(16) << min_addr << " - 0x" << max_addr
+                        << " ( " << std::setw(5) << std::setfill(' ') << max_addr - min_addr << " ) "
                         //<< get<0>(code_sym) << "+0x" << get<1>(code_sym)
-                        << endl;
+                        << std::endl;
 
                 }
                 else
@@ -850,11 +848,11 @@ string CModelAccess::dump_mem_use_result(DK_MOBJ_PTR mem_use_result)
                     auto min_addr = get_pvalue<uint64_t, VT_UI8>(get<1>(code_range), "MinAddress");
                     auto max_addr = get_pvalue<uint64_t, VT_UI8>(get<1>(code_range), "MaxAddress");
 
-                    ss << hex << setfill('0')
-                        << " 0x" << setw(16) << min_addr << " - 0x" << max_addr
-                        << " ( " << setw(5) << setfill(' ') << max_addr - min_addr << " ) "
+                    ss << std::hex << std::setfill('0')
+                        << " 0x" << std::setw(16) << min_addr << " - 0x" << max_addr
+                        << " ( " << std::setw(5) << std::setfill(' ') << max_addr - min_addr << " ) "
                         //<< get<0>(code_sym) << "+0x" << get<1>(code_sym)
-                        << endl;
+                        << std::endl;
                 }
 
             }
@@ -864,9 +862,9 @@ string CModelAccess::dump_mem_use_result(DK_MOBJ_PTR mem_use_result)
     return ss.str();
 }
 
-vector<array<uint64_t, 5>> CModelAccess::get_current_callstack()
+std::vector<std::array<uint64_t, 5>> CModelAccess::get_current_callstack()
 {
-    vector<array<uint64_t, 5>> vec_results;
+    std::vector<std::array<uint64_t, 5>> vec_results;
 
     auto cur_stack_frame = get_pobj_tree(m_debugger, "State.DebuggerVariables.curstack.Frames");
 
@@ -885,7 +883,7 @@ vector<array<uint64_t, 5>> CModelAccess::get_current_callstack()
                 auto frame_ptr = get_pvalue<uint64_t, VT_UI8>(frame_attrs, "FrameOffset");
                 auto stack_ptr = get_pvalue<uint64_t, VT_UI8>(frame_attrs, "StackOffset");
 
-                vec_results.emplace_back(array<uint64_t, 5>({ frame_number, insn_ptr, return_ptr, frame_ptr, stack_ptr }));
+                vec_results.emplace_back(std::array<uint64_t, 5>({ frame_number, insn_ptr, return_ptr, frame_ptr, stack_ptr }));
             }
         }
     }
@@ -898,9 +896,9 @@ void CModelAccess::seek_to(uint64_t seq, uint64_t step)
     if (!isTTD())
         return;
 
-    stringstream ss;
+    std::stringstream ss;
 
-    ss << "!ttdext.tt " << hex << seq << ":" << step;
+    ss << "!ttdext.tt " << std::hex << seq << ":" << step;
 
     execute_cmd(ss.str());
 
@@ -921,9 +919,9 @@ void CModelAccess::seek_to(uint64_t seq, uint64_t step)
     }
 }
 
-string CModelAccess::dump_mobj(DK_MOBJ_PTR mobj, bool b_show_children, string mobj_path)
+std::string CModelAccess::dump_mobj(DK_MOBJ_PTR mobj, bool b_show_children, std::string mobj_path)
 {
-    stringstream ss;
+    std::stringstream ss;
     auto kind = get_kind(mobj);
     ss << "IModelObject kind: " << s_map_kind_name[kind];
 
@@ -946,18 +944,18 @@ string CModelAccess::dump_mobj(DK_MOBJ_PTR mobj, bool b_show_children, string mo
             }
             else
             {
-                ss << "int value: 0x" << hex << setw(16) << setfill('_') << the_value.ullVal;
+                ss << "int value: 0x" << std::hex << std::setw(16) << std::setfill('_') << the_value.ullVal;
             }
         }
 
         VariantClear(&the_value);
     }
 
-    ss << endl;
+    ss << std::endl;
 
     if (b_show_children)
     {
-        ss << "\tChildren: " << endl;
+        ss << "\tChildren: " << std::endl;
 
         size_t index = 0;
         for (auto kv : enum_keyvalues(mobj))
@@ -971,7 +969,7 @@ string CModelAccess::dump_mobj(DK_MOBJ_PTR mobj, bool b_show_children, string mo
                 auto hr = get<2>(kv)->GetIntrinsicValue(&the_value);
                 if (S_OK == hr)
                 {
-                    ss << setfill(' ') << setw(30) << get<0>(kv) << " Intrinsic type: " << get<1>(kv) << "\t";
+                    ss << std::setfill(' ') << std::setw(30) << get<0>(kv) << " Intrinsic type: " << get<1>(kv) << "\t";
 
                     if (the_value.vt == VT_BSTR)
                     {
@@ -982,32 +980,32 @@ string CModelAccess::dump_mobj(DK_MOBJ_PTR mobj, bool b_show_children, string mo
 
                     else
                     {
-                        ss << "int value: 0x" << hex << setw(16) << setfill('_') << the_value.ullVal;
+                        ss << "int value: 0x" << std::hex << std::setw(16) << std::setfill('_') << the_value.ullVal;
                     }
                 }
                 VariantClear(&the_value);
             }
             else if (get<1>(kv) == "Method")
             {
-                ss << setfill(' ')
+                ss << std::setfill(' ')
                     << DML_CMD << "!dk call " << mobj_path << "." << get<0>(kv)
-                    << DML_TEXT << setfill(' ') << setw(30) << get<0>(kv)
+                    << DML_TEXT << std::setfill(' ') << std::setw(30) << get<0>(kv)
                     << DML_END
                     << " "
                     << get<1>(kv);
             }
             else
             {
-                ss << setfill(' ')
+                ss << std::setfill(' ')
                     << DML_CMD << "!dk mobj " << mobj_path << "." << get<0>(kv)
-                    << DML_TEXT << setfill(' ') << setw(30) << get<0>(kv)
+                    << DML_TEXT << std::setfill(' ') << std::setw(30) << get<0>(kv)
                     << DML_END
                     << " "
                     << get<1>(kv);
             }
 
 
-            ss << endl;
+            ss << std::endl;
         }
 
         auto iter_results = iterate(mobj);
@@ -1018,9 +1016,9 @@ string CModelAccess::dump_mobj(DK_MOBJ_PTR mobj, bool b_show_children, string mo
             ss << "child "; 
             //results.push_back(make_tuple(ss.str(), s_map_kind_name[kind], "", get<1>(iter_result)));
 
-            ss << setfill(' ')
-                << DML_CMD << "!dk mobj_at " << mobj_path << " " << hex << get<0>(iter_result)
-                << DML_TEXT << setfill(' ')  << "#[ " << hex << get<0>(iter_result) << " ] (" << s_map_kind_name[kind] << ") "
+            ss << std::setfill(' ')
+                << DML_CMD << "!dk mobj_at " << mobj_path << " " << std::hex << get<0>(iter_result)
+                << DML_TEXT << std::setfill(' ')  << "#[ " << std::hex << get<0>(iter_result) << " ] (" << s_map_kind_name[kind] << ") "
                 << DML_END
                 << " ";
         }
@@ -1029,16 +1027,16 @@ string CModelAccess::dump_mobj(DK_MOBJ_PTR mobj, bool b_show_children, string mo
     return ss.str();
 }
 
-vector<string> CModelAccess::execute_cmd(string command)
+std::vector<std::string> CModelAccess::execute_cmd(std::string command)
 {
-    vector<string> vec_results;
+    std::vector<std::string> vec_results;
 
     auto x_mobj = DK_MODEL_ACCESS->get_pobj_tree(DK_MODEL_ACCESS->m_debugger, "Utility.Control.ExecuteCommand");
     if (x_mobj != nullptr)
     {
         auto arg = DK_MODEL_ACCESS->create_str_intrinsic_obj(command);
 
-        vector<DK_MOBJ_PTR> vec_args;
+        std::vector<DK_MOBJ_PTR> vec_args;
         vec_args.push_back(arg);
 
         auto call_result = DK_MODEL_ACCESS->call(x_mobj, x_mobj, vec_args);
@@ -1064,9 +1062,9 @@ uint64_t CModelAccess::get_current_tid()
     return cur_tid;
 }
 
-vector<ttd_mem_access> CModelAccess::get_mem_access(uint64_t start_addr, uint64_t end_addr, string mode)
+std::vector<ttd_mem_access> CModelAccess::get_mem_access(uint64_t start_addr, uint64_t end_addr, std::string mode)
 {
-    vector<ttd_mem_access> mem_accesses;
+    std::vector<ttd_mem_access> mem_accesses;
     auto session = get_current_session();
     if (session != nullptr)
     {
@@ -1081,7 +1079,7 @@ vector<ttd_mem_access> CModelAccess::get_mem_access(uint64_t start_addr, uint64_
                 auto arg_end_addr = DK_MODEL_ACCESS->create_int_intrinsic_obj<uint64_t, VT_UI8>(end_addr);
                 auto arg_mode = DK_MODEL_ACCESS->create_str_intrinsic_obj(mode);
 
-                vector<DK_MOBJ_PTR> vec_args;
+                std::vector<DK_MOBJ_PTR> vec_args;
                 vec_args.push_back(arg_start_addr);
                 vec_args.push_back(arg_end_addr);
                 vec_args.push_back(arg_mode);
@@ -1140,18 +1138,18 @@ DK_MOBJ_PTR CModelAccess::get_current_frame()
     return get_pobj_tree(m_debugger, "State.DebuggerVariables.curframe");
 }
 
-tuple<uint64_t, uint64_t> CModelAccess::get_current_pos()
+std::tuple<uint64_t, uint64_t> CModelAccess::get_current_pos()
 {
     auto cur_pos = get_pobj_tree(m_debugger, "State.DebuggerVariables.curthread.TTD.Position");
 
     auto seq = get_pvalue<uint64_t, VT_UI8>(cur_pos, "Sequence");
     auto step = get_pvalue<uint64_t, VT_UI8>(cur_pos, "Steps");
-    return make_tuple(seq, step);
+    return std::make_tuple(seq, step);
 }
 
-string CModelAccess::dump_heap_memory(DK_MOBJ_PTR heap_memory)
+std::string CModelAccess::dump_heap_memory(DK_MOBJ_PTR heap_memory)
 {
-    stringstream ss;
+    std::stringstream ss;
 
     auto function = BSTR2str(get_pvalue<BSTR, VT_BSTR>(heap_memory, "Function"));
     auto pos = get_pos(heap_memory, "Position");
@@ -1160,21 +1158,21 @@ string CModelAccess::dump_heap_memory(DK_MOBJ_PTR heap_memory)
     auto res_new_id = get_pvalue<uint64_t, VT_UI8>(heap_memory, "ResourceIdNew");
     auto size = get_pvalue<uint64_t, VT_UI8>(heap_memory, "Size");
 
-    ss << hex << setw(10) << function
+    ss << std::hex << std::setw(10) << function
         << " (" << get<0>(pos) << " : " << get<1>(pos) << ") "
         << " tid: " << thread_id
         << " res_id: 0x" << res_id
         << " res_new_id: 0x" << res_new_id
         << " size: " << size;
 
-    ss << endl;
+    ss << std::endl;
 
     return ss.str();
 }
 
-vector<ttd_heap_memory> CModelAccess::get_heap_memory()
+std::vector<ttd_heap_memory> CModelAccess::get_heap_memory()
 {
-    vector<ttd_heap_memory> results;
+    std::vector<ttd_heap_memory> results;
     auto cur_session = DK_MODEL_ACCESS->get_current_session();
 
     if (cur_session != nullptr)
@@ -1182,7 +1180,7 @@ vector<ttd_heap_memory> CModelAccess::get_heap_memory()
         auto ttd = DK_MGET_POBJ(cur_session, "TTD");
         if (ttd != nullptr)
         {
-            stringstream ss;
+            std::stringstream ss;
             auto resources = DK_MGET_POBJ(ttd, "Resources");
             auto heap_memory_pobj = DK_MGET_POBJ(resources, "HeapMemory");
 
@@ -1207,15 +1205,15 @@ vector<ttd_heap_memory> CModelAccess::get_heap_memory()
     return results;
 }
 
-string CModelAccess::dump_event(DK_MOBJ_PTR event)
+std::string CModelAccess::dump_event(DK_MOBJ_PTR event)
 {
-    stringstream ss;
+    std::stringstream ss;
 
     auto type = BSTR2str(get_pvalue<BSTR, VT_BSTR>(event, "Type"));
     auto pos = DK_MGET_POS(event, "Position");
 
-    ss << setw(20) << type
-        << hex << " (" << get<0>(pos) << " : " << get<1>(pos) << ") ";
+    ss << std::setw(20) << type
+        << std::hex << " (" << get<0>(pos) << " : " << get<1>(pos) << ") ";
 
     auto module = get_pobj(event, "Module");
 
@@ -1232,14 +1230,14 @@ string CModelAccess::dump_event(DK_MOBJ_PTR event)
     }
 
     if (module == nullptr && thread == nullptr)
-        ss << endl;
+        ss << std::endl;
 
     return ss.str();
 }
 
-string CModelAccess::dump_handle(DK_MOBJ_PTR handle)
+std::string CModelAccess::dump_handle(DK_MOBJ_PTR handle)
 {
-    stringstream ss;
+    std::stringstream ss;
 
     auto hid = get_pvalue<uint64_t, VT_UI8>(handle, "Handle");
     auto type = BSTR2str(get_pvalue<BSTR, VT_BSTR>(handle, "Type"));
@@ -1258,28 +1256,28 @@ string CModelAccess::dump_handle(DK_MOBJ_PTR handle)
     }
 
     ss << " , Type: " << type
-        << endl;
+        << std::endl;
 
     return ss.str();
 }
 
-string CModelAccess::dump_module(DK_MOBJ_PTR module)
+std::string CModelAccess::dump_module(DK_MOBJ_PTR module)
 {
-    stringstream ss;
+    std::stringstream ss;
 
     auto module_info = get_module(module);
 
-    ss << hex << " Base: " << get<0>(module_info)
+    ss << std::hex << " Base: " << get<0>(module_info)
         << " , Size: " << get<1>(module_info)
         << " , Name: " << get<2>(module_info)
-        << endl;
+        << std::endl;
 
     return ss.str();
 }
 
-vector<tuple<string, string, string, DK_MOBJ_PTR>> CModelAccess::ls(string model_path)
+std::vector<std::tuple<std::string, std::string, std::string, DK_MOBJ_PTR>> CModelAccess::ls(std::string model_path)
 {
-    vector<tuple<string, string, string, DK_MOBJ_PTR>> results;
+    std::vector<std::tuple<std::string, std::string, std::string, DK_MOBJ_PTR>> results;
 
     if (model_path == "Debugger")
         model_path = "State.DebuggerVariables.debuggerRootNamespace.Debugger";
@@ -1294,7 +1292,7 @@ vector<tuple<string, string, string, DK_MOBJ_PTR>> CModelAccess::ls(string model
         EXT_F_OUT("%s %s", model_path.c_str(), dump_mobj(mobj_main, false).c_str());
         for (auto& kv : enum_keyvalues(mobj_main))
         {
-            stringstream ss;
+            std::stringstream ss;
 
             ss <<"!dk ls_model " << model_path << "." << get<0>(kv);
             results.emplace_back(make_tuple(get<0>(kv), get<1>(kv), ss.str(), get<2>(kv)));
@@ -1305,9 +1303,9 @@ vector<tuple<string, string, string, DK_MOBJ_PTR>> CModelAccess::ls(string model
         {
             auto kind = get_kind(get<1>(iter_result));
 
-            stringstream ss;
+            std::stringstream ss;
 
-            ss << "child #[ " << hex << get<0>(iter_result) << " ]";
+            ss << "child #[ " << std::hex << get<0>(iter_result) << " ]";
 
             results.push_back(make_tuple(ss.str(), s_map_kind_name[kind], "", get<1>(iter_result)));
         }
@@ -1330,7 +1328,7 @@ ModelObjectKind CModelAccess::get_kind(DK_MOBJ_PTR& mobj)
 }
 
 template<class T, VARTYPE VT>
-T CModelAccess::get_pvalue(DK_MOBJ_PTR& mobj, string key)
+T CModelAccess::get_pvalue(DK_MOBJ_PTR& mobj, std::string key)
 {
     auto pobj = get_pobj(mobj, key);
 
@@ -1371,9 +1369,9 @@ T CModelAccess::get_value(DK_MOBJ_PTR& mobj)
     return T(0);
 }
 
-DK_MOBJ_PTR CModelAccess::get_pobj(DK_MOBJ_PTR& mobj, string key)
+DK_MOBJ_PTR CModelAccess::get_pobj(DK_MOBJ_PTR& mobj, std::string key)
 {
-    wstring wstr_key(key.begin(), key.end());
+    std::wstring wstr_key(key.begin(), key.end());
     DK_MOBJ_PTR pobj;
 
     HRESULT hr = mobj->GetKeyValue(wstr_key.c_str(), &pobj, nullptr);
@@ -1399,12 +1397,12 @@ DK_MOBJ_PTR CModelAccess::get_pobj(DK_MOBJ_PTR& mobj, string key)
     return nullptr;
 }
 
-vector<string> str_split(const string& str, char delim) {
-    stringstream ss(str);
-    string item;
+std::vector<std::string> str_split(const std::string& str, char delim) {
+    std::stringstream ss(str);
+    std::string item;
 
-    vector<string> vec_sub_strs;
-    while (getline(ss, item, delim)) {
+    std::vector<std::string> vec_sub_strs;
+    while (std::getline(ss, item, delim)) {
         if (!item.empty()) {
             vec_sub_strs.push_back(item);
         }
@@ -1412,12 +1410,12 @@ vector<string> str_split(const string& str, char delim) {
     return vec_sub_strs;
 }
 
-vector<wstring> wstr_split(const wstring& str, wchar_t delim) {
-    wstringstream ss(str);
-    wstring item;
+std::vector<std::wstring> wstr_split(const std::wstring& str, wchar_t delim) {
+    std::wstringstream ss(str);
+    std::wstring item;
 
-    vector<wstring> vec_sub_strs;
-    while (getline(ss, item, delim)) {
+    std::vector<std::wstring> vec_sub_strs;
+    while (std::getline(ss, item, delim)) {
         if (!item.empty()) {
             vec_sub_strs.push_back(item);
         }
@@ -1425,9 +1423,9 @@ vector<wstring> wstr_split(const wstring& str, wchar_t delim) {
     return vec_sub_strs;
 }
 
-DK_MOBJ_PTR CModelAccess::get_pobj_tree(DK_MOBJ_PTR& mobj, string key)
+DK_MOBJ_PTR CModelAccess::get_pobj_tree(DK_MOBJ_PTR& mobj, std::string key)
 {
-    wstring wstr_key(key.begin(), key.end());
+    std::wstring wstr_key(key.begin(), key.end());
 
     auto sub_strs = wstr_split(wstr_key, '.');
     DK_MOBJ_PTR ppobj = mobj;
@@ -1447,7 +1445,7 @@ DK_MOBJ_PTR CModelAccess::get_pobj_tree(DK_MOBJ_PTR& mobj, string key)
     return ppobj;
 }
 
-DK_MOBJ_PTR CModelAccess::get_mobj_tree(string key)
+DK_MOBJ_PTR CModelAccess::get_mobj_tree(std::string key)
 {
     if (key == "Debugger")
     {
@@ -1464,7 +1462,7 @@ DK_MOBJ_PTR CModelAccess::get_mobj_tree(string key)
     return nullptr;
 }
 
-tuple<uint64_t, uint64_t> CModelAccess::get_pos(DK_MOBJ_PTR& mobj, string key)
+std::tuple<uint64_t, uint64_t> CModelAccess::get_pos(DK_MOBJ_PTR& mobj, std::string key)
 {
     auto pos_pobj = get_pobj(mobj, key);
     if (pos_pobj != nullptr)
@@ -1472,24 +1470,24 @@ tuple<uint64_t, uint64_t> CModelAccess::get_pos(DK_MOBJ_PTR& mobj, string key)
         auto seq = get_pvalue<uint64_t, VT_UI8>(pos_pobj, "Sequence");
         auto step = get_pvalue<uint64_t, VT_UI8>(pos_pobj, "Steps");
 
-        return make_tuple(seq, step);
+        return std::make_tuple(seq, step);
     }
 
-    return make_tuple<uint64_t, uint64_t>(0, 0);
+    return std::make_tuple<uint64_t, uint64_t>(0, 0);
 }
 
-tuple<uint64_t, uint64_t, string> CModelAccess::get_module(DK_MOBJ_PTR& mobj)
+std::tuple<uint64_t, uint64_t, std::string> CModelAccess::get_module(DK_MOBJ_PTR& mobj)
 {
     auto module_name = BSTR2str(DK_MGET_PVAL<BSTR, VT_BSTR>(mobj, "Name"));
     auto module_size = DK_MGET_PVAL<uint64_t, VT_UI8>(mobj, "Size");
     auto module_base = DK_MGET_PVAL<uint64_t, VT_UI8>(mobj, "BaseAddress");
 
-    return make_tuple(module_base, module_size, module_name);
+    return std::make_tuple(module_base, module_size, module_name);
 }
 
-DK_MOBJ_PTR CModelAccess::create_str_intrinsic_obj(string str)
+DK_MOBJ_PTR CModelAccess::create_str_intrinsic_obj(std::string str)
 {
-    wstring wstr(str.begin(), str.end());
+    std::wstring wstr(str.begin(), str.end());
 
     BSTR bstrStr = SysAllocString(wstr.c_str());
     if (bstrStr == nullptr)
@@ -1532,7 +1530,7 @@ DK_MOBJ_PTR CModelAccess::create_int_intrinsic_obj(T val)
     return nullptr;
 }
 
-DK_MOBJ_PTR CModelAccess::call(DK_MOBJ_PTR mobj, DK_MOBJ_PTR context, vector<DK_MOBJ_PTR> args)
+DK_MOBJ_PTR CModelAccess::call(DK_MOBJ_PTR mobj, DK_MOBJ_PTR context, std::vector<DK_MOBJ_PTR> args)
 {
     VARIANT variant_prop;
     auto hr = mobj->GetIntrinsicValue(&variant_prop);
@@ -1540,7 +1538,7 @@ DK_MOBJ_PTR CModelAccess::call(DK_MOBJ_PTR mobj, DK_MOBJ_PTR context, vector<DK_
     {
         IModelMethod* pMethod = static_cast<IModelMethod*>(variant_prop.punkVal);
 
-        IModelObject** args_arr = new (nothrow) IModelObject * [args.size()];
+        IModelObject** args_arr = new (std::nothrow) IModelObject * [args.size()];
         if (args_arr != nullptr)
         {
             for (auto i = 0; i < args.size(); i++)
@@ -1571,9 +1569,9 @@ DK_MOBJ_PTR CModelAccess::assert_obj(DK_MOBJ_PTR& mobj)
     return DK_MOBJ_PTR();
 }
 
-vector<tuple<string, string, DK_MOBJ_PTR>> CModelAccess::enum_keyvalues(DK_MOBJ_PTR& mobj)
+std::vector<std::tuple<std::string, std::string, DK_MOBJ_PTR>> CModelAccess::enum_keyvalues(DK_MOBJ_PTR& mobj)
 {
-    vector<tuple<string, string, DK_MOBJ_PTR>> results;
+    std::vector<std::tuple<std::string, std::string, DK_MOBJ_PTR>> results;
     DK_COM_PTR<IKeyEnumerator> i_key_enumerator;
     HRESULT hr = mobj->EnumerateKeyValues(&i_key_enumerator);
     if (S_OK == hr)
@@ -1592,9 +1590,9 @@ vector<tuple<string, string, DK_MOBJ_PTR>> CModelAccess::enum_keyvalues(DK_MOBJ_
     return results;
 }
 
-vector<tuple<string, string, DK_MOBJ_PTR>> CModelAccess::enum_keys(DK_MOBJ_PTR& mobj)
+std::vector<std::tuple<std::string, std::string, DK_MOBJ_PTR>> CModelAccess::enum_keys(DK_MOBJ_PTR& mobj)
 {
-    vector<tuple<string, string, DK_MOBJ_PTR>> results;
+    std::vector<std::tuple<std::string, std::string, DK_MOBJ_PTR>> results;
     DK_COM_PTR<IKeyEnumerator> i_key_enumerator;
     HRESULT hr = mobj->EnumerateKeys(&i_key_enumerator);
     if (S_OK == hr)
@@ -1700,9 +1698,9 @@ DK_MOBJ_PTR CModelAccess::get_thread(size_t session_id, size_t process_id, size_
     return nullptr;
 }
 
-vector<tuple<uint64_t, DK_MOBJ_PTR>> CModelAccess::iterate(DK_MOBJ_PTR& mobj)
+std::vector<std::tuple<uint64_t, DK_MOBJ_PTR>> CModelAccess::iterate(DK_MOBJ_PTR& mobj)
 {
-    vector<tuple<uint64_t, DK_MOBJ_PTR>> results;
+    std::vector<std::tuple<uint64_t, DK_MOBJ_PTR>> results;
 
     DK_COM_PTR<IIterableConcept> sp_iterable_concept;
     HRESULT hr = mobj->GetConcept(__uuidof(IIterableConcept), &sp_iterable_concept, nullptr);
@@ -1718,7 +1716,7 @@ vector<tuple<uint64_t, DK_MOBJ_PTR>> CModelAccess::iterate(DK_MOBJ_PTR& mobj)
 
             if (demension != 0)
             {
-                IModelObject** indexer_arr = new (nothrow) IModelObject * [demension];
+                IModelObject** indexer_arr = new (std::nothrow) IModelObject * [demension];
                 DK_MOBJ_PTR item;
 
                 while (S_OK == sp_model_iterator->GetNext(&item, demension, indexer_arr, nullptr))
@@ -1728,7 +1726,7 @@ vector<tuple<uint64_t, DK_MOBJ_PTR>> CModelAccess::iterate(DK_MOBJ_PTR& mobj)
                     if (indexer_arr != nullptr)
                         hr = indexer_arr[0]->GetIntrinsicValueAs(VT_UI8, &index_data);
 
-                    results.push_back(make_tuple(index_data.ullVal, item));
+                    results.push_back(std::make_tuple(index_data.ullVal, item));
                     VariantClear(&index_data);
                 }
 
@@ -1742,7 +1740,7 @@ vector<tuple<uint64_t, DK_MOBJ_PTR>> CModelAccess::iterate(DK_MOBJ_PTR& mobj)
 
                 while (S_OK == sp_model_iterator->GetNext(&item, demension, nullptr, nullptr))
                 {
-                    results.push_back(make_tuple(index++, item));
+                    results.push_back(std::make_tuple(index++, item));
                 }
             }
         }
@@ -1751,9 +1749,9 @@ vector<tuple<uint64_t, DK_MOBJ_PTR>> CModelAccess::iterate(DK_MOBJ_PTR& mobj)
     return results;
 }
 
-DK_MOBJ_PTR CModelAccess::path2mobj(string path)
+DK_MOBJ_PTR CModelAccess::path2mobj(std::string path)
 {
-    wstring str_model_path(path.begin(), path.end());
+    std::wstring str_model_path(path.begin(), path.end());
 
     DK_MOBJ_PTR mobj;
 
@@ -1779,7 +1777,7 @@ DK_MOBJ_PTR CModelAccess::at(DK_MOBJ_PTR& mobj, size_t index)
         hr = indexable_interface->GetDimensionality(mobj.Get(), &demension);
         if (S_OK == hr)
         {
-            IModelObject** index_arr = new (nothrow) IModelObject * [demension];
+            IModelObject** index_arr = new (std::nothrow) IModelObject * [demension];
             if (index_arr != nullptr)
             {
                 DK_MOBJ_PTR indexer;
@@ -1810,7 +1808,7 @@ DK_MOBJ_PTR CModelAccess::at(DK_MOBJ_PTR& mobj, size_t index)
     return result;
 }
 
-CIModelObjectRefLogger::CIModelObjectRefLogger(IModelObject* raw_object, string tag)
+CIModelObjectRefLogger::CIModelObjectRefLogger(IModelObject* raw_object, std::string tag)
     :m_raw_object(raw_object)
     , m_tag(tag)
 {

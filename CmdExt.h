@@ -5,8 +5,6 @@
 #include <sstream>
 #include <vector>
 
-using namespace std;
-
 #include <Windows.h>
 
 #define INITGUID
@@ -75,17 +73,17 @@ using namespace std;
 #define WDML_TEXT    "\">"
 #define WDML_END     "</link>"
 
-#define HEX_ADDR(addr) hex << showbase << setfill('0') << setw(18) << addr << setfill(' ')
-#define WHEX_ADDR(addr) hex << showbase << setfill(L'0') << setw(18) << addr << setfill(L' ')
-#define HEX_DATA hex << showbase << setfill(' ') << setw(18)
-#define WHEX_DATA hex << showbase << setfill(L' ') << setw(18)
+#define HEX_ADDR(addr) std::hex << std::showbase << std::setfill('0') << std::setw(18) << addr << std::setfill(' ')
+#define WHEX_ADDR(addr) std::hex << std::showbase << std::setfill(L'0') << std::setw(18) << addr << std::setfill(L' ')
+#define HEX_DATA std::hex << std::showbase << std::setfill(' ') << std::setw(18)
+#define WHEX_DATA std::hex << std::showbase << std::setfill(L' ') << std::setw(18)
 
 #define FC \
     catch (ExtException& e)     \
     {                            \
         EXT_F_ERR("[ERROR] %s %s %d %s\n", __FILE__, __FUNCTION__, __LINE__, e.GetMessage());       \
     }                          \
-    catch (exception& e)        \
+    catch (std::exception& e)        \
     {           \
         EXT_F_ERR("[ERROR] %s %s %d %s\n", __FILE__, __FUNCTION__, __LINE__, e.what());       \
     }
@@ -109,15 +107,15 @@ public:
 
     size_t reg_of(const char* reg);
 
-    bool is_reg(string& str);
+    bool is_reg(std::string& str);
 
     size_t getSymbolAddr(const char* name);
 
-    tuple<string, uint64_t> getAddrSymbol(size_t addr);
+    std::tuple<std::string, uint64_t> getAddrSymbol(size_t addr);
 
     bool valid_addr(size_t addr);
 
-    size_t getIntArg(vector<string>& args, size_t idx, size_t default_val);
+    size_t getIntArg(std::vector<std::string>& args, size_t idx, size_t default_val);
 
     template<class T>
     inline bool is_in_range(T value, T min, T max)
@@ -134,23 +132,23 @@ public:
     template<typename T>
     void write(size_t addr, T data);         
 
-    string size2str(size_t value);      
+    std::string size2str(size_t value);      
 
-    wstring readUnicodeString(size_t addr);
+    std::wstring readUnicodeString(size_t addr);
 
-    HRESULT x(string cmd);
+    HRESULT x(std::string cmd);
 
-    void out_str(stringstream& ss)
+    void out_str(std::stringstream& ss)
     {
         Out(ss.str().c_str());
     }
 
-    void dml_str(stringstream& ss)
+    void dml_str(std::stringstream& ss)
     {
         Dml(ss.str().c_str());
     }
 
-    void err_str(stringstream& ss)
+    void err_str(std::stringstream& ss)
     {
         Err(ss.str().c_str());
     }

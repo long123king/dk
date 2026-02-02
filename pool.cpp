@@ -52,24 +52,23 @@ void dump_free_pool(size_t size)
     try
     {
         size -= 0x10;
-
         size_t paged_pool_des = EXT_F_READ<size_t>(readDbgDataAddr(DEBUG_DATA_ExpPagedPoolDescriptorAddr));
         size_t paged_pool_num = EXT_F_READ<uint32_t>(readDbgDataAddr(DEBUG_DATA_ExpNumberOfPagedPoolsAddr));
 
-        stringstream ss;
+        std::stringstream ss;
         for (size_t i = 0; i < paged_pool_num; i++)
         {
 
             size_t paged_pool_descriptor = paged_pool_des + 0x1140 * i;
 
 
-            ss << hex << showbase
-                << "\n" << string(0x40, '*') << "\n"
+            ss << std::hex << std::showbase
+                << "\n" << std::string(0x40, '*') << "\n"
                 << "Paged Pool Metrics :" << paged_pool_descriptor << "\n"
-                << setw(20) << "pool index :" << i << "\n\n";
+                << std::setw(20) << "pool index :" << i << "\n\n";
 
 
-            vector<size_t> pages;
+            std::vector<size_t> pages;
             size_t count = 0;
             size_t j = size / 0x10;
             {
@@ -83,18 +82,18 @@ void dump_free_pool(size_t size)
                     size_t pool_entry = curr;
 
                     size_t page = pool_entry & 0xFFFFFFFFFFFFF000;
-                    if (find(pages.begin(), pages.end(), page) == pages.end() && pool_entry != 0)
+                    if (std::find(pages.begin(), pages.end(), page) == pages.end() && pool_entry != 0)
                         pages.push_back(page);
 
                     curr = EXT_F_READ<size_t>(curr);
                     //ss << "\t<link cmd=\"!pool " << hex << showbase << curr << "\">" << curr << "</link>\n";
-                    ss << hex << showbase
-                        << "<link cmd=\"dt nt!_POOL_HEADER " << setfill('0') << setw(16) << pool_entry - 0x10
+                    ss << std::hex << std::showbase
+                        << "<link cmd=\"dt nt!_POOL_HEADER " << std::setfill('0') << std::setw(16) << pool_entry - 0x10
                         << "\">"
-                        << setfill('0') << setw(16) << pool_entry
+                        << std::setfill('0') << std::setw(16) << pool_entry
                         << "</link>"
-                        << "[<link cmd=\"!pool " << setfill('0') << setw(16) << page
-                        << "\">Page " << dec << noshowbase << find(pages.begin(), pages.end(), page) - pages.begin()
+                        << "[<link cmd=\"!pool " << std::setfill('0') << std::setw(16) << page
+                        << "\">Page " << std::dec << std::noshowbase << std::find(pages.begin(), pages.end(), page) - pages.begin()
                         << "</link>]\t";
 
                     if (++count % 0x4 == 0 && count != 0)
@@ -102,7 +101,7 @@ void dump_free_pool(size_t size)
                 };
                 ss << "\n";
             }
-            ss << endl;
+            ss << std::endl;
 
         }
 
@@ -121,7 +120,7 @@ void dump_big_pool()
         size_t big_pool_addr = EXT_F_READ<size_t>(EXT_F_Sym2Addr("nt!PoolBigPageTable"));
         size_t big_pool_size = EXT_F_READ<size_t>(EXT_F_Sym2Addr("nt!PoolBigPageTableSize"));
 
-        stringstream ss;
+        std::stringstream ss;
 
         size_t item_count = 0;
         size_t page_x3_index = 0;
@@ -146,13 +145,13 @@ void dump_big_pool()
             bool b_free = ((pool_entry.va & 0x1) == 0x1);
 
             ss.str("");
-            ss << hex << showbase
-                << setw(8) << item_count << " "
-                << setw(10) << (b_free ? "Free" : "Allocated") << " "
-                << setw(18) << pool_entry.va << ", "
-                << setw(18) << pool_entry.size << " "
+            ss << std::hex << std::showbase
+                << std::setw(8) << item_count << " "
+                << std::setw(10) << (b_free ? "Free" : "Allocated") << " "
+                << std::setw(18) << pool_entry.va << ", "
+                << std::setw(18) << pool_entry.size << " "
                 << "[" << pool_entry.tag << "] "
-                << setw(10) << pool_entry.pool_type << " ";
+                << std::setw(10) << pool_entry.pool_type << " ";
 
 
             if ((pool_entry.pool_type & 0x1) != 0)
@@ -169,7 +168,7 @@ void dump_big_pool()
             if ((pool_entry.pool_type & 0x2) != 0)
                 ss << "| MustSucceed ";
 
-            ss << endl;
+            ss << std::endl;
 
             EXT_F_OUT(ss.str().c_str());
 
@@ -187,7 +186,7 @@ void dump_pool_track()
         size_t pool_track_addr = EXT_F_READ<size_t>(EXT_F_Sym2Addr("nt!PoolTrackTable"));
         size_t pool_track_size = EXT_F_READ<size_t>(EXT_F_Sym2Addr("nt!PoolTrackTableSize"));
 
-        stringstream ss;
+        std::stringstream ss;
         for (size_t item_addr = pool_track_addr; item_addr < pool_track_addr + pool_track_size; item_addr += 0x28)
         {
             uint8_t tag[5] = { 0, };
@@ -205,16 +204,16 @@ void dump_pool_track()
             size_t p_bytes = EXT_F_READ<size_t>(item_addr + 0x20);
 
             ss.str("");
-            ss << hex << showbase
+            ss << std::hex << std::showbase
                 << "[" << tag << "] "
-                << setw(10) << np_alloc << " A-F "
-                << setw(10) << np_free << " "
-                << setw(18) << np_bytes << " bytes, "
-                << setw(10) << p_alloc << " A-F "
-                << setw(10) << p_free << " "
-                << setw(18) << p_bytes << " bytes";
+                << std::setw(10) << np_alloc << " A-F "
+                << std::setw(10) << np_free << " "
+                << std::setw(18) << np_bytes << " bytes, "
+                << std::setw(10) << p_alloc << " A-F "
+                << std::setw(10) << p_free << " "
+                << std::setw(18) << p_bytes << " bytes";
 
-            ss << endl;
+            ss << std::endl;
 
             EXT_F_OUT(ss.str().c_str());
         }
@@ -226,7 +225,7 @@ void dump_pool_range()
 {
     try
     {
-        vector<POOL_METRICS> pool_metrics;
+        std::vector<POOL_METRICS> pool_metrics;
 
         size_t vector_pool_addr = EXT_F_Sym2Addr("nt!PoolVector");
         size_t non_paged_pool_addr = EXT_F_READ<size_t>(vector_pool_addr);
@@ -256,7 +255,7 @@ void dump_pool_range()
 
         ExtRemoteTypedList pses_list = ExtNtOsInformation::GetKernelProcessList();
 
-        set<size_t> session_addrs;
+        std::set<size_t> session_addrs;
 
 
         for (pses_list.StartHead(); pses_list.HasNode(); pses_list.Next())
@@ -279,7 +278,7 @@ void dump_pool_range()
             POOL_METRICS session_pool_metrics = { 0, };
             session_pool_metrics._pool_start = session_space.Field("PagedPoolStart").GetUlong64();
             session_pool_metrics._pool_end = session_space.Field("PagedPoolEnd").GetUlong64();
-            stringstream ss;
+            std::stringstream ss;
             ss << "Session " << session_space.Field("SessionId").GetUlong();
             session_pool_metrics._comment = ss.str();
 
@@ -306,7 +305,7 @@ void dump_pool_range()
             non_paged_pool_metrics._total_bytes = non_paged_pool.Field("BytesAllocated").GetUlong64();
             non_paged_pool_metrics._total_pages = non_paged_pool.Field("PagesAllocated").GetUlong64();
             non_paged_pool_metrics._total_big_pages = non_paged_pool.Field("BigPagesAllocated").GetUlong64();
-            stringstream ss;
+            std::stringstream ss;
             ss << "Non-Paged Pool " << i;
             non_paged_pool_metrics._comment = ss.str();
 
@@ -332,7 +331,7 @@ void dump_pool_range()
             paged_pool_metrics._total_bytes = paged_pool.Field("BytesAllocated").GetUlong64();
             paged_pool_metrics._total_pages = paged_pool.Field("PagesAllocated").GetUlong64();
             paged_pool_metrics._total_big_pages = paged_pool.Field("BigPagesAllocated").GetUlong64();
-            stringstream ss;
+            std::stringstream ss;
             ss << "Paged Pool " << i;
             paged_pool_metrics._comment = ss.str();
 
@@ -346,28 +345,28 @@ void dump_pool_range()
 
 
 
-        ofstream ss(R"(E:\pool_range.txt)", ios::out | ios::trunc);
+        std::ofstream ss(R"(E:\pool_range.txt)", std::ios::out | std::ios::trunc);
         for (auto& pool_info : pool_metrics)
         {
-            ss << hex << showbase
-                << "\n" << string(0x40, '*') << "\n"
-                << setw(20) << "Paged Pool Metrics :" << pool_info._pool_addr << "\n"
-                << setw(20) << "comment :" << pool_info._comment << "\n"
-                << setw(20) << "pool index :" << pool_info._pool_index << "\n"
-                << setw(20) << "total bytes :" << pool_info._total_bytes << "(" << pool_info._total_bytes / 1024 / 1024 << " MB)\n"
-                << setw(20) << "total pages :" << pool_info._total_pages << "\n"
-                << setw(20) << "range start :" << pool_info._pool_start << "\n"
-                << setw(20) << "range end :" << pool_info._pool_end << "\n"
-                << setw(20) << "total big pages :" << pool_info._total_big_pages << "\n\n";
+            ss << std::hex << std::showbase
+                << "\n" << std::string(0x40, '*') << "\n"
+                << std::setw(20) << "Paged Pool Metrics :" << pool_info._pool_addr << "\n"
+                << std::setw(20) << "comment :" << pool_info._comment << "\n"
+                << std::setw(20) << "pool index :" << pool_info._pool_index << "\n"
+                << std::setw(20) << "total bytes :" << pool_info._total_bytes << "(" << pool_info._total_bytes / 1024 / 1024 << " MB)\n"
+                << std::setw(20) << "total pages :" << pool_info._total_pages << "\n"
+                << std::setw(20) << "range start :" << pool_info._pool_start << "\n"
+                << std::setw(20) << "range end :" << pool_info._pool_end << "\n"
+                << std::setw(20) << "total big pages :" << pool_info._total_big_pages << "\n\n";
 
-            ss << setw(20) << "pending frees :" << "\n";
+            ss << std::setw(20) << "pending frees :" << "\n";
             for (auto& pending : pool_info._pending_frees)
             {
                 ss << "\t" << pending;
             }
-            ss << endl;
+            ss << std::endl;
 
-            ss << setw(20) << "free lists :" << "\n";
+            ss << std::setw(20) << "free lists :" << "\n";
 
             for (auto& free_list : pool_info._free_lists)
             {
@@ -378,7 +377,7 @@ void dump_pool_range()
                 }
                 ss << "\n";
             }
-            ss << endl;
+            ss << std::endl;
         }
     }
     FC;
@@ -461,7 +460,7 @@ void poolhdr(size_t addr)
         EXT_F_OUT("%30s : 0x%04x\n", "Pool Tag Hash", pool_tag_hash);
         EXT_F_OUT("%30s : 0x%I64x\n", "Process Billed", process_billed);
 
-        if ((string)tag == "Free")
+        if ((std::string)tag == "Free")
         {
             size_t prev_free = EXT_F_READ<size_t>(addr + 0x10);
             size_t next_free = EXT_F_READ<size_t>(addr + 0x18);

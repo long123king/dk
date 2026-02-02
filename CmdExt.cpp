@@ -10,28 +10,28 @@ CCmdExt::CCmdExt()
     ExtSetDllMain::ExtSetDllMain(CmdListMain);
 } 
 
-bool CCmdExt::is_reg(string & str)
+bool CCmdExt::is_reg(std::string & str)
 {
-    static vector<string> regs{ {
+    static std::vector<std::string> regs{ {
             "rax", "rbx", "rcx", "rdx", "rsi", "rdi", "rsp", "rbp", "rip",
             "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15", "r16"
         } };
 
-    return find(regs.begin(), regs.end(), str.c_str()) != regs.end();
+    return std::find(regs.begin(), regs.end(), str.c_str()) != regs.end();
 }
 
 void CCmdExt::dk(void)
 {
     try
     {
-        string raw_args = GetRawArgStr();
-        vector<string> args;
+        std::string raw_args = GetRawArgStr();
+        std::vector<std::string> args;
         for (size_t i = 0, j = 0; i <= raw_args.size(); i++)
         {
             if (raw_args[i] == ' ' || i == raw_args.size())
             {
                 if (i > j)
-                    args.push_back(string(raw_args, j, i - j));
+                    args.push_back(std::string(raw_args, j, i - j));
 
                 j = i+1;
             }                
@@ -39,7 +39,7 @@ void CCmdExt::dk(void)
 
         if (!args.empty())
         {
-            string cmd = args[0];
+            std::string cmd = args[0];
 
             if (CMD_LIST->IsValidCmd(cmd))
                 CMD_LIST->HandleCmd(cmd, args);
@@ -91,9 +91,9 @@ size_t CCmdExt::getSymbolAddr(const char* name)
     return addr;
 }
 
-tuple<string, uint64_t> CCmdExt::getAddrSymbol(size_t addr)
+std::tuple<std::string, uint64_t> CCmdExt::getAddrSymbol(size_t addr)
 {
-    string name;
+    std::string name;
     ULONG64 disp = 0;
     try
     {
@@ -101,7 +101,7 @@ tuple<string, uint64_t> CCmdExt::getAddrSymbol(size_t addr)
         ULONG len = 0;
         if (S_OK == m_Symbols->GetNameByOffset(addr, symbol, 0, &len, 0))
         {
-            symbol = new (nothrow) char[len];
+            symbol = new (std::nothrow) char[len];
 
             if (symbol != nullptr &&
                 S_OK == m_Symbols->GetNameByOffset(addr, symbol, len, &len, &disp))
@@ -135,7 +135,7 @@ size_t CCmdExt::reg_of(const char* reg_v)
 #define REG_R15     15
 #define REG_RIP     16
 
-    static map<const char*, size_t> regs_map{
+    static std::map<const char*, size_t> regs_map{
         {"rip", REG_RIP}, {"rbp", REG_RBP}, {"rsp", REG_RSP},
         {"rax", REG_RAX}, {"rbx", REG_RBX}, {"rcx", REG_RCX}, {"rdx", REG_RDX},
         {"rsi", REG_RSI}, {"rdi", REG_RDI},
@@ -188,9 +188,9 @@ bool CCmdExt::valid_addr(size_t addr)
     return valid;
 }
 
-wstring CCmdExt::readUnicodeString(size_t addr)
+std::wstring CCmdExt::readUnicodeString(size_t addr)
 {
-    wstring name;
+    std::wstring name;
     try
     {
         ExtRemoteTyped us("(nt!_UNICODE_STRING*)@$extin", addr);
@@ -208,9 +208,9 @@ wstring CCmdExt::readUnicodeString(size_t addr)
     return name;
 }
 
-string CCmdExt::size2str(size_t value)
+std::string CCmdExt::size2str(size_t value)
 {
-    string str("");
+    std::string str("");
     try
     {
         size_t k_size = value / 1024;
@@ -218,7 +218,7 @@ string CCmdExt::size2str(size_t value)
         size_t g_size = m_size / 1024;
         size_t t_size = g_size / 1024;
 
-        stringstream ss;
+        std::stringstream ss;
 
         /*ss << showbase << hex;
 
@@ -237,19 +237,19 @@ string CCmdExt::size2str(size_t value)
         ss << value - k_size * 1024;
 
         ss << endl;*/
-        ss << noshowbase << dec;
+        ss << std::noshowbase << std::dec;
 
         if (t_size != 0)
-            ss << setw(6) << t_size << " T ";
+            ss << std::setw(6) << t_size << " T ";
 
         if (g_size != 0)
-            ss << setw(6) << g_size - t_size * 1024 << " G ";
+            ss << std::setw(6) << g_size - t_size * 1024 << " G ";
 
         if (m_size != 0)
-            ss << setw(6) << m_size - g_size * 1024 << " M ";
+            ss << std::setw(6) << m_size - g_size * 1024 << " M ";
 
         if (k_size != 0)
-            ss << setw(6) << k_size - m_size * 1024 << " K ";
+            ss << std::setw(6) << k_size - m_size * 1024 << " K ";
 
         ss << value - k_size * 1024;
 
@@ -262,7 +262,7 @@ string CCmdExt::size2str(size_t value)
     return str;
 }
 
-HRESULT CCmdExt::x(string cmd)
+HRESULT CCmdExt::x(std::string cmd)
 {
     try
     {
@@ -273,16 +273,16 @@ HRESULT CCmdExt::x(string cmd)
     return S_FALSE;
 }
 
-size_t CCmdExt::getIntArg(vector<string>& args, size_t idx, size_t default_val)
+size_t CCmdExt::getIntArg(std::vector<std::string>& args, size_t idx, size_t default_val)
 {
     if (idx < 0 || idx >= args.size())
         return default_val;
 
-    stringstream ss;
+    std::stringstream ss;
 
-    ss << nouppercase << args[idx];
+    ss << std::nouppercase << args[idx];
 
-    string arg = ss.str();
+    std::string arg = ss.str();
 
     if (is_reg(arg))
     {
@@ -325,7 +325,7 @@ size_t CCmdExt::getIntArg(vector<string>& args, size_t idx, size_t default_val)
 
         return val;
     }
-    catch (exception)
+    catch (std::exception)
     {
         Err("Invalid conversion!\n");
     }

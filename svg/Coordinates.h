@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <tuple>
-using namespace std;
 
 class CoordinatesManager
 {
@@ -17,29 +16,29 @@ public:
         m_canvas_height = m_grid_height * 512 + 200;
     }
 
-    tuple<uint64_t, uint64_t> GetCanvasSize()
+    std::tuple<uint64_t, uint64_t> GetCanvasSize()
     {
-        return make_tuple(m_canvas_width, m_canvas_height);
+        return std::make_tuple(m_canvas_width, m_canvas_height);
     }
 
-    tuple<uint64_t, uint64_t> GetLAddrPivot(uint64_t i)
+    std::tuple<uint64_t, uint64_t> GetLAddrPivot(uint64_t i)
     {
-        return make_tuple(100, 100 + m_grid_height * i);
+        return std::make_tuple(100, 100 + m_grid_height * i);
     }
 
-    tuple<uint64_t, uint64_t> GetLGridPivot(uint64_t i, uint64_t j)
+    std::tuple<uint64_t, uint64_t> GetLGridPivot(uint64_t i, uint64_t j)
     {
-        return make_tuple(100 + m_addr_width + i * m_grid_width, 100 + m_grid_height * j);
+        return std::make_tuple(100 + m_addr_width + i * m_grid_width, 100 + m_grid_height * j);
     }
 
-    tuple<uint64_t, uint64_t, uint64_t, uint64_t> GetLAddrParameters()
+    std::tuple<uint64_t, uint64_t, uint64_t, uint64_t> GetLAddrParameters()
     {
-        return make_tuple(m_addr_width, m_addr_height, m_l_addr_columns, m_l_addr_rows);
+        return std::make_tuple(m_addr_width, m_addr_height, m_l_addr_columns, m_l_addr_rows);
     }
 
-    tuple<uint64_t, uint64_t, uint64_t, uint64_t> GetLGridParameters()
+    std::tuple<uint64_t, uint64_t, uint64_t, uint64_t> GetLGridParameters()
     {
-        return make_tuple(m_grid_width, m_grid_height, m_l_grid_columns, m_l_grid_rows);
+        return std::make_tuple(m_grid_width, m_grid_height, m_l_grid_columns, m_l_grid_rows);
     }
 
     uint64_t GetLRowHeight(uint64_t i)
@@ -47,14 +46,14 @@ public:
         return 100 + i * m_grid_height;
     }
 
-    tuple<uint64_t, uint64_t> GetMRowPivot(uint64_t i)
+    std::tuple<uint64_t, uint64_t> GetMRowPivot(uint64_t i)
     {
-        return make_tuple(1000, 100 + m_addr_height * i);
+        return std::make_tuple(1000, 100 + m_addr_height * i);
     }
 
-    tuple<uint64_t, uint64_t> GetRRowPivot(uint64_t i)
+    std::tuple<uint64_t, uint64_t> GetRRowPivot(uint64_t i)
     {
-        return make_tuple(2000, 100 + m_addr_height * i);
+        return std::make_tuple(2000, 100 + m_addr_height * i);
     }
 
 private:

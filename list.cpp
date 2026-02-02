@@ -71,7 +71,7 @@ size_t dig_link(size_t addr, size_t head, size_t entry, size_t index, size_t cou
 {
     try
     {
-        stringstream ss;
+        std::stringstream ss;
         for (size_t i = 0; i < count; i++)
         {
             if (!EXT_F_ValidAddr(addr))
@@ -87,7 +87,7 @@ size_t dig_link(size_t addr, size_t head, size_t entry, size_t index, size_t cou
             size_t flink = EXT_F_READ<size_t>(addr);
             size_t blink = EXT_F_READ<size_t>(addr + 8);
 
-            ss << hex << showbase << setfill(' ') << setw(10) << i + index
+            ss << std::hex << std::showbase << std::setfill(' ') << std::setw(10) << i + index
                 << " [ "
                 << HEX_ADDR(flink)
                 << " , "

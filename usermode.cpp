@@ -94,7 +94,7 @@ DEFINE_CMD(uaddr_analyze_svg)
 
     size_t start = EXT_F_IntArg(args, 1, 0);
     size_t len = EXT_F_IntArg(args, 2, 0);
-    string svg_name = args[3];
+    std::string svg_name = args[3];
 
     size_t offset = 0;
     if (args.size() == 5)
@@ -187,7 +187,7 @@ DEFINE_CMD(uregs)
     usermode_regs();
 }
 
-void usermode_search_astr(string pattern, size_t level)
+void usermode_search_astr(std::string pattern, size_t level)
 {
     try
     {
@@ -197,7 +197,6 @@ void usermode_search_astr(string pattern, size_t level)
         ULONG64 length = 0x8000000;
 
         EXT_F_OUT("Searching Virtual Memory in range(0x%0I64x, 0x%0I64x, 0x%0I64x) for ASCII String %s\n\n", start, end, length, pattern.c_str());
-
         ULONG64 match_offset = 0;
 
         while (start < end)
@@ -207,12 +206,12 @@ void usermode_search_astr(string pattern, size_t level)
             {
                 EXT_F_OUT("\nFound pattern %s at 0x%0I64x\n", pattern.c_str(), match_offset);
 
-                stringstream dml_ss;
+                std::stringstream dml_ss;
 
-                dml_ss << DML_CMD << "!dk uaddr_ref_by " << hex << showbase << match_offset
+                dml_ss << DML_CMD << "!dk uaddr_ref_by " << std::hex << std::showbase << match_offset
                     << DML_TEXT << "ref_by"
                     << DML_END
-                    << endl;
+                    << std::endl;
 
                 EXT_F_STR_DML(dml_ss);
 
@@ -243,7 +242,7 @@ void usermode_search_astr(string pattern, size_t level)
     FC;
 }
 
-void usermode_search_ustr(string pattern, size_t level)
+void usermode_search_ustr(std::string pattern, size_t level)
 {
     try
     {
@@ -253,10 +252,9 @@ void usermode_search_ustr(string pattern, size_t level)
         ULONG64 length = 0x8000000;
 
         EXT_F_OUT("Searching Virtual Memory in range(0x%0I64x, 0x%0I64x, 0x%0I64x) for Unicode String %s\n\n", start, end, length, pattern.c_str());
-
         ULONG64 match_offset = 0;
 
-        wstring wstr_pattern(pattern.begin(), pattern.end());
+        std::wstring wstr_pattern(pattern.begin(), pattern.end());
 
         while (start < end)
         {
@@ -265,12 +263,12 @@ void usermode_search_ustr(string pattern, size_t level)
             {
                 EXT_F_OUT("\nFound pattern %s at 0x%0I64x\n", pattern.c_str(), match_offset);
 
-                stringstream dml_ss;
+                std::stringstream dml_ss;
 
-                dml_ss << DML_CMD << "!dk uaddr_ref_by " << hex << showbase << match_offset
+                dml_ss << DML_CMD << "!dk uaddr_ref_by " << std::hex << std::showbase << match_offset
                     << DML_TEXT << "ref_by"
                     << DML_END
-                    << endl;
+                    << std::endl;
 
                 EXT_F_STR_DML(dml_ss);
 
@@ -301,7 +299,7 @@ void usermode_search_ustr(string pattern, size_t level)
     FC;
 }
 
-void usermode_search_bytes(string bytes, size_t level)
+void usermode_search_bytes(std::string bytes, size_t level)
 {
     try
     {
@@ -310,7 +308,7 @@ void usermode_search_bytes(string bytes, size_t level)
 
         ULONG64 length = 0x8000000;
 
-        string pattern;
+        std::string pattern;
 
         if (bytes.size() % 2 != 0)
         {
@@ -321,7 +319,7 @@ void usermode_search_bytes(string bytes, size_t level)
         {
             for (size_t i = 0; i < bytes.size() / 2; i++)
             {
-                char byte = (char)(stoll(bytes.substr(i * 2, 2), nullptr, 0x10));
+                char byte = (char)(std::stoll(bytes.substr(i * 2, 2), nullptr, 0x10));
                 pattern.push_back(byte);
             }
         }
@@ -337,12 +335,12 @@ void usermode_search_bytes(string bytes, size_t level)
             {
                 EXT_F_OUT("\nFound pattern %s at 0x%0I64x\n", bytes.c_str(), match_offset);
 
-                stringstream dml_ss;
+                std::stringstream dml_ss;
 
-                dml_ss << DML_CMD << "!dk uaddr_ref_by " << hex << showbase << match_offset
+                dml_ss << DML_CMD << "!dk uaddr_ref_by " << std::hex << std::showbase << match_offset
                     << DML_TEXT << "ref_by"
                     << DML_END
-                    << endl;
+                    << std::endl;
 
                 EXT_F_STR_DML(dml_ss);
 
@@ -382,7 +380,7 @@ void usermode_search_addr(size_t addr, size_t level)
 
         ULONG64 length = 0x8000000;
 
-        string pattern;
+        std::string pattern;
 
         EXT_F_OUT("Searching Virtual Memory in range(0x%0I64x, 0x%0I64x, 0x%0I64x) for Address 0x%0I64x\n\n", start, end, length, addr);
 
@@ -395,12 +393,12 @@ void usermode_search_addr(size_t addr, size_t level)
             {
                 EXT_F_OUT("\nFound pattern 0x%0I64x at 0x%0I64x\n", addr, match_offset);
 
-                stringstream dml_ss;
+                std::stringstream dml_ss;
 
-                dml_ss << DML_CMD << "!dk uaddr_ref_by " << hex << showbase << match_offset
+                dml_ss << DML_CMD << "!dk uaddr_ref_by " << std::hex << std::showbase << match_offset
                     << DML_TEXT << "ref_by"
                     << DML_END
-                    << endl;
+                    << std::endl;
 
                 EXT_F_STR_DML(dml_ss);
 
@@ -441,7 +439,7 @@ void usermode_addr_ref_disp(size_t start, size_t len, size_t ref_start, size_t r
 
         size_t end = start + len;
 
-        set<size_t> qws;
+        std::set<size_t> qws;
 
         while (start < end)
         {
@@ -499,7 +497,7 @@ void usermode_addr_analyze(size_t start, size_t len, size_t offset)
     FC;
 }
 
-void usermode_addr_analyze_svg(size_t start, size_t len, string svg_filename, size_t offset)
+void usermode_addr_analyze_svg(size_t start, size_t len, std::string svg_filename, size_t offset)
 {
     try
     {
@@ -534,7 +532,7 @@ void usermode_stacks()
 
 void usermode_regs()
 {
-    static vector<const char*> regs_name{
+    static std::vector<const char*> regs_name{
         "rip", "rsp",
             "rax", "rbx", "rcx", "rdx",
             "rbp", "rsi", "rdi",
@@ -547,9 +545,9 @@ void usermode_regs()
 
         for (auto& reg_entry : regs_name)
         {
-            stringstream ss;
+            std::stringstream ss;
             size_t reg_value = EXT_F_REG_OF(reg_entry);
-            ss << "                " << reg_entry << ": \t" << hex << showbase << setw(18) << reg_value << " ";
+            ss << "                " << reg_entry << ": \t" << std::hex << std::showbase << std::setw(18) << reg_value << " ";
             EXT_F_OUT(ss.str().c_str());
             CUsermodeMemory::GetInstance()->analyze_qword(reg_value);
         }
@@ -557,7 +555,7 @@ void usermode_regs()
     FC;
 }
 
-CUsermodeStack::CUsermodeStack(size_t start, size_t end, size_t size, size_t t_index, size_t tid, size_t pid, string usage)
+CUsermodeStack::CUsermodeStack(size_t start, size_t end, size_t size, size_t t_index, size_t tid, size_t pid, std::string usage)
     :m_start(start)
     , m_end(end)
     , m_size(size)
@@ -587,15 +585,15 @@ void CUsermodeStack::Analyze()
 {
 }
 
-string CUsermodeStack::desc(size_t addr)
+std::string CUsermodeStack::desc(size_t addr)
 {
-    stringstream ss;
+    std::stringstream ss;
 
     if (in_range(addr))
     {
-        ss  << hex << showbase << m_start << " - " << m_end
+        ss  << std::hex << std::showbase << m_start << " - " << m_end
             << " thread : " 
-            << hex << showbase << m_t_index << " " 
+            << std::hex << std::showbase << m_t_index << " " 
             << m_pid << " : " << m_tid;
     }
 
@@ -603,14 +601,14 @@ string CUsermodeStack::desc(size_t addr)
 }
 
 
-tuple<size_t, size_t> CUsermodeStack::dump()
+std::tuple<size_t, size_t> CUsermodeStack::dump()
 {
     EXT_F_OUT("Stack: 0x%x %x:%x\n", m_t_index, m_pid, m_tid);
 
-    return make_tuple(m_start, m_size);
+    return std::make_tuple(m_start, m_size);
 }
 
-CUsermodeModule::CUsermodeModule(size_t start, size_t end, size_t size, string name, string path, string usage)
+CUsermodeModule::CUsermodeModule(size_t start, size_t end, size_t size, std::string name, std::string path, std::string usage)
     :m_start(start)
     , m_end(end)
     , m_size(size)
@@ -638,11 +636,11 @@ void CUsermodeModule::Analyze()
 {
 }
 
-string CUsermodeModule::code_desc(size_t addr)
+std::string CUsermodeModule::code_desc(size_t addr)
 {
-    stringstream ss;
+    std::stringstream ss;
 
-    static map<size_t, tuple<string, uint64_t>> s_cache;
+    static std::map<size_t, std::tuple<std::string, uint64_t>> s_cache;
 
     if (in_range(addr))
     {
@@ -652,17 +650,17 @@ string CUsermodeModule::code_desc(size_t addr)
             s_cache[addr] = sym_info;
         }          
 
-        ss << get<0>(s_cache[addr]) << "+" << hex << showbase << get<1>(s_cache[addr]);
+        ss << get<0>(s_cache[addr]) << "+" << std::hex << std::showbase << get<1>(s_cache[addr]);
     }
 
     return ss.str();
 }
 
-string CUsermodeModule::data_desc(size_t addr)
+std::string CUsermodeModule::data_desc(size_t addr)
 {
-    stringstream ss;
+    std::stringstream ss;
 
-    static map<size_t, tuple<string, uint64_t>> s_cache;
+    static std::map<size_t, std::tuple<std::string, uint64_t>> s_cache;
 
     if (in_range(addr))
     {
@@ -672,10 +670,10 @@ string CUsermodeModule::data_desc(size_t addr)
 
             if (get<0>(sym_info).empty())
             {
-                stringstream data_info_ss;
+                std::stringstream data_info_ss;
 
                 data_info_ss << "Module: " << m_name << " offset: "
-                    << hex << showbase << addr - m_start << " ";
+                    << std::hex << std::showbase << addr - m_start << " ";
 
                 if (is_readonly())
                 {
@@ -686,9 +684,9 @@ string CUsermodeModule::data_desc(size_t addr)
                     data_info_ss << "Global ";
                 }
 
-                string attr = m_usage_str;
+                std::string attr = m_usage_str;
                 auto pos = attr.find("Image");
-                if (pos != string::npos)
+                if (pos != std::string::npos)
                     attr = attr.substr(0, pos - 1);
 
                 data_info_ss << attr;
@@ -701,14 +699,14 @@ string CUsermodeModule::data_desc(size_t addr)
 
         ss << get<0>(s_cache[addr]);
         if (get<1>(s_cache[addr]) != 0)
-         ss << "+" << hex << showbase << get<1>(s_cache[addr]);
+         ss << "+" << std::hex << std::showbase << get<1>(s_cache[addr]);
     }
 
     return ss.str();
 }
 
 
-CUsermodeHeap::CUsermodeHeap(size_t start, size_t end, size_t size, size_t id, size_t handle, string type, string usage)
+CUsermodeHeap::CUsermodeHeap(size_t start, size_t end, size_t size, size_t id, size_t handle, std::string type, std::string usage)
     :m_start(start)
     , m_end(end)
     , m_size(size)
@@ -738,20 +736,20 @@ void CUsermodeHeap::Analyze()
 {
 }
 
-string CUsermodeHeap::desc(size_t addr)
+std::string CUsermodeHeap::desc(size_t addr)
 {
-    stringstream ss;
+    std::stringstream ss;
 
-    static map<size_t, tuple<size_t, size_t, size_t, string>> s_cache;
+    static std::map<size_t, std::tuple<size_t, size_t, size_t, std::string>> s_cache;
 
-    static regex s_heap_info_regex(R"(([0-9a-f]+)\s+([0-9a-f]+)\s+([0-9a-f]+)\s+([0-9a-f]+)\s+(\-|[0-9a-f]+)\s+(\-|[0-9a-f]+)\s+(\-|[0-9a-f]+)\s+(.+))");
+    static std::regex s_heap_info_regex(R"(([0-9a-f]+)\s+([0-9a-f]+)\s+([0-9a-f]+)\s+([0-9a-f]+)\s+(\-|[0-9a-f]+)\s+(\-|[0-9a-f]+)\s+(\-|[0-9a-f]+)\s+(.+))");
 
     if (in_range(addr))
     {
         if (s_cache.find(addr) == s_cache.end())
         {
-            stringstream ss_cmd;
-            ss_cmd << "!heap -x " << hex << showbase << addr;
+            std::stringstream ss_cmd;
+            ss_cmd << "!heap -x " << std::hex << std::showbase << addr;
 
             auto results = DK_X_CMD(ss_cmd.str());
 
@@ -764,35 +762,35 @@ string CUsermodeHeap::desc(size_t addr)
             {
                 if (!b_multiline_info)
                 {
-                    smatch sm;
+                    std::smatch sm;
                     regex_match(result, sm, s_heap_info_regex);
 
                     if (sm.size() == 9)
                     {
-                        size_t entry = stoll(sm[1], nullptr, 16);
-                        size_t user_ptr = stoll(sm[2], nullptr, 16);
-                        size_t heap = stoll(sm[3], nullptr, 16);
-                        size_t segment = stoll(sm[4], nullptr, 16);
+                        size_t entry = std::stoll(sm[1], nullptr, 16);
+                        size_t user_ptr = std::stoll(sm[2], nullptr, 16);
+                        size_t heap = std::stoll(sm[3], nullptr, 16);
+                        size_t segment = std::stoll(sm[4], nullptr, 16);
 
-                        string size_str = sm[5];
-                        string prev_size_str = sm[6];
-                        string unused_str = sm[7];
-                        string flags_str = sm[8];
+                        std::string size_str = sm[5];
+                        std::string prev_size_str = sm[6];
+                        std::string unused_str = sm[7];
+                        std::string flags_str = sm[8];
 
                         size_t size = 0;
                         size_t prev_size = 0;
                         size_t unused = 0;
 
-                        if (size_str.find('-') == string::npos)
-                            size = stoll(size_str, nullptr, 16);
+                        if (size_str.find('-') == std::string::npos)
+                            size = std::stoll(size_str, nullptr, 16);
 
-                        if (prev_size_str.find('-') == string::npos)
-                            prev_size = stoll(prev_size_str, nullptr, 16);
+                        if (prev_size_str.find('-') == std::string::npos)
+                            prev_size = std::stoll(prev_size_str, nullptr, 16);
 
-                        if (unused_str.find('-') == string::npos)
-                            unused = stoll(unused_str, nullptr, 16);
+                        if (unused_str.find('-') == std::string::npos)
+                            unused = std::stoll(unused_str, nullptr, 16);
 
-                        s_cache[addr] = make_tuple(user_ptr, size, heap, flags_str);
+                        s_cache[addr] = std::make_tuple(user_ptr, size, heap, flags_str);
                         break;
                     }
                     else if (result.find("Below is a detailed information about this address.") == 0)
@@ -802,19 +800,19 @@ string CUsermodeHeap::desc(size_t addr)
                 }
                 else if (result.find("Block Address            : ") == 0)
                 {
-                    user_ptr = stoll(result.substr(0x1B), nullptr, 16);
+                    user_ptr = std::stoll(result.substr(0x1B), nullptr, 16);
                 }
                 else if (result.find("Block Size               : ") == 0)
                 {
-                    size = stoll(result.substr(0x1B), nullptr, 10);
+                    size = std::stoll(result.substr(0x1B), nullptr, 10);
                 }
                 else if (result.find("Heap Address             : ") == 0)
                 {
-                    heap = stoll(result.substr(0x1B), nullptr, 16);
+                    heap = std::stoll(result.substr(0x1B), nullptr, 16);
                 }
             }
 
-            s_cache[addr] = make_tuple(user_ptr, size, heap, "");
+            s_cache[addr] = std::make_tuple(user_ptr, size, heap, "");
         }
 
         if (s_cache.find(addr) != s_cache.end())
@@ -826,8 +824,8 @@ string CUsermodeHeap::desc(size_t addr)
             }
             else if (alloc->desc().empty())
             {
-                ss << DML_CMD << "!dk uaddr_analyze " << hex << showbase << get<0>(s_cache[addr]) << " " << get<1>(s_cache[addr]) /*<< " " << get<0>(s_cache[addr])*/
-                    << DML_TEXT << " [ " << hex << showbase << get<0>(s_cache[addr]) << " - " << (get<0>(s_cache[addr]) + get<1>(s_cache[addr]))
+                ss << DML_CMD << "!dk uaddr_analyze " << std::hex << std::showbase << get<0>(s_cache[addr]) << " " << get<1>(s_cache[addr]) /*<< " " << get<0>(s_cache[addr])*/
+                    << DML_TEXT << " [ " << std::hex << std::showbase << get<0>(s_cache[addr]) << " - " << (get<0>(s_cache[addr]) + get<1>(s_cache[addr]))
                     << " ] len: " << get<1>(s_cache[addr]) << " handle: "
                     << get<2>(s_cache[addr]) << " flag: " << get<3>(s_cache[addr])
                     << DML_END;
@@ -844,58 +842,58 @@ string CUsermodeHeap::desc(size_t addr)
     return ss.str();
 }
 
-string CUsermodeHeap::ref_by_desc(size_t addr)
+std::string CUsermodeHeap::ref_by_desc(size_t addr)
 {
-    stringstream ss;
+    std::stringstream ss;
     
-    ss << hex << showbase << " referenced by: " << endl;
+    ss << std::hex << std::showbase << " referenced by: " << std::endl;
 
     for (auto ref : get<1>(ref_by(addr)))
     {
-        ss << DML_CMD << "!dk uaddr_ref_by " << hex << showbase << ref
-            << DML_TEXT << " * " << hex << showbase << ref
+        ss << DML_CMD << "!dk uaddr_ref_by " << std::hex << std::showbase << ref
+            << DML_TEXT << " * " << std::hex << std::showbase << ref
             << DML_END
-            << endl;
+            << std::endl;
     }
     
     return ss.str();
 }
 
-tuple<vector<shared_ptr<CUsermodeHeapAllocation>>, set<size_t>> CUsermodeHeap::ref_by(size_t addr)
+std::tuple<std::vector<std::shared_ptr<CUsermodeHeapAllocation>>, std::set<size_t>> CUsermodeHeap::ref_by(size_t addr)
 {
-    static regex s_search_vm_regex(R"(Search VM for address range ([0-9a-f]+) - ([0-9a-f]+) : (.*))");
+    static std::regex s_search_vm_regex(R"(Search VM for address range ([0-9a-f]+) - ([0-9a-f]+) : (.*))");
 
-    static map<size_t, set<size_t>> s_cache;
-    static map<size_t, vector<shared_ptr<CUsermodeHeapAllocation>>> s_cache_allocations;
+    static std::map<size_t, std::set<size_t>> s_cache;
+    static std::map<size_t, std::vector<std::shared_ptr<CUsermodeHeapAllocation>>> s_cache_allocations;
 
-    vector<shared_ptr<CUsermodeHeapAllocation>> allocations;
+    std::vector<std::shared_ptr<CUsermodeHeapAllocation>> allocations;
     try
     {
         if (s_cache.find(addr) == s_cache.end())
         {
-            stringstream ss_cmd;
+            std::stringstream ss_cmd;
 
-            ss_cmd << "!heap -x -v " << hex << showbase << addr;
+            ss_cmd << "!heap -x -v " << std::hex << std::showbase << addr;
 
-            set<size_t> refs_set;
+            std::set<size_t> refs_set;
 
             auto results = DK_X_CMD(ss_cmd.str());
             for (auto& result : results)
             {
-                smatch sm;
+                std::smatch sm;
                 regex_match(result, sm, s_search_vm_regex);
 
                 if (sm.size() == 4)
                 {
-                    size_t start = stoll(sm[1], nullptr, 16);
-                    size_t end = stoll(sm[2], nullptr, 16);
+                    size_t start = std::stoll(sm[1], nullptr, 16);
+                    size_t end = std::stoll(sm[2], nullptr, 16);
 
                     auto alloc = CUsermodeMemory::GetInstance()->get_allocation(start, end);
 
-                    istringstream refs_ss(sm[3]);
-                    string ref;
+                    std::istringstream refs_ss(sm[3]);
+                    std::string ref;
 
-                    while (getline(refs_ss, ref, ',')) {
+                    while (std::getline(refs_ss, ref, ',')) {
                         bool contains_hex = false;
                         for (auto& ch : ref)
                         {
@@ -912,10 +910,10 @@ tuple<vector<shared_ptr<CUsermodeHeapAllocation>>, set<size_t>> CUsermodeHeap::r
 
                         if (contains_hex && !ref.empty())
                         {
-                            referer = stoll(ref, nullptr, 16);
+                            referer = std::stoll(ref, nullptr, 16);
                             refs_set.insert(referer);
 
-                            string desc = CUsermodeMemory::GetInstance()->heap_desc(referer);
+                            std::string desc = CUsermodeMemory::GetInstance()->heap_desc(referer);
                         }
                     }
 
@@ -963,7 +961,7 @@ CUsermodeMemory::~CUsermodeMemory()
 {
 }
 
-string CUsermodeMemory::heap_desc(size_t addr)
+std::string CUsermodeMemory::heap_desc(size_t addr)
 {
     for (auto& heap : m_heaps)
     {
@@ -974,7 +972,7 @@ string CUsermodeMemory::heap_desc(size_t addr)
     return "";
 }
 
-string CUsermodeMemory::code_desc(size_t addr)
+std::string CUsermodeMemory::code_desc(size_t addr)
 {
     for (auto& module : m_images)
     {
@@ -985,7 +983,7 @@ string CUsermodeMemory::code_desc(size_t addr)
     return "";
 }
 
-string CUsermodeMemory::module_data_desc(size_t addr)
+std::string CUsermodeMemory::module_data_desc(size_t addr)
 {
     for (auto& module : m_images)
     {
@@ -996,7 +994,7 @@ string CUsermodeMemory::module_data_desc(size_t addr)
     return "";
 }
 
-string CUsermodeMemory::stack_desc(size_t addr)
+std::string CUsermodeMemory::stack_desc(size_t addr)
 {
     for (auto& stack : m_stacks)
     {
@@ -1007,7 +1005,7 @@ string CUsermodeMemory::stack_desc(size_t addr)
     return "";
 }
 
-string CUsermodeMemory::heap_ref_by_desc(size_t addr)
+std::string CUsermodeMemory::heap_ref_by_desc(size_t addr)
 {
     for (auto& heap : m_heaps)
     {
@@ -1018,7 +1016,7 @@ string CUsermodeMemory::heap_ref_by_desc(size_t addr)
     return "";
 }
 
-tuple<vector<shared_ptr<CUsermodeHeapAllocation>>, set<size_t>> CUsermodeMemory::heap_ref_by(size_t addr)
+std::tuple<std::vector<std::shared_ptr<CUsermodeHeapAllocation>>, std::set<size_t>> CUsermodeMemory::heap_ref_by(size_t addr)
 {
     for (auto& heap : m_heaps)
     {
@@ -1026,10 +1024,10 @@ tuple<vector<shared_ptr<CUsermodeHeapAllocation>>, set<size_t>> CUsermodeMemory:
             return heap->ref_by(addr);
     }
 
-    return make_tuple(vector<shared_ptr<CUsermodeHeapAllocation>>(), set<size_t>());
+    return make_tuple(std::vector<std::shared_ptr<CUsermodeHeapAllocation>>(), std::set<size_t>());
 }
 
-shared_ptr<CUsermodeHeapAllocation> CUsermodeMemory::get_allocation(size_t start, size_t end)
+std::shared_ptr<CUsermodeHeapAllocation> CUsermodeMemory::get_allocation(size_t start, size_t end)
 {
     for (auto& heap : m_heaps)
     {
@@ -1038,7 +1036,7 @@ shared_ptr<CUsermodeHeapAllocation> CUsermodeMemory::get_allocation(size_t start
             auto alloc = heap->get_allocation(start, end);
             if (alloc == nullptr)
             {
-                alloc = make_shared<CUsermodeHeapAllocation>(start, end);
+                alloc = std::make_shared<CUsermodeHeapAllocation>(start, end);
 
                 heap->add_allocation(alloc);
             }
@@ -1050,7 +1048,7 @@ shared_ptr<CUsermodeHeapAllocation> CUsermodeMemory::get_allocation(size_t start
     return nullptr;
 }
 
-shared_ptr<CUsermodeHeapAllocation> CUsermodeMemory::get_alloc_for_addr(size_t addr)
+std::shared_ptr<CUsermodeHeapAllocation> CUsermodeMemory::get_alloc_for_addr(size_t addr)
 {
     for (auto& heap : m_heaps)
     {
@@ -1069,32 +1067,32 @@ shared_ptr<CUsermodeHeapAllocation> CUsermodeMemory::get_alloc_for_addr(size_t a
 
 void CUsermodeMemory::Analyze()
 {
-    static regex s_general_line(R"(^\+?\s+([0-9a-f`]+)\s+([0-9a-f`]+)\s+([0-9a-f`]+)\s+(.*)$)");
+    static std::regex s_general_line(R"(^\+?\s+([0-9a-f`]+)\s+([0-9a-f`]+)\s+([0-9a-f`]+)\s+(.*)$)");
 
-    static regex s_stack_usage(R"(.*\[~(\d+); ([0-9a-f]+)\.([0-9a-f]+)\])");
+    static std::regex s_stack_usage(R"(.*\[~(\d+); ([0-9a-f]+)\.([0-9a-f]+)\])");
 
-    static regex s_heap_usage(R"(.*\[ID: ([0-9a-f]+); Handle: ([0-9a-f]+); Type: (.+)\])");
+    static std::regex s_heap_usage(R"(.*\[ID: ([0-9a-f]+); Handle: ([0-9a-f]+); Type: (.+)\])");
 
-    static regex s_image_usage(R"(.*\[(\w+);\s+(.*)\])");
+    static std::regex s_image_usage(R"(.*\[(\w+);\s+(.*)\])");
     
-    vector<string> mem_types = {"MEM_IMAGE", "MEM_PRIVATE", "MEM_MAPPED"};
-    vector<string> mem_states = {"MEM_FREE", "MEM_RESERVE", "MEM_COMMIT"};
-    vector<string> mem_protect = {"PAGE_NOACCESS", "PAGE_READONLY", "PAGE_READWRITE", "PAGE_GUARD", "PAGE_WRITECOMBINE", "PAGE_EXECUTE_READ", "PAGE_WRITECOPY"};
+    std::vector<std::string> mem_types = {"MEM_IMAGE", "MEM_PRIVATE", "MEM_MAPPED"};
+    std::vector<std::string> mem_states = {"MEM_FREE", "MEM_RESERVE", "MEM_COMMIT"};
+    std::vector<std::string> mem_protect = {"PAGE_NOACCESS", "PAGE_READONLY", "PAGE_READWRITE", "PAGE_GUARD", "PAGE_WRITECOMBINE", "PAGE_EXECUTE_READ", "PAGE_WRITECOPY"};
 
-    string cmd = "!address";
+    std::string cmd = "!address";
 
     auto results = DK_X_CMD(cmd);
     for (auto result : results)
     {
-        smatch sm;
+        std::smatch sm;
         if (regex_match(result, sm, s_general_line))
         {
             if (sm.size() == 5)
             {
-                string base_addr_str = sm[1].str();
-                string end_addr_str = sm[2].str();
-                string region_size_str = sm[3].str();
-                string usage_str = sm[4].str();
+                std::string base_addr_str = sm[1].str();
+                std::string end_addr_str = sm[2].str();
+                std::string region_size_str = sm[3].str();
+                std::string usage_str = sm[4].str();
 
 
                 base_addr_str.erase(base_addr_str.find('`'), 1);
@@ -1102,9 +1100,9 @@ void CUsermodeMemory::Analyze()
                 region_size_str.erase(region_size_str.find('`'), 1);
 
 
-                size_t base = stoll(base_addr_str, nullptr, 16);
-                size_t end = stoll(end_addr_str, nullptr, 16);
-                size_t size = stoll(region_size_str, nullptr, 16);
+                size_t base = std::stoll(base_addr_str, nullptr, 16);
+                size_t end = std::stoll(end_addr_str, nullptr, 16);
+                size_t size = std::stoll(region_size_str, nullptr, 16);
 
                 
                 auto stack_pos = usage_str.find("Stack");
@@ -1112,45 +1110,45 @@ void CUsermodeMemory::Analyze()
                 auto image_pos = usage_str.find("Image");
 
 
-                if (stack_pos != string::npos)
+                if (stack_pos != std::string::npos)
                 {
-                    smatch sm_stack;
+                    std::smatch sm_stack;
                     regex_match(usage_str, sm_stack, s_stack_usage);
 
                     if (sm_stack.size() == 4)
                     {
-                        size_t thread_index = stoll(sm_stack[1], nullptr, 10);
+                        size_t thread_index = std::stoll(sm_stack[1], nullptr, 10);
 
-                        size_t pid = stoll(sm_stack[2], nullptr, 16);
-                        size_t tid = stoll(sm_stack[3], nullptr, 16);
+                        size_t pid = std::stoll(sm_stack[2], nullptr, 16);
+                        size_t tid = std::stoll(sm_stack[3], nullptr, 16);
 
                         m_stacks.push_back(make_unique<CUsermodeStack>(base, end, size, thread_index, tid, pid, usage_str));
                     }
                 }
-                else if (heap_pos != string::npos)
+                else if (heap_pos != std::string::npos)
                 {
-                    smatch sm_heap;
+                    std::smatch sm_heap;
                     regex_match(usage_str, sm_heap, s_heap_usage);
 
                     if (sm_heap.size() == 4)
                     {
-                        size_t id = stoll(sm_heap[1], nullptr, 10);
+                        size_t id = std::stoll(sm_heap[1], nullptr, 10);
 
-                        size_t handle = stoll(sm_heap[2], nullptr, 16);
-                        string type = sm_heap[3];
+                        size_t handle = std::stoll(sm_heap[2], nullptr, 16);
+                        std::string type = sm_heap[3];
 
                         m_heaps.push_back(make_unique<CUsermodeHeap>(base, end, size, id, handle, type, usage_str));
                     }
                 }
-                else if (image_pos != string::npos)
+                else if (image_pos != std::string::npos)
                 {
-                    smatch sm_image;
+                    std::smatch sm_image;
                     regex_match(usage_str, sm_image, s_image_usage);
 
                     if (sm_image.size() == 3)
                     {
-                        string name = sm_image[1];
-                        string path = sm_image[2];
+                        std::string name = sm_image[1];
+                        std::string path = sm_image[2];
 
                         m_images.push_back(make_unique<CUsermodeModule>(base, end, size, name, path, usage_str));
                     }
@@ -1188,7 +1186,7 @@ void CUsermodeMemory::analyze_mem(size_t addr, size_t len, size_t offset, bool b
 
     try
     {
-        vector<shared_ptr<CUsermodeHeapAllocation>> ref_allocs;
+        std::vector<std::shared_ptr<CUsermodeHeapAllocation>> ref_allocs;
 
         uint8_t* buffer = new uint8_t[len];
 
@@ -1219,7 +1217,7 @@ void CUsermodeMemory::analyze_mem(size_t addr, size_t len, size_t offset, bool b
             return;
         }
 
-        stringstream ss;
+        std::stringstream ss;
 
         for (size_t i = 0; i < len / 8; i++)
         {
@@ -1237,16 +1235,16 @@ void CUsermodeMemory::analyze_mem(size_t addr, size_t len, size_t offset, bool b
 
                 if (j - i >= ZERO_REPEAT_THREADHOLD)
                 {
-                    ss << hex << showbase << "+" << setw(18) << offset + i * 8 << ": \t" << setw(18) << curr_qword << " ";
+                    ss << std::hex << std::showbase << "+" << std::setw(18) << offset + i * 8 << ": \t" << std::setw(18) << curr_qword << " ";
 
-                    ss << setw(18) << " [ 000 ] " << dump_plain_qword(curr_qword);
+                    ss << std::setw(18) << " [ 000 ] " << dump_plain_qword(curr_qword);
 
-                    ss << " Zeros in range [ " << hex << showbase << offset + i * 8 << " - "
+                    ss << " Zeros in range [ " << std::hex << std::showbase << offset + i * 8 << " - "
                         << offset + j * 8 << " )";
 
                     ss << " for " <<
-                        (j - i) << " / " << showbase << dec << (j - i) << " times" <<
-                        endl << "." << endl;
+                        (j - i) << " / " << std::showbase << std::dec << (j - i) << " times" <<
+                        std::endl << "." << std::endl;
 
                     EXT_F_DML(ss.str().c_str());
 
@@ -1260,11 +1258,11 @@ void CUsermodeMemory::analyze_mem(size_t addr, size_t len, size_t offset, bool b
                 }
             }
 
-            ss << hex << showbase << "+" << setw(18) << offset + i * 8 << ": \t" << setw(18) << curr_qword << " ";
+            ss << std::hex << std::showbase << "+" << std::setw(18) << offset + i * 8 << ": \t" << std::setw(18) << curr_qword << " ";
 
             if (is_stack(curr_qword))
             {
-                ss << setw(18) << " [ stack ] ";
+                ss << std::setw(18) << " [ stack ] ";
 
                 ss << dump_plain_qword(curr_qword);
                 ss << " ";
@@ -1277,7 +1275,7 @@ void CUsermodeMemory::analyze_mem(size_t addr, size_t len, size_t offset, bool b
             }
             else if (is_heap(curr_qword))
             {
-                ss << setw(18) << " [ heap ] ";
+                ss << std::setw(18) << " [ heap ] ";
 
                 ss << dump_plain_qword(curr_qword);
                 ss << " ";
@@ -1307,7 +1305,7 @@ void CUsermodeMemory::analyze_mem(size_t addr, size_t len, size_t offset, bool b
             }
             else if (is_code(curr_qword))
             {
-                ss << setw(18) << " [ code ] ";
+                ss << std::setw(18) << " [ code ] ";
 
                 ss << dump_plain_qword(curr_qword);
                 ss << " ";
@@ -1320,7 +1318,7 @@ void CUsermodeMemory::analyze_mem(size_t addr, size_t len, size_t offset, bool b
             }
             else if (is_global(curr_qword))
             {
-                ss << setw(18) << " [ global ] ";
+                ss << std::setw(18) << " [ global ] ";
 
                 ss << dump_plain_qword(curr_qword);
                 ss << " ";
@@ -1333,7 +1331,7 @@ void CUsermodeMemory::analyze_mem(size_t addr, size_t len, size_t offset, bool b
             }
             else if (is_readonly(curr_qword))
             {
-                ss << setw(18) << " [ readonly ] ";
+                ss << std::setw(18) << " [ readonly ] ";
 
                 ss << dump_plain_qword(curr_qword);
                 ss << " ";
@@ -1346,21 +1344,21 @@ void CUsermodeMemory::analyze_mem(size_t addr, size_t len, size_t offset, bool b
             }
             else if (curr_qword >= start && curr_qword < start + len)
             {
-                ss << setw(18) << " [ this ] ";
+                ss << std::setw(18) << " [ this ] ";
 
                 ss << dump_plain_qword(curr_qword);
 
-                ss << endl;
+                ss << std::endl;
 
                 EXT_F_OUT(ss.str().c_str());
             }
             else
             {
-                ss << setw(18) << " [     ] ";
+                ss << std::setw(18) << " [     ] ";
 
                 ss << dump_plain_qword(curr_qword);
 
-                ss << endl;
+                ss << std::endl;
 
                 EXT_F_OUT(ss.str().c_str());
             }
@@ -1381,7 +1379,7 @@ void CUsermodeMemory::analyze_mem(size_t addr, size_t len, size_t offset, bool b
 
 
 
-void CUsermodeMemory::analyze_mem_svg(size_t addr, size_t len, size_t offset, string svg_filename, bool b_recurse)
+void CUsermodeMemory::analyze_mem_svg(size_t addr, size_t len, size_t offset, std::string svg_filename, bool b_recurse)
 {
     size_t start = addr;
 
@@ -1394,16 +1392,16 @@ void CUsermodeMemory::analyze_mem_svg(size_t addr, size_t len, size_t offset, st
         len -= 0x10000;
     };
 
-    stringstream svg_base_filename_ss;
+    std::stringstream svg_base_filename_ss;
 
     if (svg_filename.size() > 4 && svg_filename.substr(svg_filename.size() - 4) == ".svg")
     {
         svg_base_filename_ss << svg_filename.substr(0, svg_filename.size() - 4)
-            << "_" << hex << showbase << addr << ".svg";
+            << "_" << std::hex << std::showbase << addr << ".svg";
     }
     else
     {
-        svg_base_filename_ss << svg_filename << "_" << hex << showbase << addr << ".svg";
+        svg_base_filename_ss << svg_filename << "_" << std::hex << std::showbase << addr << ".svg";
     }
 
     CHexSvg hex_svg(8);
@@ -1427,14 +1425,14 @@ void CUsermodeMemory::analyze_mem_svg(size_t addr, size_t len, size_t offset, st
         auto highlights = CSvgTheme::GetInstance()->get_highlight();
         auto trivials = CSvgTheme::GetInstance()->get_trivial();
 
-        string COLOR_HEAP       = highlights[0];
-        string COLOR_STACK      = highlights[1];
-        string COLOR_THIS       = highlights[2];
-        string COLOR_CODE       = highlights[3];
-        string COLOR_GLOBAL     = highlights[4];
-        string COLOR_READONLY   = highlights[5];
-        string COLOR_ZERO       = trivials[1];
-        string COLOR_NORMAL     = trivials[0];
+        std::string COLOR_HEAP       = highlights[0];
+        std::string COLOR_STACK      = highlights[1];
+        std::string COLOR_THIS       = highlights[2];
+        std::string COLOR_CODE       = highlights[3];
+        std::string COLOR_GLOBAL     = highlights[4];
+        std::string COLOR_READONLY   = highlights[5];
+        std::string COLOR_ZERO       = trivials[1];
+        std::string COLOR_NORMAL     = trivials[0];
 
 
         hex_svg.add_legend(COLOR_HEAP, "Heap Pointer");
@@ -1496,18 +1494,18 @@ void CUsermodeMemory::analyze_mem_svg(size_t addr, size_t len, size_t offset, st
     }
     FC;
 
-    ofstream svg_ss(svg_base_filename_ss.str(), ios::out | ios::trunc);
+    std::ofstream svg_ss(svg_base_filename_ss.str(), std::ios::out | std::ios::trunc);
     svg_ss << hex_svg.generate();
 }
 
 void CUsermodeMemory::analyze_qword(size_t curr_qword)
 {
-    stringstream ss;
-    ss << ": \t" << setw(18) << curr_qword << " ";
+    std::stringstream ss;
+    ss << ": \t" << std::setw(18) << curr_qword << " ";
 
     if (is_stack(curr_qword))
     {
-        ss << setw(18) << " [ stack ] ";
+        ss << std::setw(18) << " [ stack ] ";
 
         ss << dump_plain_qword(curr_qword);
         ss << " ";
@@ -1520,7 +1518,7 @@ void CUsermodeMemory::analyze_qword(size_t curr_qword)
     }
     else if (is_heap(curr_qword))
     {
-        ss << setw(18) << " [ heap ] ";
+        ss << std::setw(18) << " [ heap ] ";
 
         ss << dump_plain_qword(curr_qword);
         ss << " ";
@@ -1533,7 +1531,7 @@ void CUsermodeMemory::analyze_qword(size_t curr_qword)
     }
     else if (is_code(curr_qword))
     {
-        ss << setw(18) << " [ code ] ";
+        ss << std::setw(18) << " [ code ] ";
 
         ss << dump_plain_qword(curr_qword);
         ss << " ";
@@ -1546,7 +1544,7 @@ void CUsermodeMemory::analyze_qword(size_t curr_qword)
     }
     else if (is_global(curr_qword))
     {
-        ss << setw(18) << " [ global ] ";
+        ss << std::setw(18) << " [ global ] ";
 
         ss << dump_plain_qword(curr_qword);
         ss << " ";
@@ -1559,7 +1557,7 @@ void CUsermodeMemory::analyze_qword(size_t curr_qword)
     }
     else if (is_readonly(curr_qword))
     {
-        ss << setw(18) << " [ readonly ] ";
+        ss << std::setw(18) << " [ readonly ] ";
 
         ss << dump_plain_qword(curr_qword);
         ss << " ";
@@ -1572,11 +1570,11 @@ void CUsermodeMemory::analyze_qword(size_t curr_qword)
     }
     else
     {
-        ss << setw(18) << " [     ] ";
+        ss << std::setw(18) << " [     ] ";
 
         ss << dump_plain_qword(curr_qword);
 
-        ss << endl;
+        ss << std::endl;
 
         EXT_F_OUT(ss.str().c_str());
     }
@@ -1614,12 +1612,12 @@ void CUsermodeMemory::analyze_ref_by(size_t addr)
 
         for (auto ref_alloc : get<0>(refer_tuple))
         {
-            stringstream ss;
+            std::stringstream ss;
 
-            ss << DML_CMD << "!dk uaddr_ref_by " << hex << showbase << ref_alloc->start()
-                << DML_TEXT << "    [+] Heap allocation " << hex << showbase << ref_alloc->start() << " - " << ref_alloc->end()
+            ss << DML_CMD << "!dk uaddr_ref_by " << std::hex << std::showbase << ref_alloc->start()
+                << DML_TEXT << "    [+] Heap allocation " << std::hex << std::showbase << ref_alloc->start() << " - " << ref_alloc->end()
                 << DML_END
-                << endl;
+                << std::endl;
 
             EXT_F_STR_DML(ss);
 
@@ -1664,13 +1662,13 @@ void CUsermodeMemory::analyze_ref_by(size_t addr)
 
 void CUsermodeMemory::analyze_ref_tree(size_t addr, size_t level)
 {
-    static vector<shared_ptr<CUsermodeHeapAllocation>> s_heap_stacks;
+    static std::vector<std::shared_ptr<CUsermodeHeapAllocation>> s_heap_stacks;
 
     if (level > m_max_ref_by_tree_levels)
         return;
 
-    string level_str(level * 4, '-');
-    string next_level_str((level + 1) * 4, '-');
+    std::string level_str(level * 4, '-');
+    std::string next_level_str((level + 1) * 4, '-');
 
     if (is_stack(addr))
     {
@@ -1690,7 +1688,7 @@ void CUsermodeMemory::analyze_ref_tree(size_t addr, size_t level)
     else if (is_heap(addr))
     {
         EXT_F_OUT("%s [+] Heap, ", level_str.c_str());
-        string desc = heap_desc(addr);
+        std::string desc = heap_desc(addr);
         if (desc.empty())
             EXT_F_OUT("0x%0I64x\n", addr);
         else

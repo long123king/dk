@@ -5,7 +5,7 @@
 
 #include <iomanip>
 
-const map<string, string> s_integrity_level_texts{ {
+const std::map<std::string, std::string> s_integrity_level_texts{ {
     { "S-1-16-0",         "Untrusted(0)" },
     { "S-1-16-4096",      "Low(1)" },
     { "S-1-16-8192",      "Medium(2)" },
@@ -14,7 +14,7 @@ const map<string, string> s_integrity_level_texts{ {
     { "S-1-16-20480",     "Protected(5)" },
     } };
 
-const map<string, string> s_trust_label_texts{ {
+const std::map<std::string, std::string> s_trust_label_texts{ {
     { "S-1-19-512-4096",          "Trust Label Lite(PPL) PsProtectedSignerWindows(5)" },
     { "S-1-19-1024-4096",         "Trust Label Protected(PP) PsProtectedSignerWindows(5)" },
     { "S-1-19-512-8192",          "Trust Label Lite(PPL) PsProtectedSignerTcb(6)" },
@@ -22,7 +22,7 @@ const map<string, string> s_trust_label_texts{ {
     } };
 
 
-const map<string, string> s_wellknown_sids{ {
+const std::map<std::string, std::string> s_wellknown_sids{ {
     { "S-1-0",				"Null"},
     { "S-1-1-0",			"Everyone" },
     { "S-1-2-0",			"Local" },
@@ -65,7 +65,7 @@ const map<string, string> s_wellknown_sids{ {
     { "S-1-15-2-1",			"ALL APP PACKAGES"},
 } };
 
-string
+std::string
 getGroupsAttrText(
 	__in uint32_t attr,
 	__in bool     pureText = false
@@ -86,12 +86,12 @@ getGroupsAttrText(
 	return s_GroupsAttrAnalyzer.GetText(attr, pureText);
 }
 
-string
+std::string
 getAceTypeStr(
 	__in const size_t ace_type
 )
 {
-	static map<size_t, const char*> s_ace_type_map{
+	static std::map<size_t, const char*> s_ace_type_map{
 		{ ACCESS_ALLOWED_ACE_TYPE				 , "[Allow]" },
 		{ ACCESS_DENIED_ACE_TYPE			     , "[Deny ]" },
 		{ SYSTEM_AUDIT_ACE_TYPE					 , "[Audit]" },
@@ -123,7 +123,7 @@ getAceTypeStr(
 }
 
 
-string
+std::string
 getTokenSpecificAccess(
 	__in size_t access,
 	__in bool     pureText = false)
@@ -143,7 +143,7 @@ getTokenSpecificAccess(
 	return s_SpecificAccessAnalyzer.GetText((uint32_t)access, pureText);
 }
 
-string
+std::string
 getProcessSpecificAccess(
 	__in size_t access,
 	__in bool     pureText = false)
@@ -168,7 +168,7 @@ getProcessSpecificAccess(
 	return s_SpecificAccessAnalyzer.GetText((uint32_t)access, pureText);
 }
 
-string
+std::string
 getThreadSpecificAccess(
 	__in size_t access,
 	__in bool     pureText = false)
@@ -191,7 +191,7 @@ getThreadSpecificAccess(
 	return s_SpecificAccessAnalyzer.GetText((uint32_t)access, pureText);
 }
 
-string
+std::string
 getJobSpecificAccess(
 	__in size_t access,
 	__in bool     pureText = false)
@@ -207,7 +207,7 @@ getJobSpecificAccess(
 	return s_SpecificAccessAnalyzer.GetText((uint32_t)access, pureText);
 }
 
-string
+std::string
 getEventSpecificAccess(
 	__in size_t access,
 	__in bool     pureText = false)
@@ -219,7 +219,7 @@ getEventSpecificAccess(
 	return s_SpecificAccessAnalyzer.GetText((uint32_t)access, pureText);
 }
 
-string
+std::string
 getMutantSpecificAccess(
 	__in size_t access,
 	__in bool     pureText = false)
@@ -231,7 +231,7 @@ getMutantSpecificAccess(
 	return s_SpecificAccessAnalyzer.GetText((uint32_t)access, pureText);
 }
 
-string
+std::string
 getSemaphoreSpecificAccess(
 	__in size_t access,
 	__in bool     pureText = false)
@@ -243,7 +243,7 @@ getSemaphoreSpecificAccess(
 	return s_SpecificAccessAnalyzer.GetText((uint32_t)access, pureText);
 }
 
-string
+std::string
 getTimerSpecificAccess(
 	__in size_t access,
 	__in bool     pureText = false)
@@ -256,7 +256,7 @@ getTimerSpecificAccess(
 	return s_SpecificAccessAnalyzer.GetText((uint32_t)access, pureText);
 }
 
-string
+std::string
 getSectionSpecificAccess(
 	__in size_t access,
 	__in bool     pureText = false)
@@ -273,7 +273,7 @@ getSectionSpecificAccess(
 	return s_SpecificAccessAnalyzer.GetText((uint32_t)access, pureText);
 }
 
-string
+std::string
 getFileSpecificAccess(
 	__in size_t access,
 	__in bool     pureText = false)
@@ -293,7 +293,7 @@ getFileSpecificAccess(
 	return s_SpecificAccessAnalyzer.GetText((uint32_t)access, pureText);
 }
 
-string
+std::string
 getDirectorySpecificAccess(
 	__in size_t access,
 	__in bool     pureText = false)
@@ -314,7 +314,7 @@ getDirectorySpecificAccess(
 	return s_SpecificAccessAnalyzer.GetText((uint32_t)access, pureText);
 }
 
-string
+std::string
 getPipeSpecificAccess(
 	__in size_t access,
 	__in bool     pureText = false)
@@ -331,7 +331,7 @@ getPipeSpecificAccess(
 	return s_SpecificAccessAnalyzer.GetText((uint32_t)access, pureText);
 }
 
-string
+std::string
 getIoCSpecificAccess(
 	__in size_t access,
 	__in bool     pureText = false)
@@ -343,7 +343,7 @@ getIoCSpecificAccess(
 	return s_SpecificAccessAnalyzer.GetText((uint32_t)access, pureText);
 }
 
-string
+std::string
 getKeySpecificAccess(
 	__in size_t access,
 	__in bool     pureText = false)
@@ -362,7 +362,7 @@ getKeySpecificAccess(
 	return s_SpecificAccessAnalyzer.GetText((uint32_t)access, pureText);
 }
 
-string
+std::string
 getTxMSpecificAccess(
 	__in size_t access,
 	__in bool     pureText = false)
@@ -379,7 +379,7 @@ getTxMSpecificAccess(
 	return s_SpecificAccessAnalyzer.GetText((uint32_t)access, pureText);
 }
 
-string
+std::string
 getTxSpecificAccess(
 	__in size_t access,
 	__in bool     pureText = false)
@@ -397,7 +397,7 @@ getTxSpecificAccess(
 	return s_SpecificAccessAnalyzer.GetText((uint32_t)access, pureText);
 }
 
-string
+std::string
 getRMSpecificAccess(
 	__in size_t access,
 	__in bool     pureText = false)
@@ -415,7 +415,7 @@ getRMSpecificAccess(
 	return s_SpecificAccessAnalyzer.GetText((uint32_t)access, pureText);
 }
 
-string
+std::string
 getEnlistSpecificAccess(
 	__in size_t access,
 	__in bool     pureText = false)
@@ -431,10 +431,10 @@ getEnlistSpecificAccess(
 	return s_SpecificAccessAnalyzer.GetText((uint32_t)access, pureText);
 }
 
-string
+std::string
 getAceMaskStr(
 	__in const size_t ace_mask,
-	__in string type_name,
+	__in std::string type_name,
 	__in bool     pureText
 )
 {
@@ -452,7 +452,7 @@ getAceMaskStr(
 		{GENERIC_ALL             , "GENERIC_ALL" },                     //(0x10000000L)
 		} };
 
-	string generic_mask_str = s_AceMaskAnalyzer.GetText(ace_mask & 0xFFFF0000, pureText);
+	std::string generic_mask_str = s_AceMaskAnalyzer.GetText(ace_mask & 0xFFFF0000, pureText);
 
 	auto specific_mask = ace_mask & 0xffff;
 
@@ -507,7 +507,7 @@ DEFINE_CMD(sid)
 	}
 
 	size_t sid_addr = EXT_F_IntArg(args, 1, 0);
-	tuple<string, string> tupleSid = dump_sid(sid_addr);
+	std::tuple<std::string, std::string> tupleSid = dump_sid(sid_addr);
 	EXT_F_OUT("Sid(0x%0I64x) : %s [%s]\n", sid_addr, get<0>(tupleSid).c_str(), get<1>(tupleSid).c_str());
 }
 
@@ -524,35 +524,35 @@ DEFINE_CMD(add_privilege)
 	token_privilege_add(token_addr, privilege_mask);
 }
 
-tuple<string, string> dump_sid(size_t sid_addr)
+std::tuple<std::string, std::string> dump_sid(size_t sid_addr)
 {
     if (sid_addr == 0)
-        return make_tuple("", "");
+        return std::make_tuple("", "");
     try
     {
         uint8_t version = EXT_F_READ<uint8_t>(sid_addr);
         uint8_t sub_count = EXT_F_READ<uint8_t>(sid_addr + 1);
-        stringstream ss;
+        std::stringstream ss;
         if (version == 1 && sub_count <= 0x0F)
         {
             ss << "S-1-";
             uint8_t auth = EXT_F_READ<uint8_t>(sid_addr + 7);
-            ss << dec << uint32_t(auth) << "-";
+            ss << std::dec << uint32_t(auth) << "-";
             for (size_t i = 0; i < sub_count; i++)
             {
                 uint32_t sub = EXT_F_READ<uint32_t>(sid_addr + 4 * (i + 2));
                 if (sub < 0xFFFF)
-                    ss << dec << sub;
+                    ss << std::dec << sub;
                 else
-                    ss << dec << sub;
+                    ss << std::dec << sub;
 
                 if (i != sub_count - 1)
                     ss << "-";
             }
         }
-        string sid_str(ss.str());
+        std::string sid_str(ss.str());
         ss.str("");
-        string comment = getWellKnownAccount(sid_str.c_str());
+        std::string comment = getWellKnownAccount(sid_str.c_str());
         //if (!comment.empty())
         //    ss << setw(50) << sid_str << " [" << comment << "]";
         //else
@@ -562,7 +562,7 @@ tuple<string, string> dump_sid(size_t sid_addr)
     }
     FC;
 
-    return make_tuple("", "");
+    return std::make_tuple("", "");
 }
 
 size_t get_sid_attr_hash_item(size_t addr, size_t index)
@@ -597,9 +597,9 @@ size_t get_sid_attr_array_item(size_t sid_addr, size_t count, size_t index)
     return 0;// ss.str();
 }
 
-string
+std::string
 getWellKnownAccount(
-    __in const string& sidText
+    __in const std::string& sidText
 )
 {
     auto it = s_wellknown_sids.find(sidText.c_str());
@@ -684,15 +684,15 @@ void dump_token(size_t token_addr)
 }
 
 
-string dump_luid(size_t addr)
+std::string dump_luid(size_t addr)
 {
 	try
 	{
 		ExtRemoteTyped luid("(nt!_LUID*)@$extin", addr);
-		stringstream ss;
-		ss << showbase << hex << setw(16) << EXT_F_READ<size_t>(addr) << " ";
-		ss << "[HighPart:" << showbase << hex << setw(8) << luid.Field("HighPart").GetUlong() << ", ";
-		ss << "LowPart:" << showbase << hex << setw(8) << luid.Field("LowPart").GetUlong() << "]";
+		std::stringstream ss;
+		ss << std::showbase << std::hex << std::setw(16) << EXT_F_READ<size_t>(addr) << " ";
+		ss << "[HighPart:" << std::showbase << std::hex << std::setw(8) << luid.Field("HighPart").GetUlong() << ", ";
+		ss << "LowPart:" << std::showbase << std::hex << std::setw(8) << luid.Field("LowPart").GetUlong() << "]";
 
 		return ss.str();
 	}
@@ -700,14 +700,14 @@ string dump_luid(size_t addr)
 	return "";
 }
 
-string dump_acl(size_t acl_addr, string type_name)
+std::string dump_acl(size_t acl_addr, std::string type_name)
 {
 	try
 	{
 		uint8_t version = EXT_F_READ<uint8_t>(acl_addr);
 		uint16_t entry_count = EXT_F_READ<uint16_t>(acl_addr + 4);
 		size_t entry_addr = acl_addr + 8;
-		stringstream ss;
+		std::stringstream ss;
 
 		for (size_t i = 0; i < entry_count; i++)
 		{
@@ -716,11 +716,11 @@ string dump_acl(size_t acl_addr, string type_name)
 			uint16_t size = EXT_F_READ<uint16_t>(entry_addr + 2);
 			size_t sid_addr = entry_addr + 8;
 			auto tupleSid = dump_sid(sid_addr);
-			ss << hex << setw(2) << setfill('0') << uint32_t(type) << " " << setw(20) << setfill(' ') << getAceTypeStr(type) << " "
-				<< hex << setw(4) << setfill('0') << mask << " "
-				<< " [" << setw(30) << setfill(' ') << get<1>(tupleSid) << "] "
+			ss << std::hex << std::setw(2) << std::setfill('0') << uint32_t(type) << " " << std::setw(20) << std::setfill(' ') << getAceTypeStr(type) << " "
+				<< std::hex << std::setw(4) << std::setfill('0') << mask << " "
+				<< " [" << std::setw(30) << std::setfill(' ') << get<1>(tupleSid) << "] "
 				<< get<0>(tupleSid) << "\n"
-				<< string(30, ' ') << "----> "
+				<< std::string(30, ' ') << "----> "
 				<< getAceMaskStr(mask, type_name) << " "
 				<< "\n";
 			//if (type == 0x11)
@@ -738,37 +738,37 @@ string dump_acl(size_t acl_addr, string type_name)
 	return "";
 }
 
-string dump_privilege(size_t addr)
+std::string dump_privilege(size_t addr)
 {
-	stringstream ss;
+	std::stringstream ss;
 	try
 	{
 		ExtRemoteTyped privilege("(nt!_SEP_TOKEN_PRIVILEGES*)@$extin", addr);
-		ss << setw(32) << setfill(' ') << "Present: 0x" << hex << setw(16) << setfill('0') << privilege.Field("Present").GetUlong64() << "\n"
+		ss << std::setw(32) << std::setfill(' ') << "Present: 0x" << std::hex << std::setw(16) << std::setfill('0') << privilege.Field("Present").GetUlong64() << "\n"
 			<< dump_privileges_by_bitmap(privilege.Field("Present").GetUlong64()) << "\n";
-		ss << setw(32) << setfill(' ') << "Enabled: 0x" << hex << setw(16) << setfill('0') << privilege.Field("Enabled").GetUlong64() << "\n"
+		ss << std::setw(32) << std::setfill(' ') << "Enabled: 0x" << std::hex << std::setw(16) << std::setfill('0') << privilege.Field("Enabled").GetUlong64() << "\n"
 			<< dump_privileges_by_bitmap(privilege.Field("Enabled").GetUlong64()) << "\n";
-		ss << setw(32) << setfill(' ') << "EnabledByDefault: 0x" << hex << setw(16) << setfill('0') << privilege.Field("EnabledByDefault").GetUlong64() << "\n"
+		ss << std::setw(32) << std::setfill(' ') << "EnabledByDefault: 0x" << std::hex << std::setw(16) << std::setfill('0') << privilege.Field("EnabledByDefault").GetUlong64() << "\n"
 			<< dump_privileges_by_bitmap(privilege.Field("EnabledByDefault").GetUlong64()) << "\n";
 	}
 	FC;
 	return ss.str();
 }
 
-string dump_privileges_by_bitmap(size_t bitmap)
+std::string dump_privileges_by_bitmap(size_t bitmap)
 {
-	stringstream ss;
+	std::stringstream ss;
 	for (size_t i = 2; i <= 0x23; i++)
 	{
 		if (bitmap & ((size_t)1 << i))
 		{
-			ss << "\t\t\t\t[ 0x" << hex << setw(2) << setfill('0') << i << " ]\t\t" << privilege_bit_to_text(i) << "\n";
+			ss << "\t\t\t\t[ 0x" << std::hex << std::setw(2) << std::setfill('0') << i << " ]\t\t" << privilege_bit_to_text(i) << "\n";
 		}
 	}
 	return ss.str();
 }
 
-string privilege_bit_to_text(size_t bit_offset)
+std::string privilege_bit_to_text(size_t bit_offset)
 {
 	switch (bit_offset)
 	{
@@ -846,9 +846,9 @@ string privilege_bit_to_text(size_t bit_offset)
 	return "";
 }
 
-string dump_sid_attr_hash(size_t addr)
+std::string dump_sid_attr_hash(size_t addr)
 {
-	stringstream ss;
+	std::stringstream ss;
 
 	try
 	{
@@ -866,9 +866,9 @@ string dump_sid_attr_hash(size_t addr)
 	return ss.str();
 }
 
-string dump_sid_attr_array(size_t sid_addr, size_t count)
+std::string dump_sid_attr_array(size_t sid_addr, size_t count)
 {
-	stringstream ss;
+	std::stringstream ss;
 	try
 	{
 		if (sid_addr == 0)
@@ -877,11 +877,11 @@ string dump_sid_attr_array(size_t sid_addr, size_t count)
 		for (size_t i = 0; i < count; i++)
 		{
 			ExtRemoteTyped entry("(nt!_SID_AND_ATTRIBUTES*)@$extin", sid_addr + i * 0x10);
-			ss << showbase << hex << setw(16) << sid_addr + i * 0x10 << " ";
-			ss << showbase << hex << setw(16) << entry.Field("Attributes").GetUlong() << " [" << setw(45) << getGroupsAttrText(entry.Field("Attributes").GetUlong(), true) << "] ";
+			ss << std::showbase << std::hex << std::setw(16) << sid_addr + i * 0x10 << " ";
+			ss << std::showbase << std::hex << std::setw(16) << entry.Field("Attributes").GetUlong() << " [" << std::setw(45) << getGroupsAttrText(entry.Field("Attributes").GetUlong(), true) << "] ";
 
 			auto tupleSid = dump_sid(entry.Field("Sid").GetLongPtr());
-			ss << "[" << setw(30) << get<1>(tupleSid) << "] " << get<0>(tupleSid) << "\n";
+			ss << "[" << std::setw(30) << get<1>(tupleSid) << "] " << get<0>(tupleSid) << "\n";
 		}
 	}
 	FC;
@@ -889,7 +889,7 @@ string dump_sid_attr_array(size_t sid_addr, size_t count)
 }
 
 
-void dump_sdr(size_t sd_addr, string type_name)
+void dump_sdr(size_t sd_addr, std::string type_name)
 {
 	try
 	{

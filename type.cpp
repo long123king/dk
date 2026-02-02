@@ -25,7 +25,7 @@ void dump_types()
                 break;
 
             ExtRemoteTyped type("(nt!_OBJECT_TYPE*)@$extin", type_addr);
-            wstring name = EXT_F_READ_USTR(type_addr + type.GetFieldOffset("Name"));
+            std::wstring name = EXT_F_READ_USTR(type_addr + type.GetFieldOffset("Name"));
             //wstring name = readUnicodeString(type.Field("Name").GetPtr());
             uint32_t num_objects = type.Field("TotalNumberOfObjects").GetUlong();
             uint32_t num_handles = type.Field("TotalNumberOfHandles").GetUlong();
@@ -46,14 +46,14 @@ void dump_types()
             EXT_F_OUT("[ Routines: ]\n");
             for (auto& routine : routines)
             {
-                string field = "TypeInfo.";
+                std::string field = "TypeInfo.";
                 field += routine;
                 size_t routine_addr = type.Field(field.c_str()).GetUlongPtr();
-                string routine_name = get<0>(EXT_F_Addr2Sym(routine_addr));
+                std::string routine_name = get<0>(EXT_F_Addr2Sym(routine_addr));
                 EXT_F_OUT("\t%20s : 0x%I64x %s\n", routine, routine_addr, routine_name.c_str());
             }
 
-            string strname(name.begin(), name.end());
+            std::string strname(name.begin(), name.end());
 
             uint32_t gR_access = type.Field("TypeInfo.GenericMapping.GenericRead").GetUlong();
             uint32_t gW_access = type.Field("TypeInfo.GenericMapping.GenericWrite").GetUlong();

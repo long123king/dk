@@ -16,7 +16,7 @@
 
 #pragma warning( disable : 4244)
 
-set<tuple<size_t, size_t, string>> g_va_regions;
+std::set<std::tuple<size_t, size_t, std::string>> g_va_regions;
 
 DEFINE_CMD(size)
 {
@@ -88,14 +88,14 @@ DEFINE_CMD(page_2_svg)
         return;
     }
     size_t addr = EXT_F_IntArg(args, 1, 0);
-    string out_filename = args[2];
+    std::string out_filename = args[2];
 
     page_to_svg(addr, out_filename);
 }
 
 void dump_regs()
 {
-    static vector<const char*> regs_name{
+    static std::vector<const char*> regs_name{
         "rip", "rsp",
         "rax", "rbx", "rcx", "rdx",
         "rbp", "rsi", "rdi",
@@ -104,12 +104,12 @@ void dump_regs()
 
     try
     {
-        stringstream ss;
+        std::stringstream ss;
         for (auto& reg_entry : regs_name)
         {
             size_t reg_value = EXT_F_REG_OF(reg_entry);
             ss.str("");
-            ss << "                " << reg_entry << ": \t" << hex << showbase << setw(18) << reg_value << " ";
+            ss << "                " << reg_entry << ": \t" << std::hex << std::showbase << std::setw(18) << reg_value << " ";
             EXT_F_OUT(ss.str().c_str());
             analyze_qword(reg_value);
         }
@@ -121,16 +121,16 @@ void dump_regs()
 #define GRID_HEIGHT         30
 #define GRID_ADDR_WIDTH     180
 
-string Byte2FontStyle(uint8_t byte)
+std::string Byte2FontStyle(uint8_t byte)
 {
-    string character_color = "#affc41";
-    string numeric_color = "#16db93";
-    string software_breakpoing_color = "#0466c8";
-    string maximum_color = "#a100f2";
-    string non_ascii = "#ff0708";
-    string ascii_default = "#ffd60a";
+    std::string character_color = "#affc41";
+    std::string numeric_color = "#16db93";
+    std::string software_breakpoing_color = "#0466c8";
+    std::string maximum_color = "#a100f2";
+    std::string non_ascii = "#ff0708";
+    std::string ascii_default = "#ffd60a";
 
-    string fill_color = ascii_default;
+    std::string fill_color = ascii_default;
     //if (byte == 0)
     //    return "";
     //else if (byte >= 'a' && byte <= 'z')
@@ -163,54 +163,54 @@ string Byte2FontStyle(uint8_t byte)
     return "fill: " + fill_color + ";";
 }
 
-shared_ptr<CSvgDoc> visual_page(string page_content, uint64_t page_addr, CoordinatesManager& coordinates_mgr)
+std::shared_ptr<CSvgDoc> visual_page(std::string page_content, uint64_t page_addr, CoordinatesManager& coordinates_mgr)
 {
     auto canvas_size = coordinates_mgr.GetCanvasSize();
-    auto svg_doc = make_shared<CSvgDoc>(get<0>(canvas_size), get<1>(canvas_size), CSvgPoint(0, 0), get<0>(canvas_size), get<1>(canvas_size));
+    auto svg_doc = std::make_shared<CSvgDoc>(get<0>(canvas_size), get<1>(canvas_size), CSvgPoint(0, 0), get<0>(canvas_size), get<1>(canvas_size));
 
-    auto svg_defr = make_shared<CSvgDefsArrowHead>("arrowheadr", 10, 7);
-    auto svg_defg = make_shared<CSvgDefsArrowHead>("arrowheadg", 10, 7);
-    auto svg_defb = make_shared<CSvgDefsArrowHead>("arrowheadb", 10, 7);
+    auto svg_defr = std::make_shared<CSvgDefsArrowHead>("arrowheadr", 10, 7);
+    auto svg_defg = std::make_shared<CSvgDefsArrowHead>("arrowheadg", 10, 7);
+    auto svg_defb = std::make_shared<CSvgDefsArrowHead>("arrowheadb", 10, 7);
     svg_defr->addStyle("stroke: none; fill:red; fill-opacity: 0.4; stroke-opacity: 0.4;");
     svg_defg->addStyle("stroke: none; fill:green; fill-opacity: 0.4; stroke-opacity: 0.4;");
     svg_defb->addStyle("stroke: none; fill:blue; fill-opacity: 0.4; stroke-opacity: 0.4;");
 
-    vector<string> addr_texts;
-    vector<string> addr_styles;
+    std::vector<std::string> addr_texts;
+    std::vector<std::string> addr_styles;
     for (uint64_t i = 0; i < 0x200; i++)
     {
-        stringstream ss;
-        ss << "0x" << hex << setfill('0') << setw(16) << page_addr + (i * 8);
+        std::stringstream ss;
+        ss << "0x" << std::hex << std::setfill('0') << std::setw(16) << page_addr + (i * 8);
 
-        string text = ss.str();
+        std::string text = ss.str();
         text.insert(10, "`");
         addr_texts.push_back(text);
     }
     auto addr_pivot = coordinates_mgr.GetLAddrPivot(0);
     auto addr_parameters = coordinates_mgr.GetLAddrParameters();
-    auto svg_addr_grids = make_shared<CSvgGrids>(CSvgPoint(get<0>(addr_pivot), get<1>(addr_pivot)),
+    auto svg_addr_grids = std::make_shared<CSvgGrids>(CSvgPoint(get<0>(addr_pivot), get<1>(addr_pivot)),
         get<0>(addr_parameters), get<1>(addr_parameters), get<2>(addr_parameters), get<3>(addr_parameters),
-        addr_texts, vector<string>(), vector<string>());
+        addr_texts, std::vector<std::string>(), std::vector<std::string>());
 
     svg_addr_grids->addLineStyle("stroke: white;");
     svg_addr_grids->addTextStyle("stroke: none; fill: black; font-size: 16; font-weight: normal; font-family: monospace; ");
     svg_addr_grids->addRectStyle("stroke: none; fill: none; font-size: 16; font-weight: normal;");
 
-    vector<string> content_texts;
-    vector<string> content_styles;
+    std::vector<std::string> content_texts;
+    std::vector<std::string> content_styles;
 
     auto grid_pivot = coordinates_mgr.GetLGridPivot(0, 0);
     auto grid_parameters = coordinates_mgr.GetLGridParameters();
 
-    vector<shared_ptr<CSvgGrids>> vec_bitmap_grids;
+    std::vector<std::shared_ptr<CSvgGrids>> vec_bitmap_grids;
 
 
-    vector<string> bitmap_styles;
-    vector<string> ascii_texts;
+    std::vector<std::string> bitmap_styles;
+    std::vector<std::string> ascii_texts;
     for (uint64_t i = 0; i < 0x1000; i++)
     {
-        stringstream ss;
-        ss << hex << uppercase << setfill('0') << setw(2) << (uint16_t)(page_content[i] & 0x00FF);
+        std::stringstream ss;
+        ss << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << (uint16_t)(page_content[i] & 0x00FF);
         content_texts.push_back(ss.str());
 
         ss.str("");
@@ -227,9 +227,9 @@ shared_ptr<CSvgDoc> visual_page(string page_content, uint64_t page_addr, Coordin
 
         if (i % 8 == 7)
         {
-            auto bitmap_grids = make_shared<CSvgGrids>(CSvgPoint(get<0>(grid_pivot), get<1>(grid_pivot) + (i/8) * get<1>(grid_parameters)),
+            auto bitmap_grids = std::make_shared<CSvgGrids>(CSvgPoint(get<0>(grid_pivot), get<1>(grid_pivot) + (i/8) * get<1>(grid_parameters)),
                 get<0>(grid_parameters) / 8, get<0>(grid_parameters) / 8, get<2>(grid_parameters) * 8, 1,
-                vector<string>(), vector<string>(), bitmap_styles);
+                std::vector<std::string>(), std::vector<std::string>(), bitmap_styles);
 
             vec_bitmap_grids.push_back(bitmap_grids);
 
@@ -250,7 +250,7 @@ shared_ptr<CSvgDoc> visual_page(string page_content, uint64_t page_addr, Coordin
             ascii_texts.push_back("&amp;");
             break;
         default:
-            string chstr;
+            std::string chstr;
             if (ch >= ' ' && ch <= '~')
                 chstr.push_back(ch);
             else
@@ -262,13 +262,13 @@ shared_ptr<CSvgDoc> visual_page(string page_content, uint64_t page_addr, Coordin
     }
 
 
-    auto svg_content_grids = make_shared<CSvgGrids>(CSvgPoint(get<0>(grid_pivot), get<1>(grid_pivot)),
+    auto svg_content_grids = std::make_shared<CSvgGrids>(CSvgPoint(get<0>(grid_pivot), get<1>(grid_pivot)),
         get<0>(grid_parameters), get<1>(grid_parameters), get<2>(grid_parameters), get<3>(grid_parameters),
-        content_texts, vector<string>(), content_styles);
+        content_texts, std::vector<std::string>(), content_styles);
 
-    auto ascii_grids = make_shared<CSvgGrids>(CSvgPoint(get<0>(grid_pivot) + get<0>(grid_parameters) * 0.6, get<1>(grid_pivot) + get<1>(grid_parameters) * 0.2),
+    auto ascii_grids = std::make_shared<CSvgGrids>(CSvgPoint(get<0>(grid_pivot) + get<0>(grid_parameters) * 0.6, get<1>(grid_pivot) + get<1>(grid_parameters) * 0.2),
         get<0>(grid_parameters), get<1>(grid_parameters), get<2>(grid_parameters), get<3>(grid_parameters),
-        ascii_texts, vector<string>(), vector<string>());
+        ascii_texts, std::vector<std::string>(), std::vector<std::string>());
 
     //svg_content_grids->addLineStyle("stroke: white; fill: white;");
     //svg_content_grids->addTextStyle("font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;");
@@ -296,16 +296,16 @@ shared_ptr<CSvgDoc> visual_page(string page_content, uint64_t page_addr, Coordin
     return svg_doc;
 }
 
-void update_page(shared_ptr<CSvgDoc> svg_doc, string page_content, CoordinatesManager& coordinates_mgr)
+void update_page(std::shared_ptr<CSvgDoc> svg_doc, std::string page_content, CoordinatesManager& coordinates_mgr)
 {
     svg_doc->resetDynamicElements();
 
-    vector<string> content_texts;
-    vector<string> content_styles;
+    std::vector<std::string> content_texts;
+    std::vector<std::string> content_styles;
     for (uint64_t i = 0; i < 0x1000; i++)
     {
-        stringstream ss;
-        ss << hex << uppercase << setfill('0') << setw(2) << (uint16_t)(page_content[i] & 0x00FF);
+        std::stringstream ss;
+        ss << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << (uint16_t)(page_content[i] & 0x00FF);
         content_texts.push_back(ss.str());
 
         ss.str("");
@@ -316,9 +316,9 @@ void update_page(shared_ptr<CSvgDoc> svg_doc, string page_content, CoordinatesMa
     auto grid_pivot = coordinates_mgr.GetLGridPivot(0, 0);
     auto grid_parameters = coordinates_mgr.GetLGridParameters();
 
-    auto svg_content_grids = make_shared<CSvgGrids>(CSvgPoint(get<0>(grid_pivot), get<1>(grid_pivot)),
+    auto svg_content_grids = std::make_shared<CSvgGrids>(CSvgPoint(get<0>(grid_pivot), get<1>(grid_pivot)),
         get<0>(grid_parameters), get<1>(grid_parameters), get<2>(grid_parameters), get<3>(grid_parameters),
-        content_texts, content_styles, vector<string>());
+        content_texts, content_styles, std::vector<std::string>());
 
     svg_content_grids->addLineStyle("stroke: white; fill: white;");
     svg_content_grids->addTextStyle("font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;");
@@ -327,7 +327,7 @@ void update_page(shared_ptr<CSvgDoc> svg_doc, string page_content, CoordinatesMa
     svg_doc->appendDynamicElement(svg_content_grids);
 }
 
-void AddStackVariable(shared_ptr<CSvgGroup> g_arrows, shared_ptr<CSvgGroup> g_texts, uint64_t variable_addr, string variable_name, CoordinatesManager& coordinates_mgr)
+void AddStackVariable(std::shared_ptr<CSvgGroup> g_arrows, std::shared_ptr<CSvgGroup> g_texts, uint64_t variable_addr, std::string variable_name, CoordinatesManager& coordinates_mgr)
 {
     uint64_t v_page = variable_addr & 0xFFFFFFFFFFFFF000;
 
@@ -337,20 +337,20 @@ void AddStackVariable(shared_ptr<CSvgGroup> g_arrows, shared_ptr<CSvgGroup> g_te
     auto v_pivot = coordinates_mgr.GetMRowPivot(v_row_index);
     auto v_target_pivot = coordinates_mgr.GetLGridPivot(v_column_index + 1, v_row_index);
 
-    auto arrow_v = make_shared<CSvgArrow>(
+    auto arrow_v = std::make_shared<CSvgArrow>(
         CSvgPoint(get<0>(v_pivot), get<1>(v_pivot) - get<1>(coordinates_mgr.GetLAddrParameters()) / 2),
         CSvgPoint(get<0>(v_target_pivot), get<1>(v_target_pivot) - get<1>(coordinates_mgr.GetLAddrParameters()) / 2),
         "arrowheadr");
 
-    stringstream ss;
-    ss << "stack variable: " << variable_name << "; ( " << hex << showbase << (uint64_t)variable_addr << " )";
-    auto text_v = make_shared<CSvgText>(CSvgPoint(get<0>(v_pivot) + 10, get<1>(v_pivot) - get<1>(coordinates_mgr.GetLAddrParameters()) / 2), ss.str());
+    std::stringstream ss;
+    ss << "stack variable: " << variable_name << "; ( " << std::hex << std::showbase << (uint64_t)variable_addr << " )";
+    auto text_v = std::make_shared<CSvgText>(CSvgPoint(get<0>(v_pivot) + 10, get<1>(v_pivot) - get<1>(coordinates_mgr.GetLAddrParameters()) / 2), ss.str());
 
     g_arrows->appendElement(arrow_v);
     g_texts->appendElement(text_v);
 }
 
-void AddPtr2Sym(shared_ptr<CSvgGroup> g_arrows, shared_ptr<CSvgGroup> g_texts, shared_ptr<CSvgGroup> g_rects, uint64_t variable_addr, uint64_t target_addr, string notes, CoordinatesManager& coordinates_mgr)
+void AddPtr2Sym(std::shared_ptr<CSvgGroup> g_arrows, std::shared_ptr<CSvgGroup> g_texts, std::shared_ptr<CSvgGroup> g_rects, uint64_t variable_addr, uint64_t target_addr, std::string notes, CoordinatesManager& coordinates_mgr)
 {
     uint64_t v_page = variable_addr & 0xFFFFFFFFFFFFF000;
 
@@ -363,20 +363,20 @@ void AddPtr2Sym(shared_ptr<CSvgGroup> g_arrows, shared_ptr<CSvgGroup> g_texts, s
     auto half_height = get<1>(coordinates_mgr.GetLAddrParameters()) / 2;
     auto grid_width = get<0>(coordinates_mgr.GetLGridParameters());
 
-    auto arrow_v = make_shared<CSvgArrow>(
+    auto arrow_v = std::make_shared<CSvgArrow>(
         CSvgPoint(get<0>(v_target_pivot), get<1>(v_target_pivot) - half_height),
         CSvgPoint(get<0>(v_pivot) - grid_width, get<1>(v_pivot) - half_height),
         "arrowheadr");
 
-    stringstream ss;
-    ss << "0x" << hex << setfill('0') << setw(16) << target_addr;
-    auto text = make_shared<CSvgText>(CSvgPoint(get<0>(v_pivot) + 10, get<1>(v_pivot) - half_height), ss.str());
+    std::stringstream ss;
+    ss << "0x" << std::hex << std::setfill('0') << std::setw(16) << target_addr;
+    auto text = std::make_shared<CSvgText>(CSvgPoint(get<0>(v_pivot) + 10, get<1>(v_pivot) - half_height), ss.str());
 
-    auto rect = make_shared<CSvgRect>(CSvgPoint(get<0>(v_pivot), get<1>(v_pivot) - half_height * 2), 160, half_height * 2);
+    auto rect = std::make_shared<CSvgRect>(CSvgPoint(get<0>(v_pivot), get<1>(v_pivot) - half_height * 2), 160, half_height * 2);
 
     ss.str("");
     ss << notes;
-    auto text_v = make_shared<CSvgText>(CSvgPoint(get<0>(v_pivot) + 200, get<1>(v_pivot) - get<1>(coordinates_mgr.GetLAddrParameters()) / 2), ss.str());
+    auto text_v = std::make_shared<CSvgText>(CSvgPoint(get<0>(v_pivot) + 200, get<1>(v_pivot) - get<1>(coordinates_mgr.GetLAddrParameters()) / 2), ss.str());
 
     g_arrows->appendElement(arrow_v);
     g_texts->appendElement(text);
@@ -385,22 +385,22 @@ void AddPtr2Sym(shared_ptr<CSvgGroup> g_arrows, shared_ptr<CSvgGroup> g_texts, s
 }
 
 
-void AddMem(shared_ptr<CSvgDoc> svg_doc, size_t addr, size_t size, CSvgPoint disp)
+void AddMem(std::shared_ptr<CSvgDoc> svg_doc, size_t addr, size_t size, CSvgPoint disp)
 {
     CoordinatesManager coordinates_mgr(GRID_WIDTH, GRID_HEIGHT, GRID_ADDR_WIDTH);
 
     size_t aligned_addr = addr;// addr & 0xFFFFFFFFFFFFFFF8;
     size_t aligned_size = size;// (addr + size) & 0xFFFFFFFFFFFFFFF8 - aligned_addr;
 
-    string content(aligned_size, '0');
+    std::string content(aligned_size, '0');
 
-    vector<string> addr_texts;
+    std::vector<std::string> addr_texts;
     for (uint64_t i = 0; i < aligned_size / 8; i++)
     {
-        stringstream ss;
-        ss << "0x" << hex << setfill('0') << setw(16) << aligned_addr + (i * 8);
+        std::stringstream ss;
+        ss << "0x" << std::hex << std::setfill('0') << std::setw(16) << aligned_addr + (i * 8);
 
-        string text = ss.str();
+        std::string text = ss.str();
         text.insert(10, "`");
         addr_texts.push_back(text);
     }
@@ -423,12 +423,12 @@ void AddMem(shared_ptr<CSvgDoc> svg_doc, size_t addr, size_t size, CSvgPoint dis
     //svg_addr_grids->addTextStyle("stroke: none; fill: black; font-size: 16; font-weight: normal; font-family: monospace; ");
     //svg_addr_grids->addRectStyle("stroke: none; fill: none; font-size: 16; font-weight: normal;");
 
-    vector<string> content_texts;
-    vector<string> content_styles;
+    std::vector<std::string> content_texts;
+    std::vector<std::string> content_styles;
     for (uint64_t i = 0; i < aligned_size; i++)
     {
-        stringstream ss;
-        ss << hex << uppercase << setfill('0') << setw(2) << (uint16_t)(content[i] & 0x00FF);
+        std::stringstream ss;
+        ss << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << (uint16_t)(content[i] & 0x00FF);
         content_texts.push_back(ss.str());
 
         ss.str("");
@@ -438,9 +438,9 @@ void AddMem(shared_ptr<CSvgDoc> svg_doc, size_t addr, size_t size, CSvgPoint dis
 
     auto grid_pivot = coordinates_mgr.GetLGridPivot(0, 0);
     auto grid_parameters = coordinates_mgr.GetLGridParameters();
-    auto svg_content_grids = make_shared<CSvgGrids>(CSvgPoint(get<0>(grid_pivot) + disp.m_x, get<1>(grid_pivot) + disp.m_y),
+    auto svg_content_grids = std::make_shared<CSvgGrids>(CSvgPoint(get<0>(grid_pivot) + disp.m_x, get<1>(grid_pivot) + disp.m_y),
         get<0>(grid_parameters), get<1>(grid_parameters), get<2>(grid_parameters), aligned_size / 8,
-        content_texts, content_styles, vector<string>());
+        content_texts, content_styles, std::vector<std::string>());
 
     svg_content_grids->addLineStyle("stroke: white; fill: white;");
     svg_content_grids->addTextStyle("font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;");
@@ -450,16 +450,16 @@ void AddMem(shared_ptr<CSvgDoc> svg_doc, size_t addr, size_t size, CSvgPoint dis
     svg_doc->appendElement(svg_content_grids);
 }
 
-void AddBytes(shared_ptr<CSvgDoc> svg_doc, string content, CSvgPoint disp)
+void AddBytes(std::shared_ptr<CSvgDoc> svg_doc, std::string content, CSvgPoint disp)
 {
     CoordinatesManager coordinates_mgr(GRID_WIDTH, GRID_HEIGHT, GRID_ADDR_WIDTH);
 
-    vector<string> content_texts;
-    vector<string> content_styles;
+    std::vector<std::string> content_texts;
+    std::vector<std::string> content_styles;
     for (uint64_t i = 0; i < content.size(); i++)
     {
-        stringstream ss;
-        ss << hex << uppercase << setfill('0') << setw(2) << (uint16_t)(content[i] & 0x00FF);
+        std::stringstream ss;
+        ss << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << (uint16_t)(content[i] & 0x00FF);
         content_texts.push_back(ss.str());
 
         ss.str("");
@@ -468,9 +468,9 @@ void AddBytes(shared_ptr<CSvgDoc> svg_doc, string content, CSvgPoint disp)
     }
 
     auto grid_parameters = coordinates_mgr.GetLGridParameters();
-    auto svg_content_grids = make_shared<CSvgGrids>(CSvgPoint(disp.m_x, disp.m_y),
+    auto svg_content_grids = std::make_shared<CSvgGrids>(CSvgPoint(disp.m_x, disp.m_y),
         get<0>(grid_parameters), get<1>(grid_parameters), get<2>(grid_parameters), content.size() / 8,
-        content_texts, content_styles, vector<string>());
+        content_texts, content_styles, std::vector<std::string>());
 
     svg_content_grids->addLineStyle("stroke: white; fill: white;");
     svg_content_grids->addTextStyle("font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;");
@@ -481,10 +481,10 @@ void AddBytes(shared_ptr<CSvgDoc> svg_doc, string content, CSvgPoint disp)
 }
 
 
-void AddPtr2Heap(shared_ptr<CSvgDoc> svg_doc, shared_ptr<CSvgGroup> g_arrows, shared_ptr<CSvgGroup> g_besier, shared_ptr<CSvgGroup> g_texts, shared_ptr<CSvgGroup> g_rects, 
+void AddPtr2Heap(std::shared_ptr<CSvgDoc> svg_doc, std::shared_ptr<CSvgGroup> g_arrows, std::shared_ptr<CSvgGroup> g_besier, std::shared_ptr<CSvgGroup> g_texts, std::shared_ptr<CSvgGroup> g_rects, 
     uint64_t variable_addr, uint64_t target_addr, uint64_t heap_base, uint64_t heap_size, 
     CoordinatesManager& coordinates_mgr,
-    string base_filename)
+    std::string base_filename)
 {
     uint64_t v_page = variable_addr & 0xFFFFFFFFFFFFF000;
 
@@ -497,7 +497,7 @@ void AddPtr2Heap(shared_ptr<CSvgDoc> svg_doc, shared_ptr<CSvgGroup> g_arrows, sh
     auto half_height = get<1>(coordinates_mgr.GetLAddrParameters()) / 2;
     auto grid_width = get<0>(coordinates_mgr.GetLGridParameters());
 
-    auto arrow_v = make_shared<CSvgArrow>(
+    auto arrow_v = std::make_shared<CSvgArrow>(
         CSvgPoint(get<0>(v_target_pivot), get<1>(v_target_pivot) - half_height),
         CSvgPoint(get<0>(v_pivot) - grid_width, get<1>(v_pivot) - half_height),
         "arrowheadr");
@@ -511,18 +511,18 @@ void AddPtr2Heap(shared_ptr<CSvgDoc> svg_doc, shared_ptr<CSvgGroup> g_arrows, sh
 
     AddMem(svg_doc, target_addr, 8, CSvgPoint(get<0>(v_pivot) - 100, get<1>(v_pivot) - 2*half_height - 100));
 
-    stringstream ss;
-    ss << "0x" << hex << setfill('0') << setw(16) << target_addr;
-    auto text_v = make_shared<CSvgText>(CSvgPoint(get<0>(v_pivot) + 10, get<1>(v_pivot) - half_height), ss.str());
+    std::stringstream ss;
+    ss << "0x" << std::hex << std::setfill('0') << std::setw(16) << target_addr;
+    auto text_v = std::make_shared<CSvgText>(CSvgPoint(get<0>(v_pivot) + 10, get<1>(v_pivot) - half_height), ss.str());
 
     ss.str("");
     ss << base_filename << "mem_access_0x" << target_addr << "_8.svg";
 
-    auto mem_access_link = make_shared<CSvgLink>(ss.str());
+    auto mem_access_link = std::make_shared<CSvgLink>(ss.str());
 
     mem_access_to_svg(target_addr, target_addr + 8, "W", ss.str());
 
-    auto rect = make_shared<CSvgRect>(CSvgPoint(get<0>(v_pivot), get<1>(v_pivot) - half_height * 2), 160, half_height * 2, "fill: blue; stroke:blue;");
+    auto rect = std::make_shared<CSvgRect>(CSvgPoint(get<0>(v_pivot), get<1>(v_pivot) - half_height * 2), 160, half_height * 2, "fill: blue; stroke:blue;");
 
     mem_access_link->appendElement(rect);
 
@@ -537,7 +537,7 @@ void AddPtr2Heap(shared_ptr<CSvgDoc> svg_doc, shared_ptr<CSvgGroup> g_arrows, sh
     g_rects->appendElement(mem_access_link);
 }
 
-void AddPtr2Local(shared_ptr<CSvgGroup> g_arrows, shared_ptr<CSvgGroup> g_besier, shared_ptr<CSvgGroup> g_texts, shared_ptr<CSvgGroup> g_rects, uint64_t variable_addr, uint64_t target_addr, CoordinatesManager& coordinates_mgr)
+void AddPtr2Local(std::shared_ptr<CSvgGroup> g_arrows, std::shared_ptr<CSvgGroup> g_besier, std::shared_ptr<CSvgGroup> g_texts, std::shared_ptr<CSvgGroup> g_rects, uint64_t variable_addr, uint64_t target_addr, CoordinatesManager& coordinates_mgr)
 {
     uint64_t v_page = variable_addr & 0xFFFFFFFFFFFFF000;
 
@@ -555,23 +555,23 @@ void AddPtr2Local(shared_ptr<CSvgGroup> g_arrows, shared_ptr<CSvgGroup> g_besier
     auto half_height = get<1>(coordinates_mgr.GetLAddrParameters()) / 2;
     auto grid_width = get<0>(coordinates_mgr.GetLGridParameters());
 
-    auto arrow_v = make_shared<CSvgArrow>(
+    auto arrow_v = std::make_shared<CSvgArrow>(
         CSvgPoint(get<0>(v_target_pivot), get<1>(v_target_pivot) - half_height),
         CSvgPoint(get<0>(v_pivot) - grid_width, get<1>(v_pivot) - half_height),
         "arrowheadr");
 
-    auto besier = make_shared<CSvgBesier>(
+    auto besier = std::make_shared<CSvgBesier>(
         CSvgPoint(get<0>(v_pivot) - grid_width, get<1>(v_pivot) - half_height),
         CSvgPoint((4*get<0>(v_pivot) + get<0>(v_local))/5, get<1>(v_pivot) - half_height),
         CSvgPoint((get<0>(v_pivot) + get<0>(v_local))/2, ((get<1>(v_pivot) + get<1>(v_local)) / 2) - half_height),
         CSvgPoint(get<0>(v_local) + grid_width/2, get<1>(v_local) - half_height),
         "arrowheadg");
 
-    stringstream ss;
-    ss << "0x" << hex << setfill('0') << setw(16) << target_addr;
-    auto text_v = make_shared<CSvgText>(CSvgPoint(get<0>(v_pivot) + 10, get<1>(v_pivot) - half_height), ss.str());
+    std::stringstream ss;
+    ss << "0x" << std::hex << std::setfill('0') << std::setw(16) << target_addr;
+    auto text_v = std::make_shared<CSvgText>(CSvgPoint(get<0>(v_pivot) + 10, get<1>(v_pivot) - half_height), ss.str());
 
-    auto rect = make_shared<CSvgRect>(CSvgPoint(get<0>(v_pivot), get<1>(v_pivot) - half_height*2), 160, half_height * 2, "fill: green; stroke:green;");
+    auto rect = std::make_shared<CSvgRect>(CSvgPoint(get<0>(v_pivot), get<1>(v_pivot) - half_height*2), 160, half_height * 2, "fill: green; stroke:green;");
 
     g_arrows->appendElement(arrow_v);
     g_besier->appendElement(besier);
@@ -579,9 +579,9 @@ void AddPtr2Local(shared_ptr<CSvgGroup> g_arrows, shared_ptr<CSvgGroup> g_besier
     g_rects->appendElement(rect);
 }
 
-void page_to_svg(size_t addr, string svg_filename)
+void page_to_svg(size_t addr, std::string svg_filename)
 {
-    string page(0x1000, '0');
+    std::string page(0x1000, '0');
 
     size_t ch_page = addr & 0xFFFFFFFFFFFFF000;
 
@@ -597,9 +597,9 @@ void page_to_svg(size_t addr, string svg_filename)
 
     auto stack_svg_doc = visual_page(page, (uint64_t)ch_page, coordinates_mgr);
 
-    auto inner_script = make_shared<CSvgInnerScript>();
+    auto inner_script = std::make_shared<CSvgInnerScript>();
 
-    string script = R"(
+    std::string script = R"(
 
 	    function toggle_click(evt) 
 	    {
@@ -632,17 +632,17 @@ void page_to_svg(size_t addr, string svg_filename)
 
     inner_script->addScript(script);
 
-    auto svg_g_arrows = make_shared<CSvgGroup>();
+    auto svg_g_arrows = std::make_shared<CSvgGroup>();
     svg_g_arrows->addStyle("stroke: red; stroke-width: 3; stroke-opacity: 0.4;");
 
-    auto svg_g_texts = make_shared<CSvgGroup>();
+    auto svg_g_texts = std::make_shared<CSvgGroup>();
     svg_g_texts->addStyle("stroke: none; fill: black; font-size: 16; font-weight: normal; font-family: monospace; ");
 
-    auto svg_g_besier = make_shared<CSvgGroup>();
+    auto svg_g_besier = std::make_shared<CSvgGroup>();
     svg_g_besier->addStyle("stroke: green; stroke-width: 3; stroke-opacity: 0.4; fill: none;");
     svg_g_besier->setId("besier_g");
 
-    auto svg_g_rects = make_shared<CSvgGroup>();
+    auto svg_g_rects = std::make_shared<CSvgGroup>();
     svg_g_rects->addStyle("stroke: red; stroke-width: 2; fill: red; font-size: 16; font-weight: normal; font-family: monospace;  fill-opacity: 0.2;");
 
     //AddStackVariable(svg_g_arrows, svg_g_texts, (uint64_t)addr, "addr", coordinates_mgr);
@@ -673,7 +673,7 @@ void page_to_svg(size_t addr, string svg_filename)
     stack_svg_doc->Save(svg_filename);
 }
 
-void mem_access_to_svg(size_t start_addr, size_t end_addr, string mode, string svg_filename)
+void mem_access_to_svg(size_t start_addr, size_t end_addr, std::string mode, std::string svg_filename)
 {
     auto accesses = DK_GET_MEM_ACCESS(start_addr, end_addr, mode);
 
@@ -682,54 +682,54 @@ void mem_access_to_svg(size_t start_addr, size_t end_addr, string mode, string s
 
     CSvgPoint pivot{ 0, 0 };
 
-    auto svg_doc = make_shared<CSvgDoc>(width, height, pivot, width, height);
+    auto svg_doc = std::make_shared<CSvgDoc>(width, height, pivot, width, height);
     uint64_t index = 0;
 
-    auto svg_defr = make_shared<CSvgDefsArrowHead>("arrowheadr", 10, 7);
-    auto svg_defg = make_shared<CSvgDefsArrowHead>("arrowheadg", 10, 7);
-    auto svg_defb = make_shared<CSvgDefsArrowHead>("arrowheadb", 10, 7);
+    auto svg_defr = std::make_shared<CSvgDefsArrowHead>("arrowheadr", 10, 7);
+    auto svg_defg = std::make_shared<CSvgDefsArrowHead>("arrowheadg", 10, 7);
+    auto svg_defb = std::make_shared<CSvgDefsArrowHead>("arrowheadb", 10, 7);
     svg_defr->addStyle("stroke: none; fill:red; fill-opacity: 0.4; stroke-opacity: 0.4;");
     svg_defg->addStyle("stroke: none; fill:green; fill-opacity: 0.4; stroke-opacity: 0.4;");
     svg_defb->addStyle("stroke: none; fill:blue; fill-opacity: 0.4; stroke-opacity: 0.4;");
 
-    auto text_g = make_shared<CSvgGroup>();
+    auto text_g = std::make_shared<CSvgGroup>();
     text_g->addStyle("stroke: none; fill: black; font-size: 16; font-weight: normal; font-family: monospace; ");
 
-    auto rect_g = make_shared<CSvgGroup>();
+    auto rect_g = std::make_shared<CSvgGroup>();
     rect_g->addStyle("stroke: black; fill: #74D2EE;");
 
-    auto arrow_g = make_shared<CSvgGroup>();
+    auto arrow_g = std::make_shared<CSvgGroup>();
     arrow_g->addStyle("stroke: red; stroke-width: 3;");
 
     auto curr_pos = DK_GET_CURPOS();
 
     for (auto& access : accesses)
     {
-        string new_value((char*)&access.value, 8);
-        string old_value((char*)&access.overwritten_value, 8);
+        std::string new_value((char*)&access.value, 8);
+        std::string old_value((char*)&access.overwritten_value, 8);
 
-        stringstream ss;
+        std::stringstream ss;
 
         ss << "( "
-            << hex
+            << std::hex
             << get<0>(access.start_pos) << ":" << get<1>(access.start_pos)
             << " - "
             << get<0>(access.end_pos) << ":" << get<1>(access.end_pos)
             << " ) 0x"
-            << setfill('0')
-            << setw(16) << access.addr
+            << std::setfill('0')
+            << std::setw(16) << access.addr
             << ", size: 0x"
             << access.size
             ;
 
-        auto pos = make_shared<CSvgText>(CSvgPoint(index * 1000 + 100, 50), ss.str());
+        auto pos = std::make_shared<CSvgText>(CSvgPoint(index * 1000 + 100, 50), ss.str());
 
         svg_doc->appendElement(pos);
 
         AddBytes(svg_doc, old_value, CSvgPoint(index * 1000 + 100, 100));
         AddBytes(svg_doc, new_value, CSvgPoint(index * 1000 + 100, 160));
 
-        auto arrow = make_shared<CSvgArrow>(CSvgPoint(index * 1000 + 260, 128), CSvgPoint(index * 1000 + 260, 130), "arrowheadr");
+        auto arrow = std::make_shared<CSvgArrow>(CSvgPoint(index * 1000 + 260, 128), CSvgPoint(index * 1000 + 260, 130), "arrowheadr");
         arrow_g->appendElement(arrow);
 
         DK_SEEK_TO(get<0>(access.start_pos), get<1>(access.start_pos));
@@ -742,17 +742,17 @@ void mem_access_to_svg(size_t start_addr, size_t end_addr, string mode, string s
 
             ss.str("");
             ss  << "[ "
-                << hex << setfill(' ')
+                << std::hex << std::setfill(' ')
                 << frame[0]
                 << " ] "
                 << get<0>(insn_sym)
                 << "+0x"
-                << hex << get<1>(insn_sym);
+                << std::hex << get<1>(insn_sym);
 
-            auto frame_text = make_shared<CSvgText>(CSvgPoint(index * 1000 + 100, 240 + frame[0] * 40), SvgEscapeText(ss.str(), 90));
+            auto frame_text = std::make_shared<CSvgText>(CSvgPoint(index * 1000 + 100, 240 + frame[0] * 40), SvgEscapeText(ss.str(), 90));
             text_g->appendElement(frame_text);
 
-            auto frame_rect = make_shared<CSvgRect>(CSvgPoint(index * 1000 + 100, 240 + frame[0] * 40 - 20), 800, 40);
+            auto frame_rect = std::make_shared<CSvgRect>(CSvgPoint(index * 1000 + 100, 240 + frame[0] * 40 - 20), 800, 40);
             rect_g->appendElement(frame_rect);
         }
 
@@ -779,42 +779,42 @@ void dump_size(size_t value)
         size_t g_size = m_size / 1024;
         size_t t_size = g_size / 1024;
 
-        stringstream ss;
+        std::stringstream ss;
 
-        ss << showbase << hex;
+        ss << std::showbase << std::hex;
 
         if (t_size != 0)
-            ss << setw(6) << t_size << " T ";
+            ss << std::setw(6) << t_size << " T ";
 
         if (g_size != 0)
-            ss << setw(6) << g_size - t_size * 1024 << " G ";
+            ss << std::setw(6) << g_size - t_size * 1024 << " G ";
 
         if (m_size != 0)
-            ss << setw(6) << m_size - g_size * 1024 << " M ";
+            ss << std::setw(6) << m_size - g_size * 1024 << " M ";
 
         if (k_size != 0)
-            ss << setw(6) << k_size - m_size * 1024 << " K ";
+            ss << std::setw(6) << k_size - m_size * 1024 << " K ";
 
         ss << value - k_size * 1024;
 
-        ss << endl;
-        ss << noshowbase << dec;
+        ss << std::endl;
+        ss << std::noshowbase << std::dec;
 
         if (t_size != 0)
-            ss << setw(6) << t_size << " T ";
+            ss << std::setw(6) << t_size << " T ";
 
         if (g_size != 0)
-            ss << setw(6) << g_size - t_size * 1024 << " G ";
+            ss << std::setw(6) << g_size - t_size * 1024 << " G ";
 
         if (m_size != 0)
-            ss << setw(6) << m_size - g_size * 1024 << " M ";
+            ss << std::setw(6) << m_size - g_size * 1024 << " M ";
 
         if (k_size != 0)
-            ss << setw(6) << k_size - m_size * 1024 << " K ";
+            ss << std::setw(6) << k_size - m_size * 1024 << " K ";
 
         ss << value - k_size * 1024;
 
-        ss << endl;
+        ss << std::endl;
 
         EXT_F_OUT(ss.str().c_str());
     }
@@ -832,24 +832,24 @@ void dump_args()
 
         size_t rsp = EXT_F_REG_OF("rsp");
 
-        stringstream ss;
+        std::stringstream ss;
 
-        ss << "                rcx: \t" << hex << showbase << setw(18) << rcx << " ";
+        ss << "                rcx: \t" << std::hex << std::showbase << std::setw(18) << rcx << " ";
         EXT_F_OUT(ss.str().c_str());
         analyze_qword(rcx);
 
         ss.str("");
-        ss << "                rdx: \t" << hex << showbase << setw(18) << rdx << " ";
+        ss << "                rdx: \t" << std::hex << std::showbase << std::setw(18) << rdx << " ";
         EXT_F_OUT(ss.str().c_str());
         analyze_qword(rdx);
 
         ss.str("");
-        ss << "                 r8: \t" << hex << showbase << setw(18) << r8 << " ";
+        ss << "                 r8: \t" << std::hex << std::showbase << std::setw(18) << r8 << " ";
         EXT_F_OUT(ss.str().c_str());
         analyze_qword(r8);
 
         ss.str("");
-        ss << "                 r9: \t" << hex << showbase << setw(18) << r9 << " ";
+        ss << "                 r9: \t" << std::hex << std::showbase << std::setw(18) << r9 << " ";
         EXT_F_OUT(ss.str().c_str());
         analyze_qword(r9);
 
@@ -863,24 +863,24 @@ void analyze_qword(size_t value)
 {
     try
     {
-        stringstream ss;
+        std::stringstream ss;
 
         //ss << "Analyze Qword : " << hex << showbase << value << endl;
 
         if (like_kaddr(value))
         {
             size_t curr_qword = value;
-            string region_name = va_region_name(value);
+            std::string region_name = va_region_name(value);
             bool is_paged_pool = in_paged_pool(curr_qword);
             bool is_nonpaged_pool = in_non_paged_pool(curr_qword);
 
             if (in_curr_stack(curr_qword))
             {
-                ss << setw(18) << "[ stack ] " << "rsp+" << showbase << hex << (curr_qword - EXT_F_REG_OF("rsp")) << ": "
+                ss << std::setw(18) << "[ stack ] " << "rsp+" << std::showbase << std::hex << (curr_qword - EXT_F_REG_OF("rsp")) << ": "
                     << "\t<link cmd=\"db " << value << "\">db</link>"
                     << "\t<link cmd=\"dq " << value << "\">dq</link>"
                     << "\t<link cmd=\"dps " << value << "\">dps</link>"
-                    << endl;
+                    << std::endl;
             }
             else if (is_paged_pool || is_nonpaged_pool)
             {
@@ -890,20 +890,20 @@ void analyze_qword(size_t value)
 
                 if (get<4>(pool_entry) == 0 && get<3>(pool_entry) == 0)
                 {
-                    ss << setw(18) << " [ pool ] "
+                    ss << std::setw(18) << " [ pool ] "
                         << dump_plain_qword(curr_qword)
                         << (is_paged_pool ? " paged " : " non-paged ")
-                        << showbase << hex << "<link cmd=\"!pool " << curr_qword << "\">" << curr_qword << "</link>" << endl;
+                        << std::showbase << std::hex << "<link cmd=\"!pool " << curr_qword << "\">" << curr_qword << "</link>" << std::endl;
                 }
                 else
                 {
-                    ss << setw(18) << " [ pool ] "
+                    ss << std::setw(18) << " [ pool ] "
                         << dump_plain_qword(curr_qword)
-                        << " " <</*" <link cmd=\"!pooltag " << get<5>(pool_entry) << ";\">" <<*/ setw(4) << get<5>(pool_entry) << /*"</link>*/"\t\t"
-                        << "<link cmd=\"!dk as_mem " << hex << showbase << get<3>(pool_entry) << " " << get<4>(pool_entry) << ";\">["
+                        << " " <</*" <link cmd=\"!pooltag " << get<5>(pool_entry) << ";\">" <<*/ std::setw(4) << get<5>(pool_entry) << /*"</link>*/"\t\t"
+                        << "<link cmd=\"!dk as_mem " << std::hex << std::showbase << get<3>(pool_entry) << " " << get<4>(pool_entry) << ";\">["
                         << get<3>(pool_entry) << ",  "
-                        << setw(10) << (curr_qword - get<3>(pool_entry)) << " / "
-                        << setw(10) << get<4>(pool_entry) << "]</link>\t\t";
+                        << std::setw(10) << (curr_qword - get<3>(pool_entry)) << " / "
+                        << std::setw(10) << get<4>(pool_entry) << "]</link>\t\t";
 
                     if (get<0>(pool_entry))
                         ss << "Small | ";
@@ -920,15 +920,15 @@ void analyze_qword(size_t value)
                     else
                         ss << "Free";
 
-                    ss << endl;
+                    ss << std::endl;
                 }
             }
             else if (region_name != "" && region_name.length() > 14)
             {
-                ss << setw(18) << " [ region ] "
+                ss << std::setw(18) << " [ region ] "
                     << dump_plain_qword(curr_qword)
                     << " " << region_name.substr(14)
-                    << endl;
+                    << std::endl;
             }
             else
             {
@@ -936,15 +936,15 @@ void analyze_qword(size_t value)
 
                 if (get<0>(code_details))
                 {
-                    ss << setw(18) << " [ code ] " << dump_plain_qword(curr_qword);
+                    ss << std::setw(18) << " [ code ] " << dump_plain_qword(curr_qword);
 
 
-                    ss << hex << showbase << "\t<link cmd=\"u " << curr_qword << ";\">disasm</link>\t";
+                    ss << std::hex << std::showbase << "\t<link cmd=\"u " << curr_qword << ";\">disasm</link>\t";
 
                     if (get<3>(code_details).empty())
-                        ss << get<2>(code_details) << ":" << (curr_qword - get<1>(code_details)) << endl;
+                        ss << get<2>(code_details) << ":" << (curr_qword - get<1>(code_details)) << std::endl;
                     else
-                        ss << get<3>(code_details) << endl;
+                        ss << get<3>(code_details) << std::endl;
                 }
                 else
                 {
@@ -967,18 +967,18 @@ void analyze_qword(size_t value)
 
                     if (b_valid_page)
                     {
-                        ss << hex << showbase
-                            << setw(18) << " [ valid ] "
+                        ss << std::hex << std::showbase
+                            << std::setw(18) << " [ valid ] "
                             << dump_plain_qword(curr_qword)
-                            << setw(18) << " paddr: <link cmd=\"!db " << paddr << "\">" << paddr << "</link>\t"
-                            << setw(18) << " page: <link cmd=\"!dk page " << curr_qword << "\">" << curr_qword << "</link>\t"
-                            << setw(18) << " pte: <link cmd=\"!pte " << curr_qword << "\">" << curr_qword << "</link>\t"
-                            /*<< pte.str()*/ << endl;
+                            << std::setw(18) << " paddr: <link cmd=\"!db " << paddr << "\">" << paddr << "</link>\t"
+                            << std::setw(18) << " page: <link cmd=\"!dk page " << curr_qword << "\">" << curr_qword << "</link>\t"
+                            << std::setw(18) << " pte: <link cmd=\"!pte " << curr_qword << "\">" << curr_qword << "</link>\t"
+                            /*<< pte.str()*/ << std::endl;
                     }
                     else
-                        ss << setw(18) << " [     ] "
+                        ss << std::setw(18) << " [     ] "
                         << dump_plain_qword(curr_qword)
-                        << endl;
+                        << std::endl;
                 }
             }
 
@@ -988,9 +988,9 @@ void analyze_qword(size_t value)
         {
             size_t curr_qword = value;
 
-            ss << setw(18) << " [     ] "
+            ss << std::setw(18) << " [     ] "
                 << dump_plain_qword(curr_qword)
-                << endl;
+                << std::endl;
 
             EXT_F_DML(ss.str().c_str());
 
@@ -1052,7 +1052,7 @@ void analyze_mem(size_t start, size_t len, size_t offset)
             return;
         }
 
-        stringstream ss;
+        std::stringstream ss;
         //size_t zero_repeats = 0;
 
 
@@ -1072,16 +1072,16 @@ void analyze_mem(size_t start, size_t len, size_t offset)
 
                 if (j - i >= ZERO_REPEAT_THREADHOLD)
                 {
-                    ss << hex << showbase << "+" << setw(18) << offset + i * 8 << ": \t" << setw(18) << curr_qword << " ";
+                    ss << std::hex << std::showbase << "+" << std::setw(18) << offset + i * 8 << ": \t" << std::setw(18) << curr_qword << " ";
 
-                    ss << setw(18) << " [ 000 ] " << dump_plain_qword(curr_qword);
+                    ss << std::setw(18) << " [ 000 ] " << dump_plain_qword(curr_qword);
 
-                    ss << " Zeros in range [ " << hex << showbase << offset + i * 8 << " - "
+                    ss << " Zeros in range [ " << std::hex << std::showbase << offset + i * 8 << " - "
                         << offset + j * 8 << " )";
 
                     ss << " for " <<
-                        (j - i) << " / " << showbase << dec << (j - i) << " times" <<
-                        endl << "." << endl;
+                        (j - i) << " / " << std::showbase << std::dec << (j - i) << " times" <<
+                        std::endl << "." << std::endl;
 
                     EXT_F_DML(ss.str().c_str());
 
@@ -1114,18 +1114,18 @@ void analyze_mem(size_t start, size_t len, size_t offset)
             //    zero_repeats = 0;
             //}
 
-            ss << hex << showbase << "+" << setw(18) << offset + i * 8 << ": \t" << setw(18) << curr_qword << " ";
+            ss << std::hex << std::showbase << "+" << std::setw(18) << offset + i * 8 << ": \t" << std::setw(18) << curr_qword << " ";
             if (!like_kaddr(curr_qword))
             {
-                ss << setw(18) << " [     ] "
+                ss << std::setw(18) << " [     ] "
                     << dump_plain_qword(curr_qword)
-                    << endl;
+                    << std::endl;
 
                 EXT_F_DML(ss.str().c_str());
             }
             else if (curr_qword >= start && curr_qword < start + len)
             {
-                ss << setw(18) << " [ this ] ";
+                ss << std::setw(18) << " [ this ] ";
 
                 ss << dump_plain_qword(curr_qword);
 
@@ -1135,21 +1135,21 @@ void analyze_mem(size_t start, size_t len, size_t offset)
 
                     if (next_qword == curr_qword)
                     {
-                        ss << " _LIST_ENTRY.Flink(empty)" << endl;
+                        ss << " _LIST_ENTRY.Flink(empty)" << std::endl;
 
-                        ss << hex << showbase << "+" << setw(18) << i * 8 << ": \t" << setw(18) << curr_qword << " "
-                            << setw(18) << " [ this ] " << dump_plain_qword(curr_qword) << " _LIST_ENTRY.Blink(empty)" << endl;
+                        ss << std::hex << std::showbase << "+" << std::setw(18) << i * 8 << ": \t" << std::setw(18) << curr_qword << " "
+                            << std::setw(18) << " [ this ] " << dump_plain_qword(curr_qword) << " _LIST_ENTRY.Blink(empty)" << std::endl;
 
                         i++;
                     }
                     else
                     {
-                        ss << " ===> +" << (curr_qword - start) << endl;
+                        ss << " ===> +" << (curr_qword - start) << std::endl;
                     }
                 }
                 else
                 {
-                    ss << " ===> +" << (curr_qword - start) << endl;
+                    ss << " ===> +" << (curr_qword - start) << std::endl;
                 }
 
                 EXT_F_DML(ss.str().c_str());
@@ -1203,7 +1203,7 @@ void extract_mem(size_t start, size_t len, size_t offset)
             return;
         }
 
-        stringstream ss;
+        std::stringstream ss;
         //size_t zero_repeats = 0;
 
 
@@ -1234,7 +1234,7 @@ void extract_mem(size_t start, size_t len, size_t offset)
                     //    (j - i) << " / " << showbase << dec << (j - i) << " times" <<
                     //    endl << "." << endl;
 
-                    ss << "REP_ADD_QWORD( " << hex << showbase << (j - i) << " , " << curr_qword << " );" << endl;
+                    ss << "REP_ADD_QWORD( " << std::hex << std::showbase << (j - i) << " , " << curr_qword << " );" << std::endl;
 
                     EXT_F_DML(ss.str().c_str());
 
@@ -1267,7 +1267,7 @@ void extract_mem(size_t start, size_t len, size_t offset)
             //    zero_repeats = 0;
             //}
 
-            ss << "ADD_QWORD( " << hex << showbase << curr_qword << " );" << endl;
+            ss << "ADD_QWORD( " << std::hex << std::showbase << curr_qword << " );" << std::endl;
             EXT_F_DML(ss.str().c_str());
 
             /*ss << hex << showbase << "+" << setw(18) << offset + i * 8 << ": \t" << setw(18) << curr_qword << " ";
@@ -1365,7 +1365,7 @@ bool in_curr_stack(size_t addr)
 
 void init_va_regions()
 {
-    static vector<const char*> va_region_names{
+    static std::vector<const char*> va_region_names{
        "AssignedRegionNonPagedPool", // 0n0
        "AssignedRegionPagedPool", // 0n1
        "AssignedRegionSystemCache", // 0n2
@@ -1399,7 +1399,7 @@ void init_va_regions()
             size_t addr = *(size_t*)(arr_raw + 0x10 * i);
             size_t len = *(size_t*)(arr_raw + 0x10 * i + 0x08);
 
-            g_va_regions.insert(make_tuple(addr, len, va_region_names[i]));
+            g_va_regions.insert(std::make_tuple(addr, len, va_region_names[i]));
         }
     }
     FC;
@@ -1413,15 +1413,15 @@ void dump_va_regions()
         if (g_va_regions.empty())
             init_va_regions();
 
-        stringstream ss;
+        std::stringstream ss;
 
         for (auto region : g_va_regions)
         {
-            ss << setw(40) << get<2>(region) << " [ "
-                << showbase << hex
-                << setw(18) << get<0>(region) << " - "
-                << setw(18) << get<0>(region) + get<1>(region) << " , len: "
-                << setw(18) << get<1>(region) << " = "
+            ss << std::setw(40) << get<2>(region) << " [ "
+                << std::showbase << std::hex
+                << std::setw(18) << get<0>(region) << " - "
+                << std::setw(18) << get<0>(region) + get<1>(region) << " , len: "
+                << std::setw(18) << get<1>(region) << " = "
                 << EXT_F_Size2Str(get<1>(region)) << "]\n";
         }
 
@@ -1431,15 +1431,15 @@ void dump_va_regions()
 }
 
 
-string va_region_name(size_t addr)
+std::string va_region_name(size_t addr)
 {
-    string region_name("");
+    std::string region_name("");
 
     for (auto region : g_va_regions)
     {
         size_t start = get<0>(region);
         size_t len = get<1>(region);
-        string name = get<2>(region);
+        std::string name = get<2>(region);
 
         if (addr >= start && addr < (start + len))
         {
@@ -1572,7 +1572,7 @@ bool in_small_pool_page(size_t addr)
     return false;
 }
 
-tuple<bool, size_t, string, string> as_kcode(size_t addr)
+std::tuple<bool, size_t, std::string, std::string> as_kcode(size_t addr)
 {
     if ((addr & 0xFFFF000000000000) == 0xFFFF000000000000)
     {
@@ -1588,18 +1588,18 @@ tuple<bool, size_t, string, string> as_kcode(size_t addr)
                     size_t dll_base = lm.Field("DllBase").GetUlong64();
                     size_t dll_len = lm.Field("SizeOfImage").GetUlong();
 
-                    wstring module_name = EXT_F_READ_USTR(name_addr);
-                    string str_module_name(module_name.begin(), module_name.end());
+                    std::wstring module_name = EXT_F_READ_USTR(name_addr);
+                    std::string str_module_name(module_name.begin(), module_name.end());
                     
-                    string symbol = get<0>(EXT_F_Addr2Sym(addr));
+                    std::string symbol = get<0>(EXT_F_Addr2Sym(addr));
 
                     size_t symbol_start = EXT_F_Sym2Addr(symbol.c_str());
 
-                    stringstream ss;
+                    std::stringstream ss;
                     ss << symbol;
 
                     if (addr != symbol_start)
-                        ss << "+" << hex << showbase << (addr - symbol_start);
+                        ss << "+" << std::hex << std::showbase << (addr - symbol_start);
 
                     if (addr >= dll_base && addr < dll_base + dll_len)
                         return make_tuple(true, dll_base, str_module_name, ss.str());
@@ -1609,10 +1609,10 @@ tuple<bool, size_t, string, string> as_kcode(size_t addr)
         FC;
     }
 
-    return make_tuple(false, 0, "", "");
+    return std::make_tuple(false, 0, "", "");
 }
 
-tuple<bool, size_t, string, string> as_ucode(size_t addr)
+std::tuple<bool, size_t, std::string, std::string> as_ucode(size_t addr)
 {
     if ((addr & 0xFFFF000000000000) == 0x0000000000000000)
     {
@@ -1628,28 +1628,28 @@ tuple<bool, size_t, string, string> as_ucode(size_t addr)
                     size_t dll_base = lm.Field("DllBase").GetUlong64();
                     size_t dll_len = lm.Field("SizeOfImage").GetUlong();
 
-                    wstring module_name = EXT_F_READ_USTR(name_addr);
-                    string str_module_name(module_name.begin(), module_name.end());
+                    std::wstring module_name = EXT_F_READ_USTR(name_addr);
+                    std::string str_module_name(module_name.begin(), module_name.end());
 
-                    string symbol = get<0>(EXT_F_Addr2Sym(addr));
+                    std::string symbol = get<0>(EXT_F_Addr2Sym(addr));
 
                     size_t symbol_start = EXT_F_Sym2Addr(symbol.c_str());
 
-                    stringstream ss;
+                    std::stringstream ss;
                     ss << symbol;
 
                     if (addr != symbol_start)
-                        ss << "+" << hex << showbase << (addr - symbol_start);
+                        ss << "+" << std::hex << std::showbase << (addr - symbol_start);
 
                     if (addr >= dll_base && addr < dll_base + dll_len)
-                        return make_tuple(true, dll_base, str_module_name, ss.str());
+                        return std::make_tuple(true, dll_base, str_module_name, ss.str());
                 }
             }
         }
         FC;
     }
 
-    return make_tuple(false, 0, "", "");
+    return std::make_tuple(false, 0, "", "");
 }
 
 bool is_valid_pool_tag(uint32_t tag)
@@ -1679,7 +1679,7 @@ bool is_valid_pool_tag(uint32_t tag)
 }
 
 
-tuple<bool, bool, bool, size_t, size_t, string> as_small_pool(size_t addr)
+std::tuple<bool, bool, bool, size_t, size_t, std::string> as_small_pool(size_t addr)
 {
     try
     {
@@ -1713,7 +1713,7 @@ tuple<bool, bool, bool, size_t, size_t, string> as_small_pool(size_t addr)
                 continue;
             }
 
-            string str_tag((char*)pool_header.tag, 4);
+            std::string str_tag((char*)pool_header.tag, 4);
 
             /*stringstream ss;
             ss << endl << "Pool Header at "
@@ -1734,7 +1734,7 @@ tuple<bool, bool, bool, size_t, size_t, string> as_small_pool(size_t addr)
                 bool b_Allocated_or_free = !((pool_header.block_size == 0) || (str_tag == "Free"));
 
                 delete[] cur_page;
-                return make_tuple(true, b_Paged_or_nonpaged, b_Allocated_or_free,
+                return std::make_tuple(true, b_Paged_or_nonpaged, b_Allocated_or_free,
                     next_record_addr + 0x10,
                     pool_header.block_size * 0x10 - 0x10,
                     str_tag);
@@ -1748,10 +1748,10 @@ tuple<bool, bool, bool, size_t, size_t, string> as_small_pool(size_t addr)
     }
     FC;
 
-    return make_tuple(false, false, false, 0, 0, "");
+    return std::make_tuple(false, false, false, 0, 0, "");
 }
 
-tuple<bool, bool, bool, size_t, size_t, string> as_large_pool(size_t addr)
+std::tuple<bool, bool, bool, size_t, size_t, std::string> as_large_pool(size_t addr)
 {
     uint8_t* page_x3_buffer = new uint8_t[0x3000];
 
@@ -1760,7 +1760,7 @@ tuple<bool, bool, bool, size_t, size_t, string> as_large_pool(size_t addr)
         size_t big_pool_addr = EXT_F_READ<size_t>(EXT_F_Sym2Addr("nt!PoolBigPageTable"));
         size_t big_pool_size = EXT_F_READ<size_t>(EXT_F_Sym2Addr("nt!PoolBigPageTableSize"));
 
-        stringstream ss;
+        std::stringstream ss;
 
         size_t item_count = 0;
         size_t page_x3_index = 0;
@@ -1791,11 +1791,11 @@ tuple<bool, bool, bool, size_t, size_t, string> as_large_pool(size_t addr)
                     bool b_free = ((pool_entry.va & 0x1) == 0x1);
 
                     bool b_Paged_or_nonpaged = ((pool_entry.pool_type & 1) == 1);
-                    string pool_tag = pool_entry.tag;
+                    std::string pool_tag = pool_entry.tag;
                     bool b_Allocated_or_free = !(b_free || (pool_entry.size == 0) || (pool_tag == "Free"));
 
                     delete[] page_x3_buffer;
-                    return make_tuple(false, b_Paged_or_nonpaged, b_Allocated_or_free, pool_va, pool_entry.size, pool_tag);
+                    return std::make_tuple(false, b_Paged_or_nonpaged, b_Allocated_or_free, pool_va, pool_entry.size, pool_tag);
                 }
             }
         }
@@ -1804,13 +1804,13 @@ tuple<bool, bool, bool, size_t, size_t, string> as_large_pool(size_t addr)
 
     delete[] page_x3_buffer;
 
-    return make_tuple(false, false, false, 0, 0, "");
+    return std::make_tuple(false, false, false, 0, 0, "");
 }
 
-string dump_plain_qword(size_t curr_qword)
+std::string dump_plain_qword(size_t curr_qword)
 {
-    stringstream ss;
-    string raw((char*)&curr_qword, 8);
+    std::stringstream ss;
+    std::string raw((char*)&curr_qword, 8);
     for (char& ch : raw)
     {
         if (ch == '%')
@@ -1826,15 +1826,15 @@ string dump_plain_qword(size_t curr_qword)
         }
     }
 
-    ss << hex << noshowbase << setfill('0')
-        << "[ " << setw(8) << (curr_qword & 0xFFFFFFFF) << " " << setw(8) << ((curr_qword >> 0x20) & 0xFFFFFFFF) << " ]\t"
-        << "[ " << setw(2) << ((curr_qword >> 0) & 0xFF) << " " << setw(2) << ((curr_qword >> 8) & 0xFF)
-        << " " << setw(2) << ((curr_qword >> 16) & 0xFF) << " " << setw(2) << ((curr_qword >> 24) & 0xFF)
-        << " " << setw(2) << ((curr_qword >> 32) & 0xFF) << " " << setw(2) << ((curr_qword >> 40) & 0xFF)
-        << " " << setw(2) << ((curr_qword >> 48) & 0xFF) << " " << setw(2) << ((curr_qword >> 56) & 0xFF)
+    ss << std::hex << std::noshowbase << std::setfill('0')
+        << "[ " << std::setw(8) << (curr_qword & 0xFFFFFFFF) << " " << std::setw(8) << ((curr_qword >> 0x20) & 0xFFFFFFFF) << " ]\t"
+        << "[ " << std::setw(2) << ((curr_qword >> 0) & 0xFF) << " " << std::setw(2) << ((curr_qword >> 8) & 0xFF)
+        << " " << std::setw(2) << ((curr_qword >> 16) & 0xFF) << " " << std::setw(2) << ((curr_qword >> 24) & 0xFF)
+        << " " << std::setw(2) << ((curr_qword >> 32) & 0xFF) << " " << std::setw(2) << ((curr_qword >> 40) & 0xFF)
+        << " " << std::setw(2) << ((curr_qword >> 48) & 0xFF) << " " << std::setw(2) << ((curr_qword >> 56) & 0xFF)
         << " |" << raw << "| "
         << (curr_qword != 0 ? "*" : " ")
-        << " ]" << setfill(' ');
+        << " ]" << std::setfill(' ');
 
     return ss.str();
 }
@@ -1850,7 +1850,7 @@ typedef enum _MI_VAD_TYPE {
     VadLargePageSection
 } MI_PFN_CACHE_ATTRIBUTE, * PMI_PFN_CACHE_ATTRIBUTE;
 
-map<uint32_t, string> vadTypeMap{ {
+std::map<uint32_t, std::string> vadTypeMap{ {
     { VadNone , "VadNone"},
     { VadDevicePhysicalMemory , "VadDevicePhysicalMemory"},
     { VadImageMap , "VadImageMap"},
@@ -1924,35 +1924,35 @@ void visit_vad(size_t vad_node_addr)
 
         bool b_mapped = (vad_type == VadImageMap);
 
-        stringstream ss;
+        std::stringstream ss;
 
-        ss << hex << noshowbase
-            << " <link cmd=\"dt nt!_MMVAD 0x" << setfill('0') << setw(16) << vad_node_addr
+        ss << std::hex << std::noshowbase
+            << " <link cmd=\"dt nt!_MMVAD 0x" << std::setfill('0') << std::setw(16) << vad_node_addr
             << "\">0x"
-            << setfill('0') << setw(16) << vad_node_addr
+            << std::setfill('0') << std::setw(16) << vad_node_addr
             << "</link>"
-            << setfill(' ') << showbase
+            << std::setfill(' ') << std::showbase
             << "\t"
-            << setw(16) << start_vpn
+            << std::setw(16) << start_vpn
             << " - "
-            << setw(16) << end_vpn
-            << " Flags : " << setw(10) << flags
-            << setw(10) << (b_private ? " Private " : " Shared ")
+            << std::setw(16) << end_vpn
+            << " Flags : " << std::setw(10) << flags
+            << std::setw(10) << (b_private ? " Private " : " Shared ")
             //<< setw(10) << (b_graphics ? " Graphics " : " ")
-            << " " << setw(8) << vad_type;
+            << " " << std::setw(8) << vad_type;
 
         auto it = vadTypeMap.find((uint32_t)vad_type);
         if (!b_private && it != vadTypeMap.end() && vad_type != VadNone)
-            ss << " " << setw(14) << it->second;
+            ss << " " << std::setw(14) << it->second;
         else
-            ss << " " << setw(14) << "";
+            ss << " " << std::setw(14) << "";
 
-        ss << " / " << setw(8) << protection;
+        ss << " / " << std::setw(8) << protection;
 
         if (b_mapped && (file_obj != 0))
         {
             auto wfile_name = dump_file_name(file_obj);
-            ss << string(wfile_name.begin(), wfile_name.end());
+            ss << std::string(wfile_name.begin(), wfile_name.end());
         }
         //<< noshowbase
         //<< " <link cmd=\"dt nt!_SUBSECTION 0x" << setfill('0') << setw(16) << subsection
@@ -1967,7 +1967,7 @@ void visit_vad(size_t vad_node_addr)
         //<< "\">0x"
         //<< setfill('0') << setw(16) << file_obj
         //<< "</link> "
-        ss << endl;
+        ss << std::endl;
 
         EXT_F_DML(ss.str().c_str());
 

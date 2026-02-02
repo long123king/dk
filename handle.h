@@ -17,7 +17,7 @@ public:
 
     void
         traverse(
-            __in function<bool(size_t, size_t)> callback
+            __in std::function<bool(size_t, size_t)> callback
         );
 
     size_t

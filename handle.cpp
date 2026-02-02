@@ -25,7 +25,7 @@ CHandleTable::~CHandleTable()
 
 void
 CHandleTable::traverse(
-    __in function<bool(size_t, size_t)> callback
+    __in std::function<bool(size_t, size_t)> callback
 )
 {
     if (0 == m_levels)
@@ -148,36 +148,36 @@ void dump_handle_table(size_t handle_table_addr)
                     ExtRemoteTyped obj_header("(nt!_OBJECT_HEADER*)@$extin", addr);
                     uint8_t r_index = real_index(obj_header.Field("TypeIndex").GetUchar(), addr);
 
-                    wstring obj_name = dump_obj_name(addr);
-                    wstring type_name = getTypeName(r_index);
+                    std::wstring obj_name = dump_obj_name(addr);
+                    std::wstring type_name = getTypeName(r_index);
 
-                    string str_type_name(type_name.begin(), type_name.end());
-                    string str_obj_name(obj_name.begin(), obj_name.end());
+                    std::string str_type_name(type_name.begin(), type_name.end());
+                    std::string str_obj_name(obj_name.begin(), obj_name.end());
 
-                    stringstream ss;
+                    std::stringstream ss;
 
-                    ss << hex << showbase
-                        << setw(18) << entry << " ";
+                    ss << std::hex << std::showbase
+                        << std::setw(18) << entry << " ";
 
                     ss << "<link cmd=\"!object ";
 
-                    ss << addr + 0x30 << "\">" << setw(18) << addr << "</link> "
+                    ss << addr + 0x30 << "\">" << std::setw(18) << addr << "</link> "
                         << "<link cmd=\"!dk obj " << addr << "\">detail</link> "
-                        << setw(10) << access << " "
-                        << hex << setw(8) << handle_value << /*(" << setw(8) << dec << noshowbase << handle_value << hex << showbase << ")*/" "
-                        << setw(20) << str_type_name << " [" << setw(4) << (uint16_t)r_index << "]   ";
+                        << std::setw(10) << access << " "
+                        << std::hex << std::setw(8) << handle_value << /*(" << setw(8) << dec << noshowbase << handle_value << hex << showbase << ")*/" "
+                        << std::setw(20) << str_type_name << " [" << std::setw(4) << (uint16_t)r_index << "]   ";
 
                     if (obj_name.empty() && type_name == L"File")
                     {
-                        wstring file_name = dump_file_name(addr + 0x30);
-                        string str_file_name(file_name.begin(), file_name.end());
+                        std::wstring file_name = dump_file_name(addr + 0x30);
+                        std::string str_file_name(file_name.begin(), file_name.end());
 
                         ss << str_file_name;
                     }
                     else
                         ss << str_obj_name;
 
-                    ss << endl;
+                    ss << std::endl;
 
                     EXT_F_DML(ss.str().c_str());
                 }

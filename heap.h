@@ -16,14 +16,14 @@ void heap_over_size(size_t size);
 class CChunkInfo
 {
 public:
-    CChunkInfo(size_t _size, string _flags)
+    CChunkInfo(size_t _size, std::string _flags)
         :size(_size)
         , flags(_flags)
     {
     }
 
     size_t size;
-    string flags;
+    std::string flags;
 };
 
 class CHeapSummary
@@ -40,7 +40,7 @@ public:
 
     void Analyze();
 
-    void add_chunk(string& line);
+    void add_chunk(std::string& line);
 
     void dump_size_summary();
 
@@ -48,6 +48,6 @@ public:
     void dump_size_over(size_t size);
 
 private:                 
-    //map<size_t, unique_ptr<CChunkInfo>> m_chunks;
-    map<size_t, set<size_t>> m_size_map;
+    //std::map<size_t, unique_ptr<CChunkInfo>> m_chunks;
+    std::map<size_t, std::set<size_t>> m_size_map;
 };

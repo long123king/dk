@@ -26,15 +26,14 @@ void dump_process_threads(size_t process_addr)
         size_t thread_list_head_addr = process_addr + proc.GetFieldOffset("ThreadListHead");
 
         ExtRemoteTypedList threads_list(thread_list_head_addr, "nt!_ETHREAD", "ThreadListEntry");
-        stringstream ss;
+        std::stringstream ss;
         for (threads_list.StartHead(); threads_list.HasNode(); threads_list.Next())
         {
             auto thread = threads_list.GetTypedNode();
             size_t thread_addr = threads_list.GetNodeOffset();
 
             size_t unique_process = thread.Field("Cid.UniqueProcess").GetUlongPtr();
-            size_t unique_thread = thread.Field("Cid.UniqueThread").GetUlongPtr();
-
+            size_t unique_thread = thread.Field("Cid.UniqueThread").GetUlongPtr();  
             size_t teb_addr = thread.Field("Tcb.Teb").GetUlongPtr();
 
             auto thread_token_info = get_thread_token(thread_addr);
@@ -45,14 +44,14 @@ void dump_process_threads(size_t process_addr)
 
             size_t start_addr = thread.Field("Win32StartAddress").GetUlongPtr();
 
-            string start_func_name = get<0>(EXT_F_Addr2Sym(start_addr));
+            std::string start_func_name = get<0>(EXT_F_Addr2Sym(start_addr));
 
 
-            ss << "\tThread: <link cmd=\"!thread " << hex << showbase << thread_addr << "\">" << thread_addr << "</link> "
+            ss << "\tThread: <link cmd=\"!thread " << std::hex << std::showbase << thread_addr << "\">" << thread_addr << "</link> "
                 << "<link cmd=\"dt nt!_ETHREAD " << thread_addr << "\">dt</link> "
                 << "<link cmd=\"!dk obj " << thread_addr - 0x30 << "\">detail</link> "
                 << "<link cmd=\".thread " << thread_addr << "; kf;\">switch</link>    "
-                << "Cid: " << setw(6) << unique_process << "." << left << setw(6) << unique_thread << right << "    Thread Func: ";
+                << "Cid: " << std::setw(6) << unique_process << "." << std::left << std::setw(6) << unique_thread << std::right << "    Thread Func: ";
 
 
             if (start_func_name.empty())
@@ -78,7 +77,7 @@ void dump_process_threads(size_t process_addr)
                 ss << " silo: Inherited";
             }
 
-            ss << endl;
+            ss << std::endl;
         }
 
         EXT_F_DML(ss.str().c_str());
@@ -86,7 +85,7 @@ void dump_process_threads(size_t process_addr)
     FC;
 }
 
-tuple<size_t, size_t> get_thread_token(size_t thread_addr)
+std::tuple<size_t, size_t> get_thread_token(size_t thread_addr)
 {
     size_t token = 0;
     size_t level = 0;
@@ -101,15 +100,15 @@ tuple<size_t, size_t> get_thread_token(size_t thread_addr)
         }
     }
     FC;
-    return make_tuple(token, level);
+    return std::make_tuple(token, level);
 }
 
-string
+std::string
 getImpersonationLevel(
     __in const size_t level
 )
 {
-    static map<size_t, const char*> s_impersonation_level_map{ {
+    static std::map<size_t, const char*> s_impersonation_level_map{ {
         { SecurityAnonymous, "SecurityAnonymous" },
         { SecurityIdentification, "SecurityIdentification" },
         { SecurityImpersonation, "SecurityImpersonation" },

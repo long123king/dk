@@ -1,0 +1,172 @@
+name: Build
+
+on:
+  push:
+    branches: [ main, master, working, fixsdk]  # Add your branch
+  pull_request:
+    branches: [ main, master, working, fixsdk]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    permissions:
+      contents: read
+    
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1.1
+    
+    - name: Install Windows SDK with Debugging Tools
+      shell: powershell
+      run: |
+        Write-Host "Setting up Windows SDK and Debugging Tools..."
+        
+        # First, check what's already available
+        Write-Host "Checking pre-installed SDKs..."
+        $kitsPath = "C:\Program Files (x86)\Windows Kits\10\Include"
+        if (Test-Path $kitsPath) {
+          Get-ChildItem $kitsPath | ForEach-Object { Write-Host "  - $($_.Name)" }
+        }
+        
+        # Check for Debugging Tools
+        $debuggerFound = $false
+        $searchPaths = @(
+          "C:\Program Files (x86)\Windows Kits\10\Debuggers\inc\engextcpp.hpp",
+          "C:\Program Files\Windows Kits\10\Debuggers\inc\engextcpp.hpp"
+        )
+        
+        # Use pipeline to find the first existing path (avoids loop parser errors)
+        $existing = $searchPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+        
+        if ($existing) {
+          Write-Host "Debugging Tools found at: $(Split-Path -Parent $existing)"
+          $debuggerFound = $true
+        }
+        
+        if (-not $debuggerFound) {
+          Write-Host "Debugging Tools not found. Installing latest Windows SDK..."
+          
+          # Download latest Windows 11 SDK web installer to ensure latest version
+          $url = "https://go.microsoft.com/fwlink/?linkid=2196241"
+          $setup = "$env:TEMP\winsdksetup.exe"
+          
+          Write-Host "Downloading SDK installer from $url..."
+          Invoke-WebRequest -Uri $url -OutFile $setup -UseBasicParsing
+          
+          Write-Host "Installing Windows Debugging Tools..."
+          # Install only the Debuggers feature using the official installer
+          $process = Start-Process -FilePath $setup -ArgumentList "/features OptionId.WindowsDesktopDebuggers /q /norestart" -Wait -PassThru -NoNewWindow
+          
+          if ($process.ExitCode -ne 0) {
+            Write-Host "SDK Installer failed with code $($process.ExitCode). Trying Chocolatey as fallback..."
+            
+            # Fallback: Chocolatey
+            choco install windows-sdk-11 -y --no-progress
+          }
+          
+          Write-Host "Installation completed."
+        }
+    
+    - name: Detect SDK Paths and Setup Environment
+      shell: powershell
+      run: |
+        Write-Host "Searching for Windows SDK Debuggers installation..."
+        
+        # Search for the SDK installation in common locations
+        $searchPaths = @(
+          "C:\Program Files (x86)\Windows Kits",
+          "C:\Program Files\Windows Kits"
+        )
+        
+        $incPath = ""
+        $libPath = ""
+        
+        # Use pipeline to recursively search (avoids loop parser errors)
+        $incFile = $searchPaths | Where-Object { Test-Path $_ } | ForEach-Object {
+            Get-ChildItem -Path $_ -Filter "engextcpp.hpp" -Recurse -ErrorAction SilentlyContinue 
+        } | Select-Object -First 1
+
+        if ($incFile) {
+            $incPath = Split-Path -Parent $incFile.FullName
+            Write-Host "Found include path: $incPath"
+        }
+        
+        if (-not $incPath) {
+          Write-Host "ERROR: Could not find Windows SDK Debuggers include path (engextcpp.hpp)"
+          Write-Host "Searched in:"
+          $searchPaths | ForEach-Object { Write-Host "  - $_" }
+          exit 1
+        }
+        
+        # Find the corresponding lib\x64 path
+        $debuggerRoot = Split-Path -Parent $incPath
+        $libPath = Join-Path $debuggerRoot "lib\x64"
+        
+        if (-not (Test-Path $libPath)) {
+          Write-Host "ERROR: Could not find library path at: $libPath"
+          exit 1
+        }
+        
+        Write-Host "Found library path: $libPath"
+        
+        # Export paths as environment variables for subsequent steps
+        "WindowsSDKDebuggerIncPath=$incPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "WindowsSDKDebuggerLibPath=$libPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        
+        Write-Host ""
+        Write-Host "SDK paths configured successfully:"
+        Write-Host "  Include: $incPath"
+        Write-Host "  Library: $libPath"
+    
+    - name: Build Solution - ${{ matrix.configuration }}
+      shell: powershell
+      run: |
+        Write-Host "Building ${{ matrix.configuration }} configuration for x64 platform..."
+        Write-Host "Using SDK paths:"
+        Write-Host "  Include: $env:WindowsSDKDebuggerIncPath"
+        Write-Host "  Library: $env:WindowsSDKDebuggerLibPath"
+        
+        msbuild dk.sln /p:Configuration=${{ matrix.configuration }} /p:Platform=x64 /p:PlatformToolset=v143 /p:WindowsSDKDebuggerIncPath="$env:WindowsSDKDebuggerIncPath" /p:WindowsSDKDebuggerLibPath="$env:WindowsSDKDebuggerLibPath" /m /v:minimal
+        
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "Build failed with exit code $LASTEXITCODE"
+          exit $LASTEXITCODE
+        }
+        
+        Write-Host "Build completed successfully."
+    
+    - name: Verify Build Output
+      shell: powershell
+      run: |
+        $buildPath = "x64\${{ matrix.configuration }}\dk.dll"
+        if (Test-Path $buildPath) {
+          Write-Host "SUCCESS: Build artifact found: $buildPath"
+          $fileInfo = Get-Item $buildPath
+          Write-Host "  Size: $($fileInfo.Length) bytes"
+          Write-Host "  Created: $($fileInfo.CreationTime)"
+        } else {
+          Write-Host "FAILURE: Build artifact not found at expected location: $buildPath"
+          Write-Host ""
+          Write-Host "Listing build output directories:"
+          if (Test-Path "x64") {
+            Get-ChildItem -Path "x64" -Recurse | Select-Object FullName
+          }
+          exit 1
+        }
+    
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dk-${{ matrix.configuration }}-x64
+        path: |
+          x64/${{ matrix.configuration }}/dk.dll
+          x64/${{ matrix.configuration }}/dk.pdb
+        if-no-files-found: error

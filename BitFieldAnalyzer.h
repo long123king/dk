@@ -5,7 +5,7 @@
 #include <iomanip>
 #include <sstream>
 
-using namespace std;
+
 
 class CBitFieldAnalyzer
 {
@@ -14,7 +14,7 @@ public:
     {}
 
     CBitFieldAnalyzer(
-        __in const map<uint32_t, const char*>& definitions
+        __in const std::map<uint32_t, const char*>& definitions
     )
     {
         for (auto it = definitions.begin();
@@ -26,21 +26,21 @@ public:
     }
 
     CBitFieldAnalyzer(
-        __in map<uint32_t, const char*>&& definitions
+        __in std::map<uint32_t, const char*>&& definitions
     )
-        :m_definitions(move(definitions))
+        :m_definitions(std::move(definitions))
     {
     }
 
-    string
+    std::string
         GetText(
             __in const uint32_t compound,
             __in bool pureText = false
         )
     {
-        stringstream ss;
+        std::stringstream ss;
         if (!pureText)
-            ss << "0x" << hex << noshowbase << setw(8) << setfill('0') << compound << "(";
+            ss << "0x" << std::hex << std::noshowbase << std::setw(8) << std::setfill('0') << compound << "(";
 
         for (auto it = m_definitions.begin();
             it != m_definitions.end();
@@ -57,5 +57,5 @@ public:
     }
 
 private:
-    map<uint32_t, const char*> m_definitions;
+    std::map<uint32_t, const char*> m_definitions;
 };

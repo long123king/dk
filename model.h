@@ -22,7 +22,7 @@
 class CIModelObjectRefLogger
 {
 public:
-    CIModelObjectRefLogger(IModelObject* raw_object, string tag);
+    CIModelObjectRefLogger(IModelObject* raw_object, std::string tag);
     ~CIModelObjectRefLogger();
 
     uint32_t ref_count()
@@ -37,14 +37,14 @@ public:
 
 private:
     IModelObject* m_raw_object;
-    string m_tag;
+    std::string m_tag;
 };
 
 //#define DK_DBG
 
 #ifdef DK_DBG
-#define LOG_DEFINE_MGR       vector<shared_ptr<CIModelObjectRefLogger>> g_log_mgr;
-#define LOG_OBJ(mobj, tag)   mobj;g_log_mgr.emplace_back(make_shared<CIModelObjectRefLogger>(mobj.Get(), tag));
+#define LOG_DEFINE_MGR       std::vector<std::shared_ptr<CIModelObjectRefLogger>> g_log_mgr;
+#define LOG_OBJ(mobj, tag)   mobj;g_log_mgr.emplace_back(std::make_shared<CIModelObjectRefLogger>(mobj.Get(), tag));
 #define DK_DBG_MGET_POBJ(mobj, key)  CModelAccess::Instance()->get_pobj(mobj, key)
 #define DK_MGET_POBJ(mobj, key)              LOG_OBJ(DK_DBG_MGET_POBJ(mobj, key), key); 
 #define LOG_UNDEF_MGR        g_log_mgr.clear();
@@ -95,12 +95,12 @@ DECLARE_CMD(mobj_at)
 DECLARE_CMD(call)
 DECLARE_CMD(ccall)
 
-string BSTR2str(BSTR bstr);
+std::string BSTR2str(BSTR bstr);
 
 typedef struct _ttd_heap_memory
 {
-    string                      function;
-    tuple<uint64_t, uint64_t>   pos{ 0, 0 };
+    std::string                      function;
+    std::tuple<uint64_t, uint64_t>   pos{ 0, 0 };
     uint32_t                    thread_id{ 0 };
     uint64_t                    res_id{ 0 };
     uint64_t                    res_new_id{ 0 };
@@ -109,7 +109,7 @@ typedef struct _ttd_heap_memory
 
 typedef struct _ttd_mem_access
 {
-    string                      access_type;
+    std::string                      access_type;
     uint64_t                    ip_addr;
     uint64_t                    addr;
     uint64_t                    size;
@@ -117,8 +117,8 @@ typedef struct _ttd_mem_access
     uint64_t                    overwritten_value;
     uint64_t                    thread_id;
     uint64_t                    event_type;
-    tuple<uint64_t, uint64_t>   start_pos{ 0, 0 };
-    tuple<uint64_t, uint64_t>   end_pos{ 0, 0 };
+    std::tuple<uint64_t, uint64_t>   start_pos{ 0, 0 };
+    std::tuple<uint64_t, uint64_t>   end_pos{ 0, 0 };
 }ttd_mem_access;
 
 class CModelAccess
@@ -132,11 +132,11 @@ public:
 
     CModelAccess();
 
-    vector<tuple<string, string, string, DK_MOBJ_PTR>> ls(string model_path);
+    std::vector<std::tuple<std::string, std::string, std::string, DK_MOBJ_PTR>> ls(std::string model_path);
 
-    vector<tuple<string, string, DK_MOBJ_PTR>> enum_keyvalues(DK_MOBJ_PTR& mobj);
+    std::vector<std::tuple<std::string, std::string, DK_MOBJ_PTR>> enum_keyvalues(DK_MOBJ_PTR& mobj);
 
-    vector<tuple<string, string, DK_MOBJ_PTR>> enum_keys(DK_MOBJ_PTR& mobj);
+    std::vector<std::tuple<std::string, std::string, DK_MOBJ_PTR>> enum_keys(DK_MOBJ_PTR& mobj);
 
     void visit_root();
 
@@ -147,36 +147,36 @@ public:
     DK_MOBJ_PTR get_thread(size_t session_id, size_t process_id, size_t thread_id);
 
 public:
-    vector<tuple<uint64_t, DK_MOBJ_PTR>> iterate(DK_MOBJ_PTR& mobj);
+    std::vector<std::tuple<uint64_t, DK_MOBJ_PTR>> iterate(DK_MOBJ_PTR& mobj);
 
-    DK_MOBJ_PTR path2mobj(string path);
+    DK_MOBJ_PTR path2mobj(std::string path);
 
     DK_MOBJ_PTR at(DK_MOBJ_PTR& mobj, size_t index);
 
     ModelObjectKind get_kind(DK_MOBJ_PTR& mobj);
 
     template<class T, VARTYPE VT>
-    T get_pvalue(DK_MOBJ_PTR& mobj, string key);
+    T get_pvalue(DK_MOBJ_PTR& mobj, std::string key);
 
     template<class T, VARTYPE VT>
     T get_value(DK_MOBJ_PTR& mobj);
 
-    DK_MOBJ_PTR get_pobj(DK_MOBJ_PTR& mobj, string key);
+    DK_MOBJ_PTR get_pobj(DK_MOBJ_PTR& mobj, std::string key);
 
-    DK_MOBJ_PTR get_pobj_tree(DK_MOBJ_PTR& mobj, string key);
+    DK_MOBJ_PTR get_pobj_tree(DK_MOBJ_PTR& mobj, std::string key);
 
-    DK_MOBJ_PTR get_mobj_tree(string key);
+    DK_MOBJ_PTR get_mobj_tree(std::string key);
 
-    tuple<uint64_t, uint64_t> get_pos(DK_MOBJ_PTR& mobj, string key);
+    std::tuple<uint64_t, uint64_t> get_pos(DK_MOBJ_PTR& mobj, std::string key);
 
-    tuple<uint64_t, uint64_t, string> get_module(DK_MOBJ_PTR& mobj);
+    std::tuple<uint64_t, uint64_t, std::string> get_module(DK_MOBJ_PTR& mobj);
 
-    DK_MOBJ_PTR create_str_intrinsic_obj(string str);
+    DK_MOBJ_PTR create_str_intrinsic_obj(std::string str);
 
     template<class T, VARTYPE VT>
     DK_MOBJ_PTR create_int_intrinsic_obj(T val);
 
-    DK_MOBJ_PTR call(DK_MOBJ_PTR mobj, DK_MOBJ_PTR context, vector<DK_MOBJ_PTR> args);
+    DK_MOBJ_PTR call(DK_MOBJ_PTR mobj, DK_MOBJ_PTR context, std::vector<DK_MOBJ_PTR> args);
 
     DK_MOBJ_PTR assert_obj(DK_MOBJ_PTR& mobj);
 
@@ -198,64 +198,63 @@ public:
     bool isNT() {
         return m_nt;
     };
-    string dumpFilename(){
+    std::string dumpFilename(){
         return m_dump_filename;
     }
 
-    string dump_frame(DK_MOBJ_PTR frame);
+    std::string dump_frame(DK_MOBJ_PTR frame);
 
-    string dump_thread(DK_MOBJ_PTR thread);
+    std::string dump_thread(DK_MOBJ_PTR thread);
 
-    string dump_process(DK_MOBJ_PTR process);
+    std::string dump_process(DK_MOBJ_PTR process);
      
-    string dump_stack(DK_MOBJ_PTR stack);
+    std::string dump_stack(DK_MOBJ_PTR stack);
+    std::string dump_current_callstack();
 
-    string dump_current_callstack();
+    std::string dump_module(DK_MOBJ_PTR module);
 
-    string dump_module(DK_MOBJ_PTR module);
+    std::string dump_session(DK_MOBJ_PTR session);
 
-    string dump_session(DK_MOBJ_PTR session);
+    std::string dump_handle(DK_MOBJ_PTR handle);
 
-    string dump_handle(DK_MOBJ_PTR handle);
+    std::string dump_event(DK_MOBJ_PTR event);
 
-    string dump_event(DK_MOBJ_PTR event);
+    std::string dump_call_result(DK_MOBJ_PTR call_result);
 
-    string dump_call_result(DK_MOBJ_PTR call_result);
+    std::string dump_heap_memory(DK_MOBJ_PTR heap_memory);
 
-    string dump_heap_memory(DK_MOBJ_PTR heap_memory);
+    std::vector<ttd_heap_memory> get_heap_memory();
 
-    vector<ttd_heap_memory> get_heap_memory();
+    std::string dump_mem_access_result(DK_MOBJ_PTR mem_access_result);
 
-    string dump_mem_access_result(DK_MOBJ_PTR mem_access_result);
+    std::string dump_mem_use_result(DK_MOBJ_PTR mem_use_result);
 
-    string dump_mem_use_result(DK_MOBJ_PTR mem_use_result);
-
-    vector<array<uint64_t, 5>> get_current_callstack();
+    std::vector<std::array<uint64_t, 5>> get_current_callstack();
 
     void seek_to(uint64_t seq, uint64_t step);
 
-    string dump_mobj(DK_MOBJ_PTR mobj, bool b_show_children = true, string mobj_path = "");
+    std::string dump_mobj(DK_MOBJ_PTR mobj, bool b_show_children = true, std::string mobj_path = "");
 
-    vector<string> execute_cmd(string command);
+    std::vector<std::string> execute_cmd(std::string command);
 
     uint64_t get_current_tid();
 
-    vector<ttd_mem_access> get_mem_access(uint64_t start_addr, uint64_t end_addr, string mode);
+    std::vector<ttd_mem_access> get_mem_access(uint64_t start_addr, uint64_t end_addr, std::string mode);
 
     DK_MOBJ_PTR get_current_session();
     DK_MOBJ_PTR get_current_process();
     DK_MOBJ_PTR get_current_thread();
     DK_MOBJ_PTR get_current_stack();
     DK_MOBJ_PTR get_current_frame();
-    tuple<uint64_t, uint64_t> get_current_pos();
+    std::tuple<uint64_t, uint64_t> get_current_pos();
 
 private:
     IHostDataModelAccess*   m_model_access{ nullptr };
     IDataModelManager*      m_model_mgr{ nullptr };
     IDebugHost*             m_debug_host{ nullptr };
 
-    static map<ModelObjectKind, string> s_map_kind_name;
-    static map<VARTYPE, string> s_map_vt_name;
+    static std::map<ModelObjectKind, std::string> s_map_kind_name;
+    static std::map<VARTYPE, std::string> s_map_vt_name;
 
     bool m_usermode = { false };
     bool m_kernelmode = { false };
@@ -264,7 +263,7 @@ private:
     bool m_livemode = { false };
     bool m_nt = { false };
 
-    string m_dump_filename;
+    std::string m_dump_filename;
 
 public:
     DK_MOBJ_PTR m_debugger;
@@ -273,5 +272,5 @@ public:
     DK_MOBJ_PTR m_cur_thread;
     DK_MOBJ_PTR m_cur_session;
 
-    vector<tuple<uint64_t, DK_MOBJ_PTR>> m_sessions;
+    std::vector<std::tuple<uint64_t, DK_MOBJ_PTR>> m_sessions;
 };

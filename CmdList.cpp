@@ -122,9 +122,9 @@ BOOL __stdcall CmdListMain(HANDLE Instance, ULONG Reason, PVOID Reserved)
     return TRUE;
 }
 
-vector<string> CCmdList::GetValidCommands()
+std::vector<std::string> CCmdList::GetValidCommands()
 {
-    vector<string> valid_cmds;
+    std::vector<std::string> valid_cmds;
 
     for (auto cmd : m_cmd_hanlders)
         valid_cmds.push_back(cmd.first);

@@ -59,8 +59,8 @@ void dump_modules()
             size_t module_addr = modules_list.GetNodeOffset();
 
             size_t base_addr = module.Field("DllBase").GetUlongPtr();
-            wstring full_name = EXT_F_READ_USTR(module_addr + module.GetFieldOffset("FullDllName"));
-            wstring base_name = EXT_F_READ_USTR(module_addr + module.GetFieldOffset("BaseDllName"));
+            std::wstring full_name = EXT_F_READ_USTR(module_addr + module.GetFieldOffset("FullDllName"));
+            std::wstring base_name = EXT_F_READ_USTR(module_addr + module.GetFieldOffset("BaseDllName"));
             size_t entry = module.Field("EntryPoint").GetUlongPtr();
             uint32_t size = module.Field("SizeOfImage").GetUlong();
 

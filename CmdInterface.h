@@ -3,10 +3,8 @@
 #include <string>
 #include <vector>
 
-using namespace std;
+using CmdHandler = void (*)(std::vector<std::string>& args);
 
-using CmdHandler = void (*)(vector<string>& args);
-
-#define DECLARE_CMD(x) void cmd_##x(vector<string>& args);
-#define DEFINE_CMD(x) void cmd_##x(vector<string>& args)
+#define DECLARE_CMD(x) void cmd_##x(std::vector<std::string>& args);
+#define DEFINE_CMD(x) void cmd_##x(std::vector<std::string>& args)
 #define CMD_HANDLER(x) cmd_##x

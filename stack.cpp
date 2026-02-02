@@ -30,8 +30,8 @@ void dump_threads_stack(size_t process_addr)
 
             size_t trap_frame_addr = threads_list.GetTypedNode().Field("Tcb.TrapFrame").GetUlongPtr();
 
-            stringstream cmd;
-            cmd << ".thread " << hex << showbase << thread_addr << ";";
+            std::stringstream cmd;
+            cmd << ".thread " << std::hex << std::showbase << thread_addr << ";";
 
             if (S_OK == EXT_F_EXEC(cmd.str()) && (trap_frame_addr == 0 || EXT_F_ValidAddr(trap_frame_addr)))
                 EXT_F_EXEC("kf");
