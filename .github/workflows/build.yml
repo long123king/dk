@@ -33,13 +33,15 @@ jobs:
         Write-Host "`nChecking pre-installed SDKs..."
         $kitsPath = "C:\Program Files (x86)\Windows Kits\10\Include"
         if (Test-Path $kitsPath) {
-          $kits = Get-ChildItem $kitsPath
-          foreach ($kit in $kits) { Write-Host "  - $($kit.Name)" }
+          Get-ChildItem $kitsPath | ForEach-Object { Write-Host "  - $($_.Name)" }
         }
         
         # Check for Debugging Tools
         $debuggerFound = $false
-        $searchPaths = @("C:\Program Files (x86)\Windows Kits\10\Debuggers\inc\engextcpp.hpp", "C:\Program Files\Windows Kits\10\Debuggers\inc\engextcpp.hpp")
+        # Define paths individually to avoid array parsing issues in YAML
+        $p1 = "C:\Program Files (x86)\Windows Kits\10\Debuggers\inc\engextcpp.hpp"
+        $p2 = "C:\Program Files\Windows Kits\10\Debuggers\inc\engextcpp.hpp"
+        $searchPaths = @($p1, $p2)
         
         foreach ($path in $searchPaths) {
           if (Test-Path $path) {
