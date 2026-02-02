@@ -2,9 +2,9 @@ name: Build
 
 on:
   push:
-    branches: [ main, master, working]  # Add your branch
+    branches: [ main, master, working, fixsdk]  # Add your branch
   pull_request:
-    branches: [ main, master, working ]
+    branches: [ main, master, working, fixsdk]
 
 jobs:
   build:
@@ -32,7 +32,7 @@ jobs:
         # Using Chocolatey to install Windows SDK with Debuggers
         # Note: Using windows-sdk-10.1 as it's the most stable version with Debugging Tools
         # If this version becomes unavailable, consider using 'windows-sdk-10-version-xxxx-all'
-        choco install windows-sdk-10.1 --params="/features:OptionId.WindowsDesktopDebuggers" -y
+        choco install windows-sdk-11-version-21H2-all --params="/features:OptionId.WindowsDesktopDebuggers" -y
         
         Write-Host "Installation completed."
     
