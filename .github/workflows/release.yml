@@ -1,17 +1,17 @@
-name: Build
+name: Create Release
 
 on:
   push:
-    branches: [ main, master]  # Add your branch
-  pull_request:
-    branches: [ main, master]
+    tags:
+      - 'v*.*.*'  # Triggers on version tags like v1.0.0, v1.0, v2.1.0, etc.
+      - 'v*.*'    # Also supports v1.0 format
+
+permissions:
+  contents: write  # Required to create releases
 
 jobs:
-  build:
+  build-and-release:
     runs-on: windows-latest
-    
-    permissions:
-      contents: read
     
     strategy:
       matrix:
@@ -134,7 +134,7 @@ jobs:
         Write-Host "  Include: $env:WindowsSDKDebuggerIncPath"
         Write-Host "  Library: $env:WindowsSDKDebuggerLibPath"
         
-        msbuild dk.sln /p:Configuration=${{ matrix.configuration }} /p:Platform=x64 /p:PlatformToolset=v143 /p:WindowsSDKDebuggerIncPath="$env:WindowsSDKDebuggerIncPath" /p:WindowsSDKDebuggerLibPath="$env:WindowsSDKDebuggerLibPath" /m /v:minimal
+        msbuild dk.sln /p:Configuration=${{ matrix.configuration }} /p:Platform=x64 /p:PlatformToolset=v143 /p:WindowsSDKDebuggerIncPath="$env:WindowsSDKDebuggerIncPath" /p:WindowsSDKDebuggerLibPath="$env:WindowsSDKDebuggerLibPath" /v:minimal
         
         if ($LASTEXITCODE -ne 0) {
           Write-Host "Build failed with exit code $LASTEXITCODE"
@@ -143,30 +143,71 @@ jobs:
         
         Write-Host "Build completed successfully."
     
-    - name: Verify Build Output
+    - name: Package Build Artifacts
       shell: powershell
       run: |
-        $buildPath = "x64\${{ matrix.configuration }}\dk.dll"
-        if (Test-Path $buildPath) {
-          Write-Host "SUCCESS: Build artifact found: $buildPath"
-          $fileInfo = Get-Item $buildPath
-          Write-Host "  Size: $($fileInfo.Length) bytes"
-          Write-Host "  Created: $($fileInfo.CreationTime)"
-        } else {
-          Write-Host "FAILURE: Build artifact not found at expected location: $buildPath"
-          Write-Host ""
-          Write-Host "Listing build output directories:"
-          if (Test-Path "x64") {
-            Get-ChildItem -Path "x64" -Recurse | Select-Object FullName
-          }
-          exit 1
-        }
+        $config = "${{ matrix.configuration }}"
+        $buildPath = "x64\$config"
+        
+        # Create a release directory
+        $releaseDir = "release-artifacts\$config"
+        New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
+        
+        # Copy DLL and PDB
+        Copy-Item "$buildPath\dk.dll" -Destination $releaseDir
+        Copy-Item "$buildPath\dk.pdb" -Destination $releaseDir
+        
+        # Create a zip file
+        $zipName = "dk-${{ github.ref_name }}-$config-x64.zip"
+        Compress-Archive -Path "$releaseDir\*" -DestinationPath $zipName
+        
+        Write-Host "Created release package: $zipName"
     
-    - name: Upload Build Artifacts
+    - name: Upload artifacts for release job
       uses: actions/upload-artifact@v4
       with:
-        name: dk-${{ matrix.configuration }}-x64
-        path: |
-          x64/${{ matrix.configuration }}/dk.dll
-          x64/${{ matrix.configuration }}/dk.pdb
-        if-no-files-found: error
+        name: release-${{ matrix.configuration }}
+        path: dk-${{ github.ref_name }}-${{ matrix.configuration }}-x64.zip
+
+  create-release:
+    needs: build-and-release
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+    
+    - name: Display structure of downloaded files
+      run: ls -R artifacts
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: artifacts/**/*.zip
+        body: |
+          # dk WinDbg Extension ${{ github.ref_name }}
+          
+          WinDbg extension for dumping memory data in meaningful and organized ways.
+          
+          ## Downloads
+          
+          - **Release Build (Recommended)**: `dk-${{ github.ref_name }}-Release-x64.zip`
+          - **Debug Build**: `dk-${{ github.ref_name }}-Debug-x64.zip`
+          
+          ## Installation
+          
+          1. Download and extract the appropriate ZIP file
+          2. Load the extension in WinDbg: `.load path\to\dk.dll`
+          
+          ## What's Changed
+          
+          See commit history for detailed changes in this release.
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
