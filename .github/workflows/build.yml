@@ -38,12 +38,12 @@ jobs:
         
         # Check for Debugging Tools
         $debuggerFound = $false
-        # Define paths individually to avoid array parsing issues in YAML
-        $p1 = "C:\Program Files (x86)\Windows Kits\10\Debuggers\inc\engextcpp.hpp"
-        $p2 = "C:\Program Files\Windows Kits\10\Debuggers\inc\engextcpp.hpp"
-        $searchPaths = @($p1, $p2)
+        # Use simple comma list
+        $searchPaths = "C:\Program Files (x86)\Windows Kits\10\Debuggers\inc\engextcpp.hpp", "C:\Program Files\Windows Kits\10\Debuggers\inc\engextcpp.hpp"
         
-        foreach ($path in $searchPaths) {
+        # Use standard for loop to avoid parser issues
+        for ($i = 0; $i -lt $searchPaths.Count; $i++) {
+          $path = $searchPaths[$i]
           if (Test-Path $path) {
             Write-Host "`n✓ Debugging Tools found at: $(Split-Path -Parent $path)"
             $debuggerFound = $true
@@ -81,15 +81,13 @@ jobs:
         Write-Host "Searching for Windows SDK Debuggers installation..."
         
         # Search for the SDK installation in common locations
-        $searchPaths = @(
-          "C:\Program Files (x86)\Windows Kits",
-          "C:\Program Files\Windows Kits"
-        )
+        $searchPaths = "C:\Program Files (x86)\Windows Kits", "C:\Program Files\Windows Kits"
         
         $incPath = ""
         $libPath = ""
         
-        foreach ($searchPath in $searchPaths) {
+        for ($i = 0; $i -lt $searchPaths.Count; $i++) {
+          $searchPath = $searchPaths[$i]
           if (Test-Path $searchPath) {
             # Find engextcpp.hpp
             $incFiles = Get-ChildItem -Path $searchPath -Filter "engextcpp.hpp" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -104,9 +102,7 @@ jobs:
         if (-not $incPath) {
           Write-Host "ERROR: Could not find Windows SDK Debuggers include path (engextcpp.hpp)"
           Write-Host "Searched in:"
-          foreach ($sp in $searchPaths) {
-            Write-Host "  - $sp"
-          }
+          $searchPaths | ForEach-Object { Write-Host "  - $_" }
           exit 1
         }
         
