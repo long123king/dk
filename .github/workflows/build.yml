@@ -30,7 +30,7 @@ jobs:
         Write-Host "Setting up Windows SDK and Debugging Tools..."
         
         # First, check what's already available
-        Write-Host "`nChecking pre-installed SDKs..."
+        Write-Host "Checking pre-installed SDKs..."
         $kitsPath = "C:\Program Files (x86)\Windows Kits\10\Include"
         if (Test-Path $kitsPath) {
           Get-ChildItem $kitsPath | ForEach-Object { Write-Host "  - $($_.Name)" }
@@ -38,21 +38,21 @@ jobs:
         
         # Check for Debugging Tools
         $debuggerFound = $false
-        # Use simple comma list
-        $searchPaths = "C:\Program Files (x86)\Windows Kits\10\Debuggers\inc\engextcpp.hpp", "C:\Program Files\Windows Kits\10\Debuggers\inc\engextcpp.hpp"
+        $searchPaths = @(
+          "C:\Program Files (x86)\Windows Kits\10\Debuggers\inc\engextcpp.hpp",
+          "C:\Program Files\Windows Kits\10\Debuggers\inc\engextcpp.hpp"
+        )
         
-        # Use standard for loop to avoid parser issues
-        for ($i = 0; $i -lt $searchPaths.Count; $i++) {
-          $path = $searchPaths[$i]
-          if (Test-Path $path) {
-            Write-Host "`n✓ Debugging Tools found at: $(Split-Path -Parent $path)"
-            $debuggerFound = $true
-            break
-          }
+        # Use pipeline to find the first existing path (avoids loop parser errors)
+        $existing = $searchPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+        
+        if ($existing) {
+          Write-Host "Debugging Tools found at: $(Split-Path -Parent $existing)"
+          $debuggerFound = $true
         }
         
         if (-not $debuggerFound) {
-          Write-Host "`nDebugging Tools not found. Installing latest Windows SDK..."
+          Write-Host "Debugging Tools not found. Installing latest Windows SDK..."
           
           # Download latest Windows 11 SDK web installer to ensure latest version
           $url = "https://go.microsoft.com/fwlink/?linkid=2196241"
@@ -72,7 +72,7 @@ jobs:
             choco install windows-sdk-11 -y --no-progress
           }
           
-          Write-Host "`n✓ Installation completed."
+          Write-Host "Installation completed."
         }
     
     - name: Detect SDK Paths and Setup Environment
@@ -81,22 +81,22 @@ jobs:
         Write-Host "Searching for Windows SDK Debuggers installation..."
         
         # Search for the SDK installation in common locations
-        $searchPaths = "C:\Program Files (x86)\Windows Kits", "C:\Program Files\Windows Kits"
+        $searchPaths = @(
+          "C:\Program Files (x86)\Windows Kits",
+          "C:\Program Files\Windows Kits"
+        )
         
         $incPath = ""
         $libPath = ""
         
-        for ($i = 0; $i -lt $searchPaths.Count; $i++) {
-          $searchPath = $searchPaths[$i]
-          if (Test-Path $searchPath) {
-            # Find engextcpp.hpp
-            $incFiles = Get-ChildItem -Path $searchPath -Filter "engextcpp.hpp" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($incFiles) {
-              $incPath = Split-Path -Parent $incFiles.FullName
-              Write-Host "Found include path: $incPath"
-              break
-            }
-          }
+        # Use pipeline to recursively search (avoids loop parser errors)
+        $incFile = $searchPaths | Where-Object { Test-Path $_ } | ForEach-Object {
+            Get-ChildItem -Path $_ -Filter "engextcpp.hpp" -Recurse -ErrorAction SilentlyContinue 
+        } | Select-Object -First 1
+
+        if ($incFile) {
+            $incPath = Split-Path -Parent $incFile.FullName
+            Write-Host "Found include path: $incPath"
         }
         
         if (-not $incPath) {
