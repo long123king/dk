@@ -1,3 +1,4 @@
+#include "model.h"
 #include "page.h"
 #include "CmdExt.h"
 #include "CmdList.h"
@@ -8,12 +9,24 @@
 DEFINE_CMD(page)
 {
 	size_t addr = EXT_F_IntArg(args, 1, 0);
+	if (!DK_MODEL_ACCESS->isKernelmode())
+	{
+		CMD_LIST->PrintUsage("page");
+		EXT_F_OUT("Kernel Mode Only\n");
+		return;
+	}
 	dump_page_info(addr);
 }
 
 DEFINE_CMD(pages)
 {
 	size_t addr = EXT_F_IntArg(args, 1, 0);
+	if (!DK_MODEL_ACCESS->isKernelmode())
+	{
+		CMD_LIST->PrintUsage("pages");
+		EXT_F_OUT("Kernel Mode Only\n");
+		return;
+	}
 	dump_pages_around(addr);
 }
 
@@ -146,6 +159,9 @@ void dump_hole(size_t addr)
 			size_t start_page_addr = (addr & 0xFFFFFFFFFFFFF000 - 0x1000 * 0x80) & 0xFFFFFFFFFFF00000;
 
 			std::stringstream ss;
+			ss << "Legend:\n";
+			ss << "\t ! = valid page\n";
+			ss << "\t . = hole page\n";
 			ss << "\n++++++++++++++++++++++++++++++++++++++++++++++\n";
 			for (size_t i = 0; i < 0x200; i++)
 			{
@@ -154,12 +170,13 @@ void dump_hole(size_t addr)
 					if (current)
 					{
 						current = false;
-						ss << "\t\t <-----[" << std::hex << std::showbase << std::setw(16) << std::setfill('0') << "]" << addr;
+						// ss << "\t\t <-----[" << std::hex << std::showbase << std::setw(16) << std::setfill('0') << "]" << addr;
+						ss << "\t\t <----- [" << std::hex << std::showbase << addr << "]";
 					}
 					ss << "\n" << std::hex << std::showbase << std::setw(16) << std::setfill('0') << start_page_addr + i * 0x1000 << ": ";
 				}
 
-				if (addr >= start_page_addr + i * 0x1000 && addr <= start_page_addr + (i + 1) * 0x1000)
+				if (addr >= start_page_addr + i * 0x1000 && addr < start_page_addr + (i + 1) * 0x1000)
 					current = true;
 
 				if (EXT_F_ValidAddr(start_page_addr + i * 0x1000))

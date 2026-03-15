@@ -1,3 +1,5 @@
+#include "model.h"
+#include "CmdList.h"
 #include "process.h"
 #include "token.h"
 #include "CmdExt.h"
@@ -390,6 +392,13 @@ struct MITIGATION_FLAGS2
 
 DEFINE_CMD(pses)
 {
+	if (!DK_MODEL_ACCESS->isKernelmode())
+	{
+		CMD_LIST->PrintUsage("pses");
+		EXT_F_OUT("Kernel Mode Only\n");
+		return;
+	}
+
     try
     {
         ExtRemoteTypedList pses_list = ExtNtOsInformation::GetKernelProcessList();
@@ -405,18 +414,39 @@ DEFINE_CMD(pses)
 
 DEFINE_CMD(ps_flags)
 {
+	if (!DK_MODEL_ACCESS->isKernelmode())
+	{
+		CMD_LIST->PrintUsage("ps_flags");
+		EXT_F_OUT("Kernel Mode Only\n");
+		return;
+	}
+
 	size_t addr = EXT_F_IntArg(args, 1, 0);
 	dump_ps_flags(addr);
 }
 
 DEFINE_CMD(kill)
 {
+	if (!DK_MODEL_ACCESS->isKernelmode())
+	{
+		CMD_LIST->PrintUsage("kill");
+		EXT_F_OUT("Kernel Mode Only\n");
+		return;
+	}
+
 	size_t proc_addr = EXT_F_IntArg(args, 1, curr_proc());
 	kill_process(proc_addr);
 }
 
 DEFINE_CMD(process)
 {
+	if (!DK_MODEL_ACCESS->isKernelmode())
+	{
+		CMD_LIST->PrintUsage("process");
+		EXT_F_OUT("Kernel Mode Only\n");
+		return;
+	}
+
 	size_t proc_addr = EXT_F_IntArg(args, 1, curr_proc());
 	dump_process(proc_addr);
 }

@@ -1,3 +1,4 @@
+#include "model.h"
 #include "session.h"
 #include "CmdExt.h"
 #include "CmdList.h"
@@ -8,11 +9,25 @@
 
 DEFINE_CMD(sessions)
 {
+    if (!DK_MODEL_ACCESS->isKernelmode())
+    {
+        CMD_LIST->PrintUsage("sessions");
+        EXT_F_OUT("Kernel Mode Only\n");
+        return;
+    }
+
     dump_logon_sessions();
 }
 
 DEFINE_CMD(sessionpool)
 {
+    if (!DK_MODEL_ACCESS->isKernelmode())
+    {
+        CMD_LIST->PrintUsage("sessionpool");
+        EXT_F_OUT("Kernel Mode Only\n");
+        return;
+    }
+
     dump_session_pool();
 }
 

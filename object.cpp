@@ -1,3 +1,4 @@
+#include "model.h"
 #include "object.h"
 #include "CmdList.h"
 #include "CmdExt.h"
@@ -64,6 +65,13 @@ getObjectStructByName(
 
 DEFINE_CMD(obj)
 {
+	if (!DK_MODEL_ACCESS->isKernelmode() || args.size() < 2)
+	{
+		CMD_LIST->PrintUsage("obj");
+		EXT_F_OUT("Kernel Mode Only\n");
+		return;
+	}
+
 	size_t obj_addr = EXT_F_IntArg(args, 1, 0);
 
     dump_obj(obj_addr);
@@ -71,6 +79,13 @@ DEFINE_CMD(obj)
 
 DEFINE_CMD(gobj)
 {
+	if (!DK_MODEL_ACCESS->isKernelmode())
+	{
+		CMD_LIST->PrintUsage("gobj");
+		EXT_F_OUT("Kernel Mode Only\n");
+		return;
+	}
+
     size_t root_obj_dir_addr = readDbgDataAddr(DEBUG_DATA_ObpRootDirectoryObjectAddr);
     if (root_obj_dir_addr == 0)
         return;
@@ -84,6 +99,13 @@ DEFINE_CMD(gobj)
 
 DEFINE_CMD(obj_dir)
 {
+	if (!DK_MODEL_ACCESS->isKernelmode() || args.size() < 2)
+	{
+		CMD_LIST->PrintUsage("obj_dir");
+		EXT_F_OUT("Kernel Mode Only\n");
+		return;
+	}
+
 	size_t addr = EXT_F_IntArg(args, 1, 0);
 	dump_obj_dir(addr, 0, true);
 }

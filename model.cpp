@@ -3,8 +3,12 @@
 #include "CmdExt.h"
 #include "CmdList.h"
 #include <iomanip>
+#include <fstream>
 #pragma warning( disable : 4311)
 #pragma warning( disable : 4302)
+
+#include "json/json.hpp"
+using json = nlohmann::json;
 
 LOG_DEFINE_MGR
 
@@ -12,9 +16,10 @@ DEFINE_CMD(ls_model)
 {
     if (args.size() < 2)
     {
-        EXT_F_ERR("Usage: !dk ls_model <model_path>\n");
+        CMD_LIST->PrintUsage("ls_model");
         return;
     }
+
     auto results = DK_DUMP(mobj)(DK_MODEL_ACCESS->get_mobj_tree(args[1]), true, args[1]);
 
     EXT_F_DML(results.c_str());
@@ -24,7 +29,7 @@ DEFINE_CMD(exec)
 {
     if (args.size() < 2)
     {
-        EXT_F_ERR("Usage: !dk exec <command>\n");
+        CMD_LIST->PrintUsage("exec");
         return;
     }
 
@@ -60,7 +65,7 @@ DEFINE_CMD(mobj)
 {
     if (args.size() < 2)
     {
-        EXT_F_ERR("Usage: !dk mobj <mobj_path>\n");
+        CMD_LIST->PrintUsage("mobj");
         return;
     }
 
@@ -75,7 +80,7 @@ DEFINE_CMD(mobj_at)
 {
     if (args.size() < 3)
     {
-        EXT_F_ERR("Usage: !dk mobj_at <mobj_path> <index>\n");
+        CMD_LIST->PrintUsage("mobj_at");
         return;
     }
 
@@ -90,20 +95,32 @@ DEFINE_CMD(mobj_at)
 
     ss << mobj_path << "[" << index << "]";
 
-    EXT_F_DML(DK_DUMP(mobj)(child_obj, true, ss.str()).c_str());
+    if (child_obj != nullptr)
+    {
+        EXT_F_DML(DK_DUMP(mobj)(child_obj, true, ss.str()).c_str());
+    }
+    else
+    {
+        EXT_F_DML(("<No such child object at index: " + std::to_string(index) + ">").c_str());
+    }
 }
 
 DEFINE_CMD(call)
 {
     if (args.size() < 2)
     {
-        EXT_F_ERR("Usage: !dk call <mobj_path>\n");
+        CMD_LIST->PrintUsage("call");
         return;
     }
 
     auto mobj_path = args[1];
 
     auto mobj = DK_MODEL_ACCESS->get_mobj_tree(mobj_path);
+    if (!mobj)
+    {
+        EXT_F_ERR("Model Object not found for path: %s\n", mobj_path.c_str());
+        return;
+    }
 
     auto parent_path = mobj_path;
     auto it_last = parent_path.find_last_of('.');
@@ -117,20 +134,30 @@ DEFINE_CMD(call)
     std::vector<DK_MOBJ_PTR> vec_args;
     auto call_result = DK_MODEL_ACCESS->call(mobj, parent_mobj, vec_args);
     if (call_result)
+    {
+        EXT_F_DML("Call Result: (Calling methods of result object may fail.)\n");
         EXT_F_DML(DK_DUMP(mobj)(call_result, true, mobj_path).c_str());
+    }
+    else
+        EXT_F_DML("<Call Result: Empty>");
 }
 
 DEFINE_CMD(ccall)
 {
     if (args.size() < 3)
     {
-        EXT_F_ERR("Usage: !dk call <mobj_path> <context_path>\n");
+        CMD_LIST->PrintUsage("ccall");
         return;
     }
 
     auto mobj_path = args[1];
 
     auto mobj = DK_MODEL_ACCESS->get_mobj_tree(mobj_path);
+    if (!mobj)
+    {
+        EXT_F_ERR("Model Object not found for path: %s\n", mobj_path.c_str());
+        return;
+    }
 
     auto parent_path = args[2];
 
@@ -141,14 +168,19 @@ DEFINE_CMD(ccall)
     std::vector<DK_MOBJ_PTR> vec_args;
     auto call_result = DK_MODEL_ACCESS->call(mobj, parent_mobj, vec_args);
     if (call_result)
+    {
+        EXT_F_DML("Call Result: (Calling methods of result object may fail.)\n");
         EXT_F_DML(DK_DUMP(mobj)(call_result, true, mobj_path).c_str());
+    }
+    else
+        EXT_F_DML("<CCall Result: Empty>");
 }
 
 DEFINE_CMD(ls_processes)
 {
     if (args.size() < 2)
     {
-        EXT_F_ERR("Usage: !dk ls_processes <session_id>\n");
+        CMD_LIST->PrintUsage("ls_processes");
         return;
     }
 
@@ -178,7 +210,8 @@ DEFINE_CMD(ls_threads)
 {
     if (args.size() < 3)
     {
-        EXT_F_OUT("Usage: !dk ls_threads <session_id> <process_id>\n");
+        //EXT_F_OUT("Usage: !dk ls_threads <session_id> <process_id>\n");
+        CMD_LIST->PrintUsage("ls_threads");
         return;
     }
     
@@ -215,7 +248,7 @@ DEFINE_CMD(ls_modules)
 {
     if (args.size() < 3)
     {
-        EXT_F_OUT("Usage: !dk ls_modules <session_id> <process_id>\n");
+        CMD_LIST->PrintUsage("ls_modules");
         return;
     }
     
@@ -253,7 +286,7 @@ DEFINE_CMD(ls_handles)
 {
     if (args.size() < 3)
     {
-        EXT_F_OUT("Usage: !dk ls_handles <session_id> <process_id>\n");
+        CMD_LIST->PrintUsage("ls_handles");
         return;
     }
 
@@ -296,7 +329,9 @@ DEFINE_CMD(ps_ttd)
 {
     if (!DK_MODEL_ACCESS->isTTD() || args.size() < 3)
     {
-        EXT_F_OUT("Usage: !dk ps_ttd <session_id> <pid>\nTTD Mode Only\n");
+        // EXT_F_OUT("Usage: !dk ps_ttd <session_id> <pid>\nTTD Mode Only\n");
+        CMD_LIST->PrintUsage("ps_ttd");
+        EXT_F_OUT("TTD Mode Only\n");
         return;
     }
 
@@ -332,7 +367,9 @@ DEFINE_CMD(session_ttd)
 {
     if (!DK_MODEL_ACCESS->isTTD() || args.size() < 2)
     {
-        EXT_F_OUT("Usage: !dk session_ttd <session_id>\nTTD Mode Only\n");
+        // EXT_F_OUT("Usage: !dk session_ttd <session_id>\nTTD Mode Only\n");
+        CMD_LIST->PrintUsage("session_ttd");
+        EXT_F_OUT("TTD Mode Only\n");
         return;
     }
 
@@ -363,14 +400,17 @@ DEFINE_CMD(ttd_calls)
 {
     if (!DK_MODEL_ACCESS->isTTD() || args.size() < 3)
     {
-        EXT_F_OUT("Usage: !dk ttd_calls <session_id> <call_pattern>\nTTD Mode Only\n");
+        // EXT_F_OUT("Usage: !dk ttd_calls <session_id> <call_pattern>\nTTD Mode Only\n");
+        CMD_LIST->PrintUsage("ttd_calls");
+        EXT_F_OUT("TTD Mode Only\n");
         return;
     }
 
-    auto session_id = EXT_F_IntArg(args, 1, 0);
-    auto call_pattern = args[2];
+    auto call_pattern = args[1];
 
-    auto session = DK_MGET_SESN(session_id);
+    auto desc = args.size() > 2 ? args[2] : "";
+
+    auto session = DK_MODEL_ACCESS->get_current_session();
     if (session != nullptr)
     {
         auto ttd = DK_MGET_POBJ(session, "TTD");
@@ -388,14 +428,185 @@ DEFINE_CMD(ttd_calls)
                 auto call_result = DK_MODEL_ACCESS->call(calls_pobj, ttd, vec_args);
                 if (call_result != nullptr)
                 {
+                    json calls_root = json::array();
+
+                    std::string out_filename = DK_GET_DUMP_FILENAME();
+
+                    out_filename = out_filename.substr(0, out_filename.find_last_of('.'));
+
+                    std::stringstream ss;
+                    ss << out_filename << "_calls_"
+                        << call_pattern
+                        << "_" << desc
+                        << ".json";
+
+                    out_filename = ss.str();
+
+                    EXT_F_OUT("Output file: %s\n", out_filename.c_str());
+
                     auto results = DK_MODEL_ACCESS->iterate(call_result);
                     for (auto& result : results)
                     {                         
-                        EXT_F_OUT(DK_DUMP(call_result)(get<1>(result)).c_str());
+                        auto call_info = get<1>(result);
+
+                        auto start_pos = DK_MODEL_ACCESS->get_pos(call_info, "TimeStart");
+                        auto end_pos = DK_MODEL_ACCESS->get_pos(call_info, "TimeEnd");
+
+                        auto function = BSTR2str(DK_MODEL_ACCESS->get_pvalue<BSTR, VT_BSTR>(call_info, "Function"));
+                        auto func_addr = DK_MODEL_ACCESS->get_pvalue<uint64_t, VT_UI8>(call_info, "FunctionAddress");
+                        auto return_addr = DK_MODEL_ACCESS->get_pvalue<uint64_t, VT_UI8>(call_info, "ReturnAddress");
+                        auto return_val = DK_MODEL_ACCESS->get_pvalue<uint64_t, VT_UI8>(call_info, "ReturnValue");
+                        auto thread_id = DK_MODEL_ACCESS->get_pvalue<uint64_t, VT_UI8>(call_info, "ThreadId");
+                        auto event_type = DK_MODEL_ACCESS->get_pvalue<uint64_t, VT_UI8>(call_info, "EventType");
+
+                        auto func_sym = EXT_F_Addr2Sym(func_addr);
+
+                        auto func_name = get<0>(func_sym);
+                        //if (func_name.empty())
+                        if (desc.empty())
+                            desc = func_name;
+
+                        std::string module_name = "";
+                        if (func_name.find('!') != std::string::npos)
+                        {
+                            module_name = func_name.substr(0, func_name.find('!'));
+                        }
+
+                        ss.str("");
+                        ss
+                            << std::hex
+                            << "(!tt " << get<0>(start_pos) << ":" << get<1>(start_pos) << ") - "
+                            << "(!tt " << get<0>(end_pos) << ":" << get<1>(end_pos) << ") "
+                            << " tid: " << thread_id
+                            << " " << std::showbase << return_addr
+                            << " => " << std::showbase << func_addr
+                            << " " << std::showbase << return_val
+                            << "=" << desc
+                            ;
+
+
+
+                        //call_info_obj["parameters"] = json::array();
+
+                        auto parameters_pobj = DK_MODEL_ACCESS->get_pobj(call_info, "Parameters");
+                        if (parameters_pobj != nullptr)
+                        {
+                            ss << "(";
+                            auto params = DK_MODEL_ACCESS->iterate(parameters_pobj);
+                            for (auto& param : params)
+                            {
+                                //call_info_obj["parameters"].push_back(DK_MODEL_ACCESS->get_value<uint64_t, VT_UI8>(get<1>(param)));
+                                ss << std::hex << std::showbase << DK_MODEL_ACCESS->get_value<uint64_t, VT_UI8>(get<1>(param)) << ", ";
+                            }
+
+                            ss << "...)";
+                            params.clear();
+                        }
+                        auto call_info_obj = json::object({
+                            {"major_from", get<0>(start_pos)},
+                            {"minor_from", get<1>(start_pos)},
+                            {"major_to", get<0>(end_pos)},
+                            {"minor_to", get<1>(end_pos)},
+                            {"module", module_name},
+                            //{"function", function},
+                            //{"func_addr", func_addr},
+                            //{"return_addr", return_addr},
+                            //{"return_val", return_val},
+                            //{"thread_id", thread_id},
+                            {"desc", ss.str().c_str()}
+                            });
+                        calls_root.push_back(call_info_obj);
                     }
+
+                    auto json_root = json::object({
+                        {"calls", calls_root},
+                        {"desc", desc}
+                        });
+
+                    std::ofstream out_file(out_filename, std::ios::out | std::ios::trunc);
+                    out_file << json_root;
                     LOG_UNDEF_MGR
                 }
             }
+        }
+    }
+}
+
+DEFINE_CMD(ttd_vis_info)
+{
+    if (!DK_MODEL_ACCESS->isTTD() || args.size() < 1)
+    {
+        EXT_F_OUT("Usage: !dk ttd_vis_info\nTTD Mode Only\n");
+        return;
+    }
+
+    auto proc = DK_MODEL_ACCESS->get_current_process();
+    if (proc != nullptr)
+    {
+        auto ttd = DK_MGET_POBJ(proc, "TTD");
+        if (ttd != nullptr)
+        {
+            auto lifetime = DK_MGET_POBJ(ttd, "Lifetime");
+            auto min_pos = DK_MGET_POS(lifetime, "MinPosition");
+            auto max_pos = DK_MGET_POS(lifetime, "MaxPosition");
+
+            json tracefile_root = json::object();
+
+            std::string out_filename = DK_GET_DUMP_FILENAME();
+
+            out_filename = out_filename.substr(0, out_filename.find_last_of('.'));
+
+            std::stringstream ss;
+            ss << out_filename << "_tracefile.json";
+
+            std::string trace_filename = ss.str();
+
+            ss.str("");
+            ss << out_filename << "_modules.json";
+
+            std::string modules_filename = ss.str();
+
+            EXT_F_OUT("Trace file: %s\n", trace_filename.c_str());
+            EXT_F_OUT("Modules file: %s\n", modules_filename.c_str());
+
+            tracefile_root["FirstPos"] = json{
+                {"major", get<0>(min_pos)},
+                {"minor", get<1>(min_pos)}
+            };
+
+            tracefile_root["LastPos"] = json{
+                {"major", get<0>(max_pos)},
+                {"minor", get<1>(max_pos)}
+            };
+
+            std::ofstream out_file(trace_filename, std::ios::out | std::ios::trunc);
+            out_file << tracefile_root;
+
+            json modules_root = json::object();
+
+            modules_root["modules"] = json::array();
+
+            auto pobj_modules = DK_MGET_POBJ(proc, "Modules");
+            auto modules = DK_MODEL_ACCESS->iterate(pobj_modules);
+
+            for (auto& module : modules)
+            {
+                auto module_info = DK_MGET_MODL(get<1>(module));
+
+                modules_root["modules"].push_back(json{
+                    {"path", get<2>(module_info)},
+                    {"base_addr", get<0>(module_info)},
+                    {"image_size", get<1>(module_info)},
+                    {"checksum", 0},
+                    {"timestamp", 0},
+                    });
+            }
+
+            modules_root["modules_count"] = modules.size();
+
+            std::ofstream out_modules_file(modules_filename, std::ios::out | std::ios::trunc);
+            out_modules_file << modules_root;
+
         }
     }
 }
@@ -404,7 +615,9 @@ DEFINE_CMD(ttd_mem_access)
 {
     if (!DK_MODEL_ACCESS->isTTD() || args.size() < 5)
     {
-        EXT_F_OUT("Usage: !dk ttd_mem_access <session_id> <start_addr> <end_addr> <mode:R/W/E/C>\nTTD Mode Only\n");
+        // EXT_F_OUT("Usage: !dk ttd_mem_access <session_id> <start_addr> <end_addr> <mode:R/W/E/C>\nTTD Mode Only\n");
+        CMD_LIST->PrintUsage("ttd_mem_access");
+        EXT_F_OUT("TTD Mode Only\n");
         return;
     }
 
@@ -436,10 +649,61 @@ DEFINE_CMD(ttd_mem_access)
                 if (mem_access_result != nullptr)
                 {
                     auto results = DK_MODEL_ACCESS->iterate(mem_access_result);
+
+                    // a way to express the empty array []
+                    json maccess_objs = json::array();
+
+                    std::string out_filename = DK_GET_DUMP_FILENAME();
+                        
+                    out_filename = out_filename.substr(0, out_filename.find_last_of('.'));
+
+                    std::stringstream ss;
+                    ss << out_filename << "_maccess_" 
+                        << std::hex << std::noshowbase << std::setfill('0') << std::setw(16) << start_addr  << "_"
+                        << std::hex << std::noshowbase << std::setfill('0') << std::setw(16) << end_addr << "_"
+                        << mode
+                        //<< "_" << desc
+                        << ".json";
+
+                    out_filename = ss.str();
+
+                    EXT_F_OUT("Output file: %s\n", out_filename.c_str());
+
                     for (auto& result : results)
                     {
-                        EXT_F_OUT(DK_DUMP(mem_access_result)(get<1>(result)).c_str());
+                        //EXT_F_OUT(DK_DUMP(mem_access_result)(get<1>(result)).c_str());
+                        auto end_pos = DK_MGET_POS(get<1>(result), "TimeEnd");
+
+                        auto access_type = BSTR2str(DK_MGET_PVAL<BSTR, VT_BSTR>(get<1>(result), "AccessType"));
+                        auto ip_addr = DK_MGET_PVAL<uint64_t, VT_UI8>(get<1>(result), "IP");
+                        auto addr = DK_MGET_PVAL<uint64_t, VT_UI8>(get<1>(result), "Address");
+                        auto size = DK_MGET_PVAL<uint64_t, VT_UI8>(get<1>(result), "Size");
+                        auto value = DK_MGET_PVAL<uint64_t, VT_UI8>(get<1>(result), "Value");
+                        auto overwritten_value = DK_MGET_PVAL<uint64_t, VT_UI8>(get<1>(result), "OverwrittenValue");
+
+                        ss.str("");
+                        ss
+                            << std::hex
+                            << " 0x" << std::setfill('0') << std::setw(size * 2) << value
+                            << " => 0x" << std::setfill('0') << std::setw(size * 2) << overwritten_value
+                            << " [ " << access_type << " ] "
+                            << " pc: 0x" << std::setw(16) << ip_addr
+                            //<< " desc: " << desc
+                            ;
+
+                        maccess_objs.push_back(json{
+                            {"major", get<0>(end_pos)},
+                            {"minor", get<1>(end_pos)},
+                            {"addr", addr},
+                            {"size", size},
+                            {"type", mode},
+                            {"desc", ss.str()}
+                            });
                     }
+
+                    std::ofstream out_file(out_filename, std::ios::out | std::ios::trunc);
+                    out_file << maccess_objs;
+
                     LOG_UNDEF_MGR
                 }
             }
@@ -451,7 +715,9 @@ DEFINE_CMD(ttd_mem_use)
 {
     if (!DK_MODEL_ACCESS->isTTD() || args.size() < 6)
     {
-        EXT_F_OUT("Usage: !dk ttd_mem_use <session_id> <proc_id> <thread_id> <start_percent> <end_percent> \nTTD Mode Only\n");
+        // EXT_F_OUT("Usage: !dk ttd_mem_use <session_id> <proc_id> <thread_id> <start_percent> <end_percent> \nTTD Mode Only\n");
+        CMD_LIST->PrintUsage("ttd_mem_use");
+        EXT_F_OUT("TTD Mode Only\n");
         return;
     }
 
@@ -1018,9 +1284,9 @@ std::string CModelAccess::dump_mobj(DK_MOBJ_PTR mobj, bool b_show_children, std:
 
             ss << std::setfill(' ')
                 << DML_CMD << "!dk mobj_at " << mobj_path << " " << std::hex << get<0>(iter_result)
-                << DML_TEXT << std::setfill(' ')  << "#[ " << std::hex << get<0>(iter_result) << " ] (" << s_map_kind_name[kind] << ") "
+                << DML_TEXT << std::setfill(' ') << "#[ " << std::hex << get<0>(iter_result) << " ] (" << s_map_kind_name[kind] << ") "
                 << DML_END
-                << " ";
+                << std::endl;
         }
     }
 
@@ -1147,6 +1413,32 @@ std::tuple<uint64_t, uint64_t> CModelAccess::get_current_pos()
     return std::make_tuple(seq, step);
 }
 
+std::vector<std::tuple<uint64_t, uint64_t, std::string>> CModelAccess::get_all_loaded_modules()
+{
+    std::vector<std::tuple<uint64_t, uint64_t, std::string>> loaded_modules;
+
+    auto cur_proc = get_current_process();
+    if (cur_proc != nullptr)
+    {
+        auto pobj_modules = DK_MGET_POBJ(cur_proc, "Modules");
+        auto modules = DK_MODEL_ACCESS->iterate(pobj_modules);
+
+        for (auto& module : modules)
+        {
+            auto module_info = DK_MGET_MODL(get<1>(module));
+
+            loaded_modules.push_back(module_info);
+        }
+    }
+
+    return loaded_modules;
+}
+
+std::string CModelAccess::get_dump_filename()
+{
+    return m_dump_filename;
+}
+
 std::string CModelAccess::dump_heap_memory(DK_MOBJ_PTR heap_memory)
 {
     std::stringstream ss;
@@ -1182,6 +1474,8 @@ std::vector<ttd_heap_memory> CModelAccess::get_heap_memory()
         {
             std::stringstream ss;
             auto resources = DK_MGET_POBJ(ttd, "Resources");
+            if (resources == nullptr)
+                return results;
             auto heap_memory_pobj = DK_MGET_POBJ(resources, "HeapMemory");
 
             auto heap_memories = DK_MODEL_ACCESS->iterate(heap_memory_pobj);
@@ -1435,11 +1729,32 @@ DK_MOBJ_PTR CModelAccess::get_pobj_tree(DK_MOBJ_PTR& mobj, std::string key)
     {
         DK_MOBJ_PTR pobj;
 
+        size_t idx = -1;
+
+        // if sub_str is in xxxx[yy] format, we need to parse the index and call GetKeyValueByIndex
+        if (sub_str.find(L'[') != std::wstring::npos && sub_str.back() == L']')
+        {
+            auto left_bracket_pos = sub_str.find(L'[');
+            auto right_bracket_pos = sub_str.find(L']');
+            auto index_str = sub_str.substr(left_bracket_pos + 1, right_bracket_pos - left_bracket_pos - 1);
+            idx = std::stoul(index_str);
+
+            sub_str = sub_str.substr(0, left_bracket_pos);
+        }
+
         hr = ppobj->GetKeyValue(sub_str.c_str(), &pobj, nullptr);
         if (hr != S_OK || pobj == nullptr)
-            return nullptr;  
+            return nullptr;
 
-        ppobj = pobj;
+        if (idx != -1)
+        {
+            auto child_obj = DK_MODEL_ACCESS->at(pobj, idx);
+            ppobj = child_obj != nullptr ? child_obj : pobj;
+        }
+        else
+        {
+            ppobj = pobj;
+        }
     }
 
     return ppobj;
@@ -1456,6 +1771,12 @@ DK_MOBJ_PTR CModelAccess::get_mobj_tree(std::string key)
     else if (key.size() > 9 && key.substr(0, 9) == "Debugger.")
     {
         key = key.substr(9);
+
+        return get_pobj_tree(m_debugger, key);
+    }
+    else
+    {
+        // key = "Debugger." + key;
 
         return get_pobj_tree(m_debugger, key);
     }

@@ -1,3 +1,4 @@
+#include "model.h"
 #include "type.h"
 #include "CmdList.h"
 #include "CmdExt.h"
@@ -8,6 +9,13 @@
 
 DEFINE_CMD(types)
 {
+    if (!DK_MODEL_ACCESS->isKernelmode())
+    {
+        CMD_LIST->PrintUsage("types");
+        EXT_F_OUT("Kernel Mode Only\n");
+        return;
+    }
+
     dump_types();
 }
 

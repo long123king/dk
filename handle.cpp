@@ -199,7 +199,8 @@ DEFINE_CMD(handle_table)
 {
     if (!DK_MODEL_ACCESS->isKernelmode() || args.size() < 2)
     {
-        EXT_F_OUT("Usage: !dk handle_table <handle_table_addr>\nKernel-Mode Only\n");
+        CMD_LIST->PrintUsage("handle_table");
+        EXT_F_OUT("Kernel Mode Only\n");
         return;
     }
 
@@ -211,7 +212,8 @@ DEFINE_CMD(khandles)
 {
     if (!DK_MODEL_ACCESS->isKernelmode())
     {
-        EXT_F_OUT("Usage: !dk khandles\nKernel-Mode Only\n");
+        CMD_LIST->PrintUsage("khandles");
+        EXT_F_OUT("Kernel Mode Only\n");
         return;
     }
     dump_kernel_handle_table();

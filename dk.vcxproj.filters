@@ -22,6 +22,9 @@
     <Filter Include="alpha">
       <UniqueIdentifier>{650b1d8a-baa8-4963-843b-65c5fa975433}</UniqueIdentifier>
     </Filter>
+    <Filter Include="json">
+      <UniqueIdentifier>{2f529725-4398-428d-b3a1-53ba2e6619e6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CmdList.h">
@@ -110,6 +113,9 @@
     </ClInclude>
     <ClInclude Include="hexsvg.h">
       <Filter>SVG</Filter>
+    </ClInclude>
+    <ClInclude Include="json\json.hpp">
+      <Filter>json</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

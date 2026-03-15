@@ -1,6 +1,8 @@
+#include "model.h"
 #include "token.h"
 #include "process.h"
 #include "CmdExt.h"
+#include "CmdList.h"
 #include "BitFieldAnalyzer.h"
 
 #include <iomanip>
@@ -501,9 +503,11 @@ getAceMaskStr(
 
 DEFINE_CMD(sid)
 {
-	if (args.size() < 2)
+	if (!DK_MODEL_ACCESS->isKernelmode() || args.size() < 2)
 	{
-		EXT_F_ERR("Usage: !dk sid <sid>\n");
+		CMD_LIST->PrintUsage("sid");
+		EXT_F_OUT("Kernel Mode Only");
+		return;
 	}
 
 	size_t sid_addr = EXT_F_IntArg(args, 1, 0);
@@ -513,12 +517,24 @@ DEFINE_CMD(sid)
 
 DEFINE_CMD(token)
 {
+	if (!DK_MODEL_ACCESS->isKernelmode() || args.size() < 2)
+	{
+		CMD_LIST->PrintUsage("token");
+		EXT_F_OUT("Kernel Mode Only");
+		return;
+	}
 	size_t token_addr = EXT_F_IntArg(args, 1, curr_token());
 	dump_token(token_addr);
 }
 
 DEFINE_CMD(add_privilege)
 {
+	if (!DK_MODEL_ACCESS->isKernelmode() || args.size() < 3)
+	{
+		CMD_LIST->PrintUsage("add_privilege");
+		EXT_F_OUT("Kernel Mode Only");
+		return;
+	}
 	size_t privilege_mask = EXT_F_IntArg(args, 1, 0xFFFFFFFFC);
 	size_t token_addr = EXT_F_IntArg(args, 2, curr_token());
 	token_privilege_add(token_addr, privilege_mask);

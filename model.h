@@ -7,6 +7,7 @@
 #include <map>
 #include <array>
 #include <tuple>
+#include <vector>
 
 #include <oaidl.h>
 #include <wrl.h>
@@ -76,6 +77,8 @@ private:
 #define DK_GET_CURTID           CModelAccess::Instance()->get_current_tid
 #define DK_GET_HEAP             CModelAccess::Instance()->get_heap_memory
 #define DK_GET_MEM_ACCESS       CModelAccess::Instance()->get_mem_access
+#define DK_GET_MODULES          CModelAccess::Instance()->get_all_loaded_modules
+#define DK_GET_DUMP_FILENAME    CModelAccess::Instance()->get_dump_filename
 
 DECLARE_CMD(ls_model)
 DECLARE_CMD(ls_sessions)
@@ -247,6 +250,10 @@ public:
     DK_MOBJ_PTR get_current_stack();
     DK_MOBJ_PTR get_current_frame();
     std::tuple<uint64_t, uint64_t> get_current_pos();
+
+    std::vector<std::tuple<uint64_t, uint64_t, std::string>> get_all_loaded_modules();
+
+    std::string get_dump_filename();
 
 private:
     IHostDataModelAccess*   m_model_access{ nullptr };

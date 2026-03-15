@@ -20,12 +20,23 @@ std::set<std::tuple<size_t, size_t, std::string>> g_va_regions;
 
 DEFINE_CMD(size)
 {
+    if (args.size() < 2)
+    {
+        CMD_LIST->PrintUsage("size");
+        return;
+    }
     size_t value = EXT_F_IntArg(args, 1, 0);
     dump_size(value);
 }
 
 DEFINE_CMD(va_regions)
 {
+    if (!DK_MODEL_ACCESS->isKernelmode())
+    {
+        CMD_LIST->PrintUsage("va_regions");
+        EXT_F_OUT("Kernel Mode Only\n");
+        return;
+    }
     dump_va_regions();
 }
 
@@ -36,6 +47,11 @@ DEFINE_CMD(regs)
 
 DEFINE_CMD(as_qword)
 {
+    if (args.size() < 2)
+    {
+        CMD_LIST->PrintUsage("as_qword");
+        return;
+    }
     size_t value = EXT_F_IntArg(args, 1, 0);
     analyze_qword(value);
 }
@@ -44,7 +60,7 @@ DEFINE_CMD(as_mem)
 {
     if (args.size() < 3)
     {
-        EXT_F_ERR("Usage: !dk as_mem <addr> <len>\n");
+        CMD_LIST->PrintUsage("as_mem");
         return;
     }
     size_t addr = EXT_F_IntArg(args, 1, 0);
@@ -55,11 +71,44 @@ DEFINE_CMD(as_mem)
 
 DEFINE_CMD(ex_mem)
 {
+    if (args.size() < 3)
+    {
+        CMD_LIST->PrintUsage("ex_mem");
+        return;
+    }
+
     size_t addr = EXT_F_IntArg(args, 1, 0);
     size_t len = EXT_F_IntArg(args, 2, 0);
 
     extract_mem(addr, len);
 }
+
+DEFINE_CMD(carve_strs)
+{
+    if (args.size() < 3)
+    {
+        EXT_F_ERR("Usage: !dk carve_strs <addr> <len>\n");
+        return;
+    }
+    size_t addr = EXT_F_IntArg(args, 1, 0);
+    size_t len = EXT_F_IntArg(args, 2, 0);
+
+    carve_strings(addr, len);
+}
+
+DEFINE_CMD(carve_ustrs)
+{
+    if (args.size() < 3)
+    {
+        EXT_F_ERR("Usage: !dk carve_ustrs <addr> <len>\n");
+        return;
+    }
+    size_t addr = EXT_F_IntArg(args, 1, 0);
+    size_t len = EXT_F_IntArg(args, 2, 0);
+
+    carve_ustrings(addr, len);
+}
+
 
 DEFINE_CMD(args)
 {
@@ -68,17 +117,29 @@ DEFINE_CMD(args)
 
 DEFINE_CMD(vad)
 {
+    if (!DK_MODEL_ACCESS->isKernelmode() || args.size() < 2)
+    {
+        CMD_LIST->PrintUsage("vad");
+        EXT_F_OUT("Kernel Mode Only");
+        return;
+    }
     size_t root_addr = EXT_F_IntArg(args, 1, 0);
     dump_vad(root_addr);
 }
 
 DEFINE_CMD(memcpy)
 {
+    if (args.size() < 4)
+    {
+        CMD_LIST->PrintUsage("memcpy");
+        return;
+    }
     size_t src_addr = EXT_F_IntArg(args, 1, 0);
     size_t dst_addr = EXT_F_IntArg(args, 2, 0);
     size_t count = EXT_F_IntArg(args, 3, 0);
     do_memcpy(src_addr, dst_addr, count);
 }
+
 
 DEFINE_CMD(page_2_svg)
 {
@@ -90,8 +151,64 @@ DEFINE_CMD(page_2_svg)
     size_t addr = EXT_F_IntArg(args, 1, 0);
     std::string out_filename = args[2];
 
-    page_to_svg(addr, out_filename);
+    addr = addr & 0xFFFFFFFFFFFFF000;
+
+    if (out_filename.find(".svg") == std::string::npos)
+    {
+        out_filename = DK_GET_DUMP_FILENAME();
+        out_filename = out_filename.substr(0, out_filename.find_last_of('.'));
+
+        std::stringstream ss;
+        ss << out_filename << "_page_" << std::hex << std::noshowbase << std::setfill('0') << std::setw(16) << (addr & 0xFFFFFFFFFFFFF000) << ".svg";
+        
+        out_filename = ss.str();
+    }
+
+    page_to_svg(addr, out_filename, addr, addr + 0x1000);
 }
+
+DEFINE_CMD(pages_2_svg)
+{
+    if (args.size() < 3)
+    {
+        EXT_F_OUT("Usage: !dk pages_2_svg <addr> <count> <output_filename>\n");
+        return;
+    }
+    size_t addr = EXT_F_IntArg(args, 1, 0);
+    size_t count = EXT_F_IntArg(args, 2, 0);
+    std::string out_filename = args[3];
+
+    addr = addr & 0xFFFFFFFFFFFFF000;
+
+    std::stringstream ss;
+    ss << std::hex << std::showbase << addr << ".svg";
+
+    bool b_default_scheme = false;
+
+    auto pos = out_filename.find(ss.str());
+    if ( pos!= std::string::npos)
+    {
+        out_filename = out_filename.substr(0, pos);
+    }
+    else
+    {
+        b_default_scheme = true;
+        out_filename = DK_GET_DUMP_FILENAME();
+        out_filename = out_filename.substr(0, out_filename.find_last_of('.'));
+    }
+
+    for (auto i = 0; i < count; i++)
+    {
+        ss.str("");
+        if (b_default_scheme)
+            ss << out_filename << "_page_" << std::hex << std::noshowbase << std::setfill('0') << std::setw(16) << ((addr + i * 0x1000) & 0xFFFFFFFFFFFFF000) << ".svg";
+        else
+            ss << out_filename << "_" << std::hex << std::showbase << addr + i * 0x1000 << "_" << std::noshowbase << std::setw(4) << std::setfill('0') << i << ".svg";
+
+        page_to_svg(addr + i * 0x1000, ss.str(), addr, addr + count * 0x1000);
+    }
+}
+
 
 void dump_regs()
 {
@@ -384,6 +501,43 @@ void AddPtr2Sym(std::shared_ptr<CSvgGroup> g_arrows, std::shared_ptr<CSvgGroup> 
     g_rects->appendElement(rect);
 }
 
+void AddPtr2Astr(std::shared_ptr<CSvgGroup> g_texts, uint64_t variable_addr, std::string notes, CoordinatesManager& coordinates_mgr)
+{
+    uint64_t v_page = variable_addr & 0xFFFFFFFFFFFFF000;
+
+    uint64_t v_row_index = ((variable_addr - v_page) + 8) / 8;
+    uint64_t v_column_index = variable_addr % 8;
+
+    auto v_pivot = coordinates_mgr.GetMRowPivot(v_row_index);
+
+    auto half_height = get<1>(coordinates_mgr.GetLAddrParameters()) / 2;
+    auto grid_width = get<0>(coordinates_mgr.GetLGridParameters());
+
+    std::stringstream ss;
+    ss << "\"" << notes << "\"";
+    auto text_v = std::make_shared<CSvgText>(CSvgPoint(get<0>(v_pivot), get<1>(v_pivot) - get<1>(coordinates_mgr.GetLAddrParameters()) / 8), ss.str());
+
+    g_texts->appendElement(text_v);
+}
+
+void AddPtr2Ustr(std::shared_ptr<CSvgGroup> g_texts, uint64_t variable_addr, std::string notes, CoordinatesManager& coordinates_mgr)
+{
+    uint64_t v_page = variable_addr & 0xFFFFFFFFFFFFF000;
+
+    uint64_t v_row_index = ((variable_addr - v_page) + 8) / 8;
+    uint64_t v_column_index = variable_addr % 8;
+
+    auto v_pivot = coordinates_mgr.GetMRowPivot(v_row_index);
+
+    auto half_height = get<1>(coordinates_mgr.GetLAddrParameters()) / 2;
+    auto grid_width = get<0>(coordinates_mgr.GetLGridParameters());
+
+    std::stringstream ss;
+    ss << "L\"" << notes << "\"";
+    auto text_v = std::make_shared<CSvgText>(CSvgPoint(get<0>(v_pivot), get<1>(v_pivot) - get<1>(coordinates_mgr.GetLAddrParameters()) / 8), ss.str());
+
+    g_texts->appendElement(text_v);
+}
 
 void AddMem(std::shared_ptr<CSvgDoc> svg_doc, size_t addr, size_t size, CSvgPoint disp)
 {
@@ -547,6 +701,8 @@ void AddPtr2Local(std::shared_ptr<CSvgGroup> g_arrows, std::shared_ptr<CSvgGroup
     uint64_t t_row_index = ((target_addr - v_page) + 8) / 8;
     uint64_t t_column_index = 0;
 
+    auto b_same_page = v_page == (target_addr & 0xFFFFFFFFFFFFF000);
+
     auto v_pivot = coordinates_mgr.GetMRowPivot(v_row_index);
     auto v_target_pivot = coordinates_mgr.GetLGridPivot(v_column_index + 8, v_row_index);
 
@@ -574,12 +730,13 @@ void AddPtr2Local(std::shared_ptr<CSvgGroup> g_arrows, std::shared_ptr<CSvgGroup
     auto rect = std::make_shared<CSvgRect>(CSvgPoint(get<0>(v_pivot), get<1>(v_pivot) - half_height*2), 160, half_height * 2, "fill: green; stroke:green;");
 
     g_arrows->appendElement(arrow_v);
-    g_besier->appendElement(besier);
+    if (b_same_page )
+        g_besier->appendElement(besier);
     g_texts->appendElement(text_v);
     g_rects->appendElement(rect);
 }
 
-void page_to_svg(size_t addr, std::string svg_filename)
+void page_to_svg(size_t addr, std::string svg_filename, size_t local_start, size_t local_end)
 {
     std::string page(0x1000, '0');
 
@@ -587,10 +744,21 @@ void page_to_svg(size_t addr, std::string svg_filename)
 
     size_t bytes_read = 0;
     HRESULT result = EXT_D_IDebugDataSpaces->ReadVirtual(ch_page, (uint8_t*)page.data(), 0x1000, (PULONG)&bytes_read);
-    if (result != 0)
+    if (result != 0 || bytes_read != 0x1000)
     {
         EXT_F_ERR("Fail to read memory in [ 0x%0I64x - 0x%0I64x ], HRESULT: 0x%08x\n", ch_page, ch_page + 0x1000, result);
-        return;
+
+        // Try read page byte by byte, skip if fail
+        for (size_t i = 0; i < 0x1000; i++)
+        {
+            try
+            {
+                EXT_D_IDebugDataSpaces->ReadVirtual(ch_page + i, (uint8_t*)page.data() + i, 0x1, (PULONG)&bytes_read);
+            }
+            FC;            
+        }
+
+        //return;
     }
 
     CoordinatesManager coordinates_mgr(GRID_WIDTH, GRID_HEIGHT, GRID_ADDR_WIDTH);
@@ -647,7 +815,7 @@ void page_to_svg(size_t addr, std::string svg_filename)
 
     //AddStackVariable(svg_g_arrows, svg_g_texts, (uint64_t)addr, "addr", coordinates_mgr);
 
-    CMemoryAnalyzer manalyzer(page, ch_page, 0x1000);
+    CMemoryAnalyzer manalyzer(page, ch_page, 0x1000, local_start, local_end);
     manalyzer.analyze();
     for (auto ptr2sym : manalyzer.get_ptr2sym())
     {
@@ -664,6 +832,16 @@ void page_to_svg(size_t addr, std::string svg_filename)
         AddPtr2Heap(stack_svg_doc, svg_g_arrows, svg_g_besier, svg_g_texts, svg_g_rects, ch_page + ptr2heap.first, get<0>(ptr2heap.second), get<1>(ptr2heap.second), get<2>(ptr2heap.second), coordinates_mgr, svg_filename);
     }
 
+
+    for (auto ptr2astr : manalyzer.get_ptr2astr())
+    {
+        AddPtr2Astr(svg_g_texts, ptr2astr.first, SvgEscapeText(ptr2astr.second), coordinates_mgr);
+    }
+
+    for (auto ptr2ustr : manalyzer.get_ptr2ustr())
+    {
+        AddPtr2Ustr(svg_g_texts, ptr2ustr.first, SvgEscapeText(ptr2ustr.second), coordinates_mgr);
+    }
     stack_svg_doc->appendElement(inner_script);
     stack_svg_doc->appendDynamicElement(svg_g_arrows);
     stack_svg_doc->appendDynamicElement(svg_g_texts);
@@ -671,6 +849,8 @@ void page_to_svg(size_t addr, std::string svg_filename)
     stack_svg_doc->appendDynamicElement(svg_g_rects);
 
     stack_svg_doc->Save(svg_filename);
+
+    EXT_F_OUT("SVG file is completed\n");
 }
 
 void mem_access_to_svg(size_t start_addr, size_t end_addr, std::string mode, std::string svg_filename)
@@ -1115,6 +1295,59 @@ void analyze_mem(size_t start, size_t len, size_t offset)
             //}
 
             ss << std::hex << std::showbase << "+" << std::setw(18) << offset + i * 8 << ": \t" << std::setw(18) << curr_qword << " ";
+            if (DK_MODEL_ACCESS->isUsermode())
+            {
+                auto sym = EXT_F_Addr2Sym(curr_qword);
+                if (!get<0>(sym).empty())
+                {
+                    ss << std::setw(18) << " [ sym ] ";
+
+                    ss << dump_plain_qword(curr_qword) << " ";
+
+                    ss << get<0>(sym);
+
+                    if (get<1>(sym) != 0)
+                        ss << "+" << std::showbase << std::hex << get<1>(sym) << std::endl;
+                }
+                if (curr_qword >= start && curr_qword < start + len)
+                {
+                    ss << std::setw(18) << " [ this ] ";
+
+                    ss << dump_plain_qword(curr_qword);
+
+                    if (curr_qword == (start + i * 8))
+                    {
+                        size_t next_qword = *(size_t*)(buffer + i * 8 + 8);
+
+                        if (next_qword == curr_qword)
+                        {
+                            ss << " _LIST_ENTRY.Flink(empty)" << std::endl;
+
+                            ss << std::hex << std::showbase << "+" << std::setw(18) << i * 8 << ": \t" << std::setw(18) << curr_qword << " "
+                                << std::setw(18) << " [ this ] " << dump_plain_qword(curr_qword) << " _LIST_ENTRY.Blink(empty)" << std::endl;
+
+                            i++;
+                        }
+                        else
+                        {
+                            ss << " ===> +" << (curr_qword - start) << std::endl;
+                        }
+                    }
+                    else
+                    {
+                        ss << " ===> +" << (curr_qword - start) << std::endl;
+                    }
+
+                    EXT_F_DML(ss.str().c_str());
+                }
+                else
+                {
+                    EXT_F_DML(ss.str().c_str());
+                    analyze_qword(curr_qword);
+                }
+            }
+            else
+            {
             if (!like_kaddr(curr_qword))
             {
                 ss << std::setw(18) << " [     ] "
@@ -1158,6 +1391,7 @@ void analyze_mem(size_t start, size_t len, size_t offset)
             {
                 EXT_F_DML(ss.str().c_str());
                 analyze_qword(curr_qword);
+}
             }
         }
 
@@ -1994,6 +2228,204 @@ void do_memcpy(size_t src_addr, size_t dst_addr, size_t count)
         {
             uint8_t byte = EXT_F_READ<uint8_t>(src_addr + qwords * 0x08 + i);
             EXT_F_WRITE<uint8_t>(dst_addr + qwords * 0x08 + i, byte);
+        }
+    }
+    FC;
+}
+
+void carve_strings(size_t addr, size_t len)
+{
+    size_t handle_len = len;
+    if (len > 0x1000)
+        handle_len = 0x1000;
+
+    std::string page(handle_len, '0');
+
+    size_t bytes_read = 0;
+    HRESULT result = EXT_D_IDebugDataSpaces->ReadVirtual(addr, (uint8_t*)page.data(), handle_len, (PULONG)&bytes_read);
+    if (result != 0 || bytes_read != handle_len)
+    {
+        EXT_F_ERR("Fail to read memory in [ 0x%0I64x - 0x%0I64x ], HRESULT: 0x%08x\n", addr, addr + handle_len, result);
+
+        return;
+    }
+
+    std::string str;
+    for (size_t i = 0; i <= handle_len; i++)
+    {
+        if (isprint(page[i]))
+        {
+            str.push_back(page[i]);
+            continue;
+        }
+        else if (page[i] == 0 || i == handle_len)
+        {
+            if (str.length() >= 4)
+            {
+                std::stringstream ss;
+                ss << "string @ " << std::hex << std::showbase << addr + i - str.length() << " : " << str << std::endl;
+                EXT_F_STR_OUT(ss);
+
+                str.clear();
+            }
+            str.clear();
+        }
+        else
+        { 
+            if (str.length() >= 4)
+            {
+                std::stringstream ss;
+                ss << "string @ " << std::hex << std::showbase << addr + i - str.length() << " : " << str << std::endl;
+                EXT_F_STR_OUT(ss);
+
+                str.clear();
+            }
+            str.clear();
+        }
+
+    }
+
+
+    if (len > handle_len)
+        carve_strings(addr + handle_len, len - handle_len);
+}
+
+void carve_ustrings(size_t addr, size_t len)
+{
+    size_t handle_len = len;
+    if (len > 0x1000)
+        handle_len = 0x1000;
+
+    std::string page(handle_len, '0');
+
+    size_t bytes_read = 0;
+    HRESULT result = EXT_D_IDebugDataSpaces->ReadVirtual(addr, (uint8_t*)page.data(), handle_len, (PULONG)&bytes_read);
+    if (result != 0 || bytes_read != handle_len)
+    {
+        EXT_F_ERR("Fail to read memory in [ 0x%0I64x - 0x%0I64x ], HRESULT: 0x%08x\n", addr, addr + handle_len, result);
+
+        return;
+    }
+
+    std::string str;
+    for (size_t i = 0; i <= handle_len; i+=2)
+    {
+        if (isprint(page[i]) && page[i+1] == 0)
+        {
+            str.push_back(page[i]);
+            continue;
+        }
+        else if ((page[i] == 0 && page[i+1] == 0) || i == handle_len)
+        {
+            if (str.length() >= 4)
+            {
+                std::stringstream ss;
+                ss << "ustring @ " << std::hex << std::showbase << addr + i - 2 * str.length() << " : " << str << std::endl;
+                EXT_F_STR_OUT(ss);
+
+                str.clear();
+            }
+            str.clear();
+        }
+        else
+        {
+            if (str.length() >= 4)
+            {
+                std::stringstream ss;
+                ss << "ustring @ " << std::hex << std::showbase << addr + i - 2 * str.length() << " : " << str << std::endl;
+                EXT_F_STR_OUT(ss);
+
+                str.clear();
+            }
+            str.clear();
+        }
+
+    }
+
+    if (len > handle_len)
+        carve_ustrings(addr + handle_len, len - handle_len);
+}
+
+void dump_unloaded_pe()
+{
+    try
+    {
+        ULONG64 start = 0;
+        ULONG64 end = 0x7fffffff0000;
+
+        ULONG64 length = 0x8000000;
+
+        std::string pe_pattern = "!This program cannot be run in DOS mode.";
+
+        EXT_F_OUT("Searching Virtual Memory in range(0x%0I64x, 0x%0I64x, 0x%0I64x) for ASCII String %s\n\n", start, end, length, pe_pattern.c_str());
+
+        ULONG64 match_offset = 0;
+
+        std::set<size_t> carve_pages;
+
+        while (start < end)
+        {
+            auto hr = EXT_D_IDebugDataSpaces4->SearchVirtual2(start, length, DEBUG_VSEARCH_WRITABLE_ONLY, (PVOID)pe_pattern.c_str(), pe_pattern.size(), 1, &match_offset);
+            if (S_OK == hr)
+            {
+                //EXT_F_OUT("\nFound PE pattern %s at 0x%0I64x\n", pe_pattern.c_str(), match_offset);
+
+                size_t dos_hdr_addr = match_offset - 0x4d;
+
+                DWORD dos_hdr_dw = EXT_F_READ<DWORD>(dos_hdr_addr);
+                if ((dos_hdr_dw & 0xFFFF) == 0x5A4D)
+                {
+                    DWORD elfanew = EXT_F_READ<DWORD>(dos_hdr_addr + 0x3C);
+
+                    size_t nt_hdr_addr = dos_hdr_addr + elfanew;
+
+                    DWORD nt_hdr_dw = EXT_F_READ<DWORD>(nt_hdr_addr);
+                    bool module_loaded = false;
+                    if (nt_hdr_dw == 0x00004550)
+                    {
+                        auto loaded_modules = DK_GET_MODULES();
+                        for (auto& module : loaded_modules)
+                        {
+                            if (get<0>(module) == dos_hdr_addr)
+                            {
+                                module_loaded = true;
+                                break;
+                            }
+                        }
+
+                        if (!module_loaded)
+                        {
+                            std::stringstream ss;
+                            ss << "Unloaded PE @ " << std::hex << std::showbase << dos_hdr_addr << " ";
+                            EXT_F_OUT(ss.str().c_str());
+
+                            std::stringstream dml_ss;
+
+                            dml_ss << DML_CMD << "!dk pe_hdr " << std::hex << std::showbase << dos_hdr_addr
+                                << DML_TEXT << "dump pe header"
+                                << DML_END
+                                << std::endl;
+
+                            EXT_F_STR_DML(dml_ss);
+
+                        }
+                    }
+                }
+
+
+                start = match_offset + pe_pattern.size();
+            }
+            else if (0x9000001A == hr)
+            {
+                //EXT_F_OUT("Not Found\n");
+
+                start += length;
+            }
+            else
+            {
+                EXT_F_OUT("Error: 0x%08x\n", hr);
+                break;
+            }
         }
     }
     FC;

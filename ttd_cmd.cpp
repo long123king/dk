@@ -16,7 +16,8 @@ DEFINE_CMD(ldttd)
 {	    
     if (!DK_MODEL_ACCESS->isTTD())
     {
-        EXT_F_OUT("Usage: !dk ldttd <min_seq> <min_step> <max_seq> <max_step>\nTTD Mode Only\n");
+        CMD_LIST->PrintUsage("ldttd");
+        EXT_F_OUT("TTD Mode Only\n");
         return;
     }
 
@@ -24,16 +25,44 @@ DEFINE_CMD(ldttd)
     CTTDInsight::Instance()->load_ttd();
 }
 
+DEFINE_CMD(ldttd_by_range)
+{
+    if (!DK_MODEL_ACCESS->isTTD() || args.size() < 3)
+    {
+        EXT_F_OUT("Usage: !dk ldttd <min_addr> <max_addr>\nTTD Mode Only\n");
+        return;
+    }
+
+    size_t min_addr = EXT_F_IntArg(args, 1, 0);
+    size_t max_addr = EXT_F_IntArg(args, 2, 0);
+
+    CTTDInsight::Instance()->set_ttd_range(min_addr, max_addr);
+    CTTDInsight::Instance()->load_ttd();
+}
+
 DEFINE_CMD(dump_ttd_events)
 {
     if (!DK_MODEL_ACCESS->isTTD() || args.size() < 2)
     {
-        EXT_F_OUT("Usage: !dk dump_ttd_events <output_filename>\nTTD Mode Only\n");
+        CMD_LIST->PrintUsage("dump_ttd_events");
+        EXT_F_OUT("TTD Mode Only\n");
         return;
     }
     std::string out_filename = args[1];
 
     CTTDInsight::Instance()->dump_ttd_model_events(out_filename);
+}
+
+DEFINE_CMD(dump_ttd_events_to_csv)
+{
+    if (!DK_MODEL_ACCESS->isTTD() || args.size() < 2)
+    {
+        EXT_F_OUT("Usage: !dk dump_ttd_model_events_to_csv <output_filename>\nTTD Mode Only\n");
+        return;
+    }
+    std::string out_filename = args[1];
+
+    CTTDInsight::Instance()->dump_ttd_model_events_to_csv(out_filename);
 }
 
 void CTTDInsight::ttd_call_ret_callback(
@@ -43,6 +72,18 @@ void CTTDInsight::ttd_call_ret_callback(
     TTD::TTD_Replay_IThreadView* threadView)
 {
     static size_t callret_count = 0;
+
+    if (m_ttd_range_start != 0 && m_ttd_range_end != 0)
+    {
+        if (guestFallThroughInstructionAddress != 0)
+        {
+            if (guestFallThroughInstructionAddress < m_ttd_range_start || guestFallThroughInstructionAddress > m_ttd_range_end)
+                return;
+        }
+        else if (guestInstructionAddress < m_ttd_range_start || guestInstructionAddress > m_ttd_range_end)
+            return;
+    }
+
     callret_count++;
 
     ttd_event event;
@@ -107,6 +148,12 @@ void CTTDInsight::load_ttd()
         TTD::TTD_Replay_ICursorView_ReplayResult replayrez;
         ifc_ICursor->ICursor->ReplayForward(ifc_ICursor, &replayrez, pos_end, -1);
     }
+}
+
+void CTTDInsight::set_ttd_range(uint64_t start, uint64_t end)
+{
+    m_ttd_range_start = start;
+    m_ttd_range_end = end;
 }
 
 std::string make_rgb(uint64_t r, uint64_t g, uint64_t b)
@@ -251,6 +298,137 @@ void CTTDInsight::dump_ttd_model_events(std::string out_filename)
 
     svg_doc->Save(svg_filename);
 
+}
+
+void CTTDInsight::dump_ttd_model_events_to_csv(std::string out_filename)
+{
+    std::ofstream ofs(out_filename, std::ios::out| std::ios::trunc);
+    ofs << "You should see this" << std::endl;
+
+    const char* titles = "tid,tt,pc,sp,fp,func,func_name,ret,ret_name,repeat";
+
+    ofs << titles << std::endl;
+
+    size_t call_repeat = 0;
+    size_t ret_repeat = 0;
+
+    size_t i_last_call = -1;
+    size_t i_last_ret = -1;
+
+    for (size_t i=0;i< m_ttd_events.size();i++)
+    {
+        auto event = m_ttd_events[i];
+
+        bool b_call = event.u_data.callret_event.next_addr != 0;
+
+        if (m_ttd_events.size() > 1 && i != m_ttd_events.size() - 1)
+        {
+            if (b_call)
+            {
+                if (i_last_call != -1 &&
+                    i_last_call != i &&
+                    m_ttd_events[i_last_call].u_data.callret_event.insn_addr == event.u_data.callret_event.insn_addr &&
+                    m_ttd_events[i_last_call].u_data.callret_event.next_addr == event.u_data.callret_event.next_addr)
+                {
+                    call_repeat++;
+                }
+                else
+                {
+                    auto last_event = m_ttd_events[i_last_call == -1?0:i_last_call];
+
+                    ofs
+                        << std::hex << std::showbase << last_event.tid << ","
+                        << std::hex << std::noshowbase << last_event.position.sequence_id << ":"
+                        << std::hex << std::noshowbase << last_event.position.step_id << ","
+                        << std::hex << std::showbase << last_event.pc << ","
+                        << std::hex << std::showbase << last_event.stack_pointer << ","
+                        << std::hex << std::showbase << last_event.frame_pointer << ","
+                        << std::hex << std::showbase << last_event.u_data.callret_event.insn_addr << ","
+                        << escape_symbol_name(last_event.u_data.callret_event.insn_addr) << ","
+                        << std::hex << std::showbase << last_event.u_data.callret_event.next_addr << ","
+                        << escape_symbol_name(last_event.u_data.callret_event.next_addr) << ","
+                        << std::hex << std::showbase << call_repeat
+                        << std::endl;
+                    call_repeat = 0;
+                    i_last_call = i;
+                }
+            }
+            else
+            {
+                if (i_last_ret != -1 &&
+                    i_last_ret != i &&
+                    m_ttd_events[i_last_ret].u_data.callret_event.insn_addr == event.u_data.callret_event.insn_addr)
+                {
+                    ret_repeat++;
+                }
+                else
+                {
+                    auto last_event = m_ttd_events[i_last_ret == -1?0:i_last_ret];
+                    ofs
+                        << std::hex << std::showbase << last_event.tid << ","
+                        << std::hex << std::noshowbase << last_event.position.sequence_id << ":"
+                        << std::hex << std::noshowbase << last_event.position.step_id << ","
+                        << std::hex << std::showbase << last_event.pc << ","
+                        << std::hex << std::showbase << last_event.stack_pointer << ","
+                        << std::hex << std::showbase << last_event.frame_pointer << ","
+                        << std::hex << std::showbase << last_event.u_data.callret_event.insn_addr << ","
+                        << escape_symbol_name(last_event.u_data.callret_event.insn_addr) << ","
+                        << std::hex << std::showbase << last_event.u_data.callret_event.next_addr << ","
+                        << escape_symbol_name(last_event.u_data.callret_event.next_addr) << ","
+                        << std::hex << std::showbase << ret_repeat
+                        << std::endl;
+                    ret_repeat = 0;
+                    i_last_ret = i;
+                }
+            }
+        }
+        else
+        {
+            auto event = m_ttd_events[i];
+            ofs
+                << std::hex << std::showbase << event.tid << ","
+                << std::hex << std::noshowbase << event.position.sequence_id << ":"
+                << std::hex << std::noshowbase << event.position.step_id << ","
+                << std::hex << std::showbase << event.pc << ","
+                << std::hex << std::showbase << event.stack_pointer << ","
+                << std::hex << std::showbase << event.frame_pointer << ","
+                << std::hex << std::showbase << event.u_data.callret_event.insn_addr << ","
+                << escape_symbol_name(event.u_data.callret_event.insn_addr) << ","
+                << std::hex << std::showbase << event.u_data.callret_event.next_addr << ","
+                << escape_symbol_name(event.u_data.callret_event.next_addr) << ","
+                << std::hex << std::showbase << (b_call?call_repeat:ret_repeat)
+                << std::endl;
+        }
+    }
+
+    ofs.close();
+
+}
+
+std::string CTTDInsight::escape_symbol_name(size_t addr)
+{
+    if (addr == 0)
+        return "0";
+
+    std::stringstream ss;
+    auto sym = EXT_F_Addr2Sym(addr);
+
+    ss << "\"";
+
+    for (auto& ch : get<0>(sym))
+    {
+        if (ch == '\"')
+            ss << "\\\"";
+        else
+            ss << ch;
+    }
+
+    if (get<1>(sym) != 0)
+        ss << "+" << std::hex << std::showbase << get<1>(sym);
+    
+    ss << "\"";
+
+    return ss.str();
 }
 
 std::string CTTDInsight::dump_ttd_callnode(DK_TTD_CALLNODE callnode, size_t level)

@@ -1,3 +1,4 @@
+#include "model.h"
 #include "stack.h"
 #include "CmdExt.h"
 #include "CmdList.h"
@@ -5,11 +6,25 @@
 
 DEFINE_CMD(kall)
 {
+    if (!DK_MODEL_ACCESS->isKernelmode())
+    {
+        CMD_LIST->PrintUsage("kall");
+        EXT_F_OUT("Kernel Mode Only\n");
+        return;
+    }
+
     dump_threads_stack(curr_proc());
 }
 
 DEFINE_CMD(pkall)
 {
+    if (!DK_MODEL_ACCESS->isKernelmode())
+    {
+        CMD_LIST->PrintUsage("pkall");
+        EXT_F_OUT("Kernel Mode Only\n");
+        return;
+    }
+
     dump_all_threads_stack();
 }
 

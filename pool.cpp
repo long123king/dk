@@ -1,3 +1,4 @@
+#include "model.h"
 #include "pool.h"
 #include "CmdExt.h"
 #include "CmdList.h"
@@ -11,38 +12,87 @@
 
 DEFINE_CMD(free_pool)
 {
+    if (!DK_MODEL_ACCESS->isKernelmode())
+    {
+        CMD_LIST->PrintUsage("free_pool");
+        EXT_F_OUT("Kernel Mode Only\n");
+        return;
+    }
+
     size_t size = EXT_F_IntArg(args, 1, 0);
     dump_free_pool(size);
 }
 
 DEFINE_CMD(bigpool)
 {
+    if (!DK_MODEL_ACCESS->isKernelmode())
+    {
+        CMD_LIST->PrintUsage("bigpool");
+        EXT_F_OUT("Kernel Mode Only\n");
+        return;
+    }
+
     dump_big_pool();
 }
 
 DEFINE_CMD(poolrange)
 {
+    if (!DK_MODEL_ACCESS->isKernelmode())
+    {
+        CMD_LIST->PrintUsage("poolrange");
+        EXT_F_OUT("Kernel Mode Only\n");
+        return;
+    }
+
     dump_pool_range();
 }
 
 DEFINE_CMD(pooltrack)
 {
+    if (!DK_MODEL_ACCESS->isKernelmode())
+    {
+        CMD_LIST->PrintUsage("pooltrack");
+        EXT_F_OUT("Kernel Mode Only\n");
+        return;
+    }
+
     dump_pool_track();
 }
 
 DEFINE_CMD(poolmetrics)
 {
+    if (!DK_MODEL_ACCESS->isKernelmode())
+    {
+        CMD_LIST->PrintUsage("poolmetrics");
+        EXT_F_OUT("Kernel Mode Only\n");
+        return;
+    }
+
     dump_pool_metrics();
 }
 
 DEFINE_CMD(tpool)
 {
+    if (!DK_MODEL_ACCESS->isKernelmode())
+    {
+        CMD_LIST->PrintUsage("tpool");
+        EXT_F_OUT("Kernel Mode Only\n");
+        return;
+    }
+
     size_t addr = EXT_F_IntArg(args, 1, 0);
     tpool(addr);
 }
 
 DEFINE_CMD(poolhdr)
 {
+    if (!DK_MODEL_ACCESS->isKernelmode())
+    {
+        CMD_LIST->PrintUsage("poolhdr");
+        EXT_F_OUT("Kernel Mode Only\n");
+        return;
+    }
+
     size_t addr = EXT_F_IntArg(args, 1, 0);
     poolhdr(addr);
 }

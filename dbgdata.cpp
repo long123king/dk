@@ -1,6 +1,8 @@
+#include "model.h"
 #include "dbgdata.h"
 #include <dbgeng.h>
 #include "CmdExt.h"
+#include "CmdList.h"
 
 size_t readDbgDataAddr(ULONG index)
 {
@@ -12,6 +14,13 @@ size_t readDbgDataAddr(ULONG index)
 
 DEFINE_CMD(dbgdata)
 {
+    if (!DK_MODEL_ACCESS->isKernelmode())
+    {
+        CMD_LIST->PrintUsage("dbgdata");
+        EXT_F_OUT("Kernel Mode Only\n");
+        return;
+    }
+
     EXT_F_OUT("Debugger Data:\n");
     EXT_F_OUT("%30s 0x%0I64x\n", "kernel base",
         readDbgDataAddr(DEBUG_DATA_KernBase));

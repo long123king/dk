@@ -7,9 +7,14 @@
 #include <iomanip>
 
 
-size_t CMemoryAnalyzer::is_in_cur_stack(size_t addr)
+size_t CMemoryAnalyzer::is_in_cur_stack(size_t addr, size_t id)
 {
-    auto cur_callstacks = DK_GET_CURSTACK();
+    static std::map<size_t, std::vector<std::array<uint64_t, 5>>> s_cache;
+
+    if (s_cache.find(id) == s_cache.end())
+        s_cache[id] = DK_GET_CURSTACK();
+
+    auto cur_callstacks = s_cache[id];
 
     for (auto& callstack : cur_callstacks)
     {
@@ -24,7 +29,7 @@ size_t CMemoryAnalyzer::is_in_cur_stack(size_t addr)
 
 bool CMemoryAnalyzer::is_local(size_t addr)
 {
-    if (addr >= m_addr && addr < m_addr + m_len)
+    if (addr >= m_local_start && addr < m_local_end)
         return true;
 
     return false;
@@ -56,6 +61,101 @@ std::tuple<size_t, size_t> CMemoryAnalyzer::is_heap(size_t addr)
     return std::make_tuple(0, 0);;
 }
 
+void CMemoryAnalyzer::carve_strings()
+{
+    size_t handle_len = m_len;
+    if (m_len > 0x1000)
+        handle_len = 0x1000;
+
+    std::string page(handle_len, '0');
+
+    size_t bytes_read = 0;
+    HRESULT result = EXT_D_IDebugDataSpaces->ReadVirtual(m_addr, (uint8_t*)page.data(), handle_len, (PULONG)&bytes_read);
+    if (result != 0 || bytes_read != handle_len)
+    {
+        EXT_F_ERR("Fail to read memory in [ 0x%0I64x - 0x%0I64x ], HRESULT: 0x%08x\n", m_addr, m_addr + handle_len, result);
+
+        return;
+    }
+
+    std::string str;
+    for (size_t i = 0; i < handle_len; i++)
+    {
+        if ((page[i] & 0x80) == 0 && isprint(page[i]))
+        {
+            str.push_back(page[i]);
+            continue;
+        }
+        else
+        {
+            if (str.length() >= 5)
+            {
+                m_ptr2astrs[m_addr + i - str.length()] = str;
+            }
+            str.clear();
+        }
+    }
+    if (str.length() >= 5)
+    {
+        m_ptr2astrs[m_addr + handle_len - str.length()] = str;
+    }
+}
+
+void CMemoryAnalyzer::carve_ustrings()
+{
+    size_t handle_len = m_len;
+    if (m_len > 0x1000)
+        handle_len = 0x1000;
+
+    std::string page(handle_len, '0');
+
+    size_t bytes_read = 0;
+    HRESULT result = EXT_D_IDebugDataSpaces->ReadVirtual(m_addr, (uint8_t*)page.data(), handle_len, (PULONG)&bytes_read);
+    if (result != 0 || bytes_read != handle_len)
+    {
+        EXT_F_ERR("Fail to read memory in [ 0x%0I64x - 0x%0I64x ], HRESULT: 0x%08x\n", m_addr, m_addr + handle_len, result);
+
+        return;
+    }
+
+    std::string str;
+    for (size_t i = 0; i < handle_len; i += 2)
+    {
+        if ((page[i] & 0x80) == 0 && isprint(page[i]))
+        {
+            str.push_back(page[i]);
+            continue;
+        }
+        else if ((page[i] == 0 && page[i + 1] == 0) || 
+            i == handle_len)
+        {
+            if (str.length() >= 5)
+            {
+                std::stringstream ss;
+
+                m_ptr2ustrs[m_addr + i - str.length() * 2] = str;
+                str.clear();
+            }
+            str.clear();
+        }
+        else
+        {
+            if (str.length() >= 5)
+            {
+                std::stringstream ss;
+
+                m_ptr2ustrs[m_addr + i - str.length() * 2] = str;
+                str.clear();
+            }
+            str.clear();
+        }
+
+    }
+    if (str.length() >= 5)
+    {
+        m_ptr2ustrs[m_addr + handle_len - str.length() * 2] = str;
+    }
+}
 void CMemoryAnalyzer::analyze()
 {
     std::map<size_t, std::string> notes;
@@ -87,6 +187,9 @@ void CMemoryAnalyzer::analyze()
             m_ptr2heaps[i * 8] = std::make_tuple(qw, get<0>(heap_entry), get<1>(heap_entry));
         }
     }
+
+    carve_strings();
+    carve_ustrings();
 }
 
 std::map<size_t, size_t> CMemoryAnalyzer::get_ptr2local()
@@ -107,4 +210,14 @@ std::map<size_t, std::tuple<std::string, size_t>> CMemoryAnalyzer::get_ptr2sym()
 std::map<size_t, std::tuple<size_t, size_t, size_t>> CMemoryAnalyzer::get_ptr2heap()
 {
     return m_ptr2heaps;
+}
+
+std::map<size_t, std::string> CMemoryAnalyzer::get_ptr2astr()
+{
+    return m_ptr2astrs;
+}
+
+std::map<size_t, std::string> CMemoryAnalyzer::get_ptr2ustr()
+{
+    return m_ptr2ustrs;
 }

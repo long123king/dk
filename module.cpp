@@ -1,4 +1,5 @@
 #include "module.h"
+#include "model.h"
 #include "CmdList.h"
 #include "CmdExt.h"
 #include "object.h"
@@ -6,16 +7,34 @@
 
 DEFINE_CMD(lmu)
 {
+    if (!DK_MODEL_ACCESS->isKernelmode())
+    {
+        CMD_LIST->PrintUsage("lmu");
+        EXT_F_OUT("Kernel Mode Only\n");
+        return;
+    }
     dump_user_modules();
 }
 
 DEFINE_CMD(lmk)
 {
+    if (!DK_MODEL_ACCESS->isKernelmode())
+    {
+        CMD_LIST->PrintUsage("lmk");
+        EXT_F_OUT("Kernel Mode Only\n");
+        return;
+    }
     dump_kernel_modules();
 }
 
 DEFINE_CMD(lm)
 {
+    if (!DK_MODEL_ACCESS->isKernelmode())
+    {
+        CMD_LIST->PrintUsage("lm");
+        EXT_F_OUT("Kernel Mode Only\n");
+        return;
+    }
     dump_modules();
 }
 

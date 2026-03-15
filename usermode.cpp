@@ -17,7 +17,8 @@ DEFINE_CMD(usearch_astr)
 {
     if (!DK_MODEL_ACCESS->isUsermode() || args.size() < 2)
     {
-        EXT_F_OUT("Usage: !dk usearch_astr <pattern> [ref_by_tree_level]\nUser Mode Only\n");
+        CMD_LIST->PrintUsage("usearch_astr");
+        EXT_F_OUT("User Mode Only\n");
         return;
     }
 
@@ -30,7 +31,8 @@ DEFINE_CMD(usearch_ustr)
 {
     if (!DK_MODEL_ACCESS->isUsermode() || args.size() < 2)
     {
-        EXT_F_OUT("Usage: !dk usearch_ustr <pattern> [ref_by_tree_level]\nUser Mode Only\n");
+        CMD_LIST->PrintUsage("usearch_ustr");
+        EXT_F_OUT("User Mode Only\n");
         return;
     }
 
@@ -43,7 +45,8 @@ DEFINE_CMD(usearch_bytes)
 {
     if (!DK_MODEL_ACCESS->isUsermode() || args.size() < 2)
     {
-        EXT_F_OUT("Usage: !dk usearch_bytes <pattern> [ref_by_tree_level]\nUser Mode Only\n");
+        CMD_LIST->PrintUsage("usearch_bytes");
+        EXT_F_OUT("User Mode Only\n");
         return;
     }
 
@@ -56,7 +59,8 @@ DEFINE_CMD(usearch_addr)
 {
     if (!DK_MODEL_ACCESS->isUsermode() || args.size() < 2)
     {
-        EXT_F_OUT("Usage: !dk usearch_addr <pattern> [ref_by_tree_level]\nUser Mode Only\n");
+        CMD_LIST->PrintUsage("usearch_addr");
+        EXT_F_OUT("User Mode Only\n");
         return;
     }
 
@@ -66,11 +70,29 @@ DEFINE_CMD(usearch_addr)
     usermode_search_addr(addr, level);
 }
 
+DEFINE_CMD(usearch_addr_mask)
+{
+    if (!DK_MODEL_ACCESS->isUsermode() || args.size() < 2)
+    {
+        EXT_F_OUT("Usage: !dk usearch_addr <pattern> [mask]\nUser Mode Only\n");
+        return;
+    }
+
+    size_t addr = EXT_F_IntArg(args, 1, 0);
+    size_t mask = EXT_F_IntArg(args, 2, 0);
+
+    if (mask == 0)
+        usermode_search_addr(addr, 0);
+    else
+        usermode_search_addr_mask(addr, mask);
+}
+
 DEFINE_CMD(uaddr_analyze)
 {
     if (!DK_MODEL_ACCESS->isUsermode() || args.size() < 3)
     {
-        EXT_F_OUT("Usage: !dk uaddr_analyze <start> <len>\nUser Mode Only\n");
+        CMD_LIST->PrintUsage("uaddr_analyze");
+        EXT_F_OUT("User Mode Only\n");
         return;
     }
 
@@ -88,7 +110,8 @@ DEFINE_CMD(uaddr_analyze_svg)
 {
     if (!DK_MODEL_ACCESS->isUsermode() || args.size() < 4)
     {
-        EXT_F_OUT("Usage: !dk uaddr_analyze_svg <start> <len> <svg_name>\nUser Mode Only\n");
+        CMD_LIST->PrintUsage("uaddr_analyze_svg");
+        EXT_F_OUT("User Mode Only\n");
         return;
     }
 
@@ -107,7 +130,8 @@ DEFINE_CMD(uaddr_analyze2)
 {
     if (!DK_MODEL_ACCESS->isUsermode() || args.size() < 3)
     {
-        EXT_F_OUT("Usage: !dk uaddr_analyze <start> <len>\nUser Mode Only\n");
+        CMD_LIST->PrintUsage("uaddr_analyze2");
+        EXT_F_OUT("User Mode Only\n");
         return;
     }
 
@@ -125,7 +149,8 @@ DEFINE_CMD(uaddr_ref_disp)
 {
     if (!DK_MODEL_ACCESS->isUsermode() || args.size() < 6)
     {
-        EXT_F_OUT("Usage: !dk uaddr_ref_disp <start> <len> <ref_start> <ref_len> <ref_disp>\nUser Mode Only\n");
+        CMD_LIST->PrintUsage("uaddr_ref_disp");
+        EXT_F_OUT("User Mode Only\n");
         return;
     }
 
@@ -142,7 +167,8 @@ DEFINE_CMD(uaddr_ref_by)
 {
     if (!DK_MODEL_ACCESS->isUsermode() || args.size() < 2)
     {
-        EXT_F_OUT("Usage: !dk uaddr_ref_by\nUser Mode Only\n");
+        CMD_LIST->PrintUsage("uaddr_ref_by");
+        EXT_F_OUT("User Mode Only\n");
         return;
     }
 
@@ -155,7 +181,8 @@ DEFINE_CMD(uaddr_ref_tree)
 {
     if (!DK_MODEL_ACCESS->isUsermode() || args.size() < 3)
     {
-        EXT_F_OUT("Usage: !dk uaddr_ref_tree <addr> <level>\nUser Mode Only\n");
+        CMD_LIST->PrintUsage("uaddr_ref_tree");
+        EXT_F_OUT("User Mode Only\n");
         return;
     }
 
@@ -169,7 +196,8 @@ DEFINE_CMD(ustacks)
 {
     if (!DK_MODEL_ACCESS->isUsermode() || args.size() < 1)
     {
-        EXT_F_OUT("Usage: !dk ustacks\nUser Mode Only\n");
+        CMD_LIST->PrintUsage("ustacks");
+        EXT_F_OUT("User Mode Only\n");
         return;
     }
 
@@ -180,11 +208,23 @@ DEFINE_CMD(uregs)
 {
     if (!DK_MODEL_ACCESS->isUsermode() || args.size() < 1)
     {
-        EXT_F_OUT("Usage: !dk uregs\nUser Mode Only\n");
+        CMD_LIST->PrintUsage("uregs");
+        EXT_F_OUT("User Mode Only\n");
         return;
     }
 
     usermode_regs();
+}
+
+DEFINE_CMD(unloaded_pe)
+{
+    if (!DK_MODEL_ACCESS->isUsermode() || args.size() < 1)
+    {
+        EXT_F_OUT("Usage: !dk unloaded_pe\nUser Mode Only\n");
+        return;
+    }
+
+    dump_unloaded_pe();
 }
 
 void usermode_search_astr(std::string pattern, size_t level)
@@ -199,6 +239,8 @@ void usermode_search_astr(std::string pattern, size_t level)
         EXT_F_OUT("Searching Virtual Memory in range(0x%0I64x, 0x%0I64x, 0x%0I64x) for ASCII String %s\n\n", start, end, length, pattern.c_str());
         ULONG64 match_offset = 0;
 
+        std::set<size_t> carve_pages;
+
         while (start < end)
         {
             auto hr = EXT_D_IDebugDataSpaces4->SearchVirtual2(start, length, DEBUG_VSEARCH_WRITABLE_ONLY, (PVOID)pattern.c_str(), pattern.size(), 1, &match_offset);
@@ -208,21 +250,58 @@ void usermode_search_astr(std::string pattern, size_t level)
 
                 std::stringstream dml_ss;
 
-                dml_ss << DML_CMD << "!dk uaddr_ref_by " << std::hex << std::showbase << match_offset
+                //dml_ss << DML_CMD << "!dk uaddr_ref_by " << hex << showbase << match_offset
+                //    << DML_TEXT << "ref_by"
+                //    << DML_END
+                //    << endl;
+                //stringstream bytes_ss;
+                //bytes_ss << hex << setw(2) << noshowbase << setfill('0') << (match_offset & 0xFF);
+                //bytes_ss << hex << setw(2) << noshowbase << setfill('0') << ((match_offset >> 8) & 0xFF);
+                //bytes_ss << hex << setw(2) << noshowbase << setfill('0') << ((match_offset >> 16) & 0xFF);
+                //bytes_ss << hex << setw(2) << noshowbase << setfill('0') << ((match_offset >> 24) & 0xFF);
+                //bytes_ss << hex << setw(2) << noshowbase << setfill('0') << ((match_offset >> 32) & 0xFF);
+                //bytes_ss << hex << setw(2) << noshowbase << setfill('0') << ((match_offset >> 40) & 0xFF);
+                //bytes_ss << hex << setw(2) << noshowbase << setfill('0') << ((match_offset >> 48) & 0xFF);
+                //bytes_ss << hex << setw(2) << noshowbase << setfill('0') << ((match_offset >> 56) & 0xFF);
+
+
+                dml_ss << DML_CMD << "!dk usearch_addr " << std::hex << std::showbase << match_offset
                     << DML_TEXT << "ref_by"
                     << DML_END
                     << std::endl;
 
                 EXT_F_STR_DML(dml_ss);
 
-                CUsermodeMemory::GetInstance()->analyze_mem((match_offset - 0x40) & 0xFFFFFFFFFFF0, 0x80, (match_offset - 0x40) & 0xFFFFFFFFFFF0);
-
                 if (level != 0)
                 {
-                    CUsermodeMemory::GetInstance()->set_ref_by_tree_levels(level);
+                    size_t page = match_offset & 0xFFFFFFFFFFFFF000;
+                    if (carve_pages.find(page) == carve_pages.end())
+                    {
+                        carve_pages.insert(page);
 
-                    CUsermodeMemory::GetInstance()->analyze_ref_tree(match_offset);
+                        std::stringstream dml_ss;
+
+                        dml_ss << DML_CMD << "!dk page_2_svg " << std::hex << std::showbase << page << " 1"
+                            << DML_TEXT << "page"
+                            << DML_END
+                            << std::endl;
+
+                        EXT_F_STR_DML(dml_ss);
+
+                        carve_strings(page, 0x1000);
+                    }
                 }
+                else
+                    EXT_F_OUT("\n");
+
+                //CUsermodeMemory::GetInstance()->analyze_mem((match_offset - 0x40) & 0xFFFFFFFFFFF0, 0x80, (match_offset - 0x40) & 0xFFFFFFFFFFF0);
+
+                //if (level != 0)
+                //{
+                //    CUsermodeMemory::GetInstance()->set_ref_by_tree_levels(level);
+
+                //    CUsermodeMemory::GetInstance()->analyze_ref_tree(match_offset);
+                //}
 
                 start = match_offset + pattern.size();
             }
@@ -254,6 +333,7 @@ void usermode_search_ustr(std::string pattern, size_t level)
         EXT_F_OUT("Searching Virtual Memory in range(0x%0I64x, 0x%0I64x, 0x%0I64x) for Unicode String %s\n\n", start, end, length, pattern.c_str());
         ULONG64 match_offset = 0;
 
+        std::set<size_t> carve_pages;
         std::wstring wstr_pattern(pattern.begin(), pattern.end());
 
         while (start < end)
@@ -272,14 +352,36 @@ void usermode_search_ustr(std::string pattern, size_t level)
 
                 EXT_F_STR_DML(dml_ss);
 
-                CUsermodeMemory::GetInstance()->analyze_mem((match_offset - 0x40)&0xFFFFFFFFFFF0, 0x80, (match_offset - 0x40) & 0xFFFFFFFFFFF0);
-
                 if (level != 0)
                 {
-                    CUsermodeMemory::GetInstance()->set_ref_by_tree_levels(level);
+                    size_t page = match_offset & 0xFFFFFFFFFFFFF000;
+                    if (carve_pages.find(page) == carve_pages.end())
+                    {
+                        carve_pages.insert(page);
 
-                    CUsermodeMemory::GetInstance()->analyze_ref_tree(match_offset);
+                        std::stringstream dml_ss;
+
+                        dml_ss << DML_CMD << "!dk page_2_svg " << std::hex << std::showbase << page << " 1"
+                            << DML_TEXT << "page"
+                            << DML_END
+                            << std::endl;
+
+                        EXT_F_STR_DML(dml_ss);
+
+                        carve_ustrings(page, 0x1000);
+                    }
                 }
+                else
+                    EXT_F_OUT("\n");
+
+                //CUsermodeMemory::GetInstance()->analyze_mem((match_offset - 0x40)&0xFFFFFFFFFFF0, 0x80, (match_offset - 0x40) & 0xFFFFFFFFFFF0);
+
+                //if (level != 0)
+                //{
+                //    CUsermodeMemory::GetInstance()->set_ref_by_tree_levels(level);
+
+                //    CUsermodeMemory::GetInstance()->analyze_ref_tree(match_offset);
+                //}
 
                 start = match_offset + wstr_pattern.size()*2;
             }
@@ -327,6 +429,7 @@ void usermode_search_bytes(std::string bytes, size_t level)
         EXT_F_OUT("Searching Virtual Memory in range(0x%0I64x, 0x%0I64x, 0x%0I64x) for Bytes %s\n\n", start, end, length, pattern.c_str());
 
         ULONG64 match_offset = 0;
+        std::set<size_t> carve_pages;
 
         while (start < end)
         {
@@ -348,10 +451,32 @@ void usermode_search_bytes(std::string bytes, size_t level)
 
                 if (level != 0)
                 {
-                    CUsermodeMemory::GetInstance()->set_ref_by_tree_levels(level);
+                    size_t page = match_offset & 0xFFFFFFFFFFFFF000;
+                    if (carve_pages.find(page) == carve_pages.end())
+                    {
+                        carve_pages.insert(page);
 
-                    CUsermodeMemory::GetInstance()->analyze_ref_tree(match_offset);
+                        std::stringstream dml_ss;
+
+                        dml_ss << DML_CMD << "!dk page_2_svg " << std::hex << std::showbase << page << " 1"
+                            << DML_TEXT << "page"
+                            << DML_END
+                            << std::endl;
+
+                        EXT_F_STR_DML(dml_ss);
+                    }
                 }
+                else
+                    EXT_F_OUT("\n");
+
+                //CUsermodeMemory::GetInstance()->analyze_mem((match_offset - 0x40) & 0xFFFFFFFFFFF0, 0x80, (match_offset - 0x40) & 0xFFFFFFFFFFF0);
+
+                //if (level != 0)
+                //{
+                //    CUsermodeMemory::GetInstance()->set_ref_by_tree_levels(level);
+
+                //    CUsermodeMemory::GetInstance()->analyze_ref_tree(match_offset);
+                //}
 
                 start = match_offset + pattern.size();
             }
@@ -382,34 +507,188 @@ void usermode_search_addr(size_t addr, size_t level)
 
         std::string pattern;
 
-        EXT_F_OUT("Searching Virtual Memory in range(0x%0I64x, 0x%0I64x, 0x%0I64x) for Address 0x%0I64x\n\n", start, end, length, addr);
+        EXT_F_OUT("Searching Virtual Memory in range(0x%0I64x, 0x%0I64x, 0x%0I64x) for Address 0x%0I64x\n", start, end, length, addr);
+        EXT_F_OUT("%s\n", std::string(180, '-').c_str());
 
         ULONG64 match_offset = 0;
+
+        std::set<size_t> carve_pages;
 
         while (start < end)
         {
             auto hr = EXT_D_IDebugDataSpaces4->SearchVirtual2(start, length, DEBUG_VSEARCH_WRITABLE_ONLY, &addr, 8, 8, &match_offset);
             if (S_OK == hr)
             {
-                EXT_F_OUT("\nFound pattern 0x%0I64x at 0x%0I64x\n", addr, match_offset);
+                EXT_F_OUT("[+] Found pattern 0x%0I64x at 0x%0I64x\t", addr, match_offset);
 
                 std::stringstream dml_ss;
 
-                dml_ss << DML_CMD << "!dk uaddr_ref_by " << std::hex << std::showbase << match_offset
+                dml_ss << DML_CMD << "!dk usearch_addr " << std::hex << std::showbase << match_offset
                     << DML_TEXT << "ref_by"
+                    << DML_END
+                    << " ";
+
+                EXT_F_STR_DML(dml_ss);
+
+                size_t page = match_offset & 0xFFFFFFFFFFFFF000;
+
+                dml_ss.str("");
+
+                dml_ss << DML_CMD << "!dk page_2_svg " << std::hex << std::showbase << page << " 1"
+                    << DML_TEXT << "page"
                     << DML_END
                     << std::endl;
 
                 EXT_F_STR_DML(dml_ss);
 
-                CUsermodeMemory::GetInstance()->analyze_mem((match_offset - 0x40) & 0xFFFFFFFFFFF0, 0x80, (match_offset - 0x40) & 0xFFFFFFFFFFF0);
+                //if (level != 0)
+                //{
+                //    CUsermodeMemory::GetInstance()->analyze_mem((match_offset - 0x40) & 0xFFFFFFFFFFF0, 0x80, (match_offset - 0x40) & 0xFFFFFFFFFFF0);
 
-                if (level != 0)
+                //    CUsermodeMemory::GetInstance()->set_ref_by_tree_levels(level);
+
+                //    CUsermodeMemory::GetInstance()->analyze_ref_tree(match_offset);
+                //}
+
+                start = match_offset + 8;
+            }
+            else if (0x9000001A == hr)
+            {
+                //EXT_F_OUT("Not Found\n");
+
+                start += length;
+            }
+            else
+            {
+                EXT_F_OUT("Error: 0x%08x\n", hr);
+                break;
+            }
+        }
+    }
+    FC;
+}
+
+void usermode_search_addr_mask(size_t addr, size_t mask)
+{
+    try
+    {
+        ULONG64 start = 0;
+        ULONG64 end = 0x7fffffff0000;
+
+        ULONG64 length = 0x8000000;
+
+        std::string pattern;
+
+        EXT_F_OUT("Searching Virtual Memory in range(0x%0I64x, 0x%0I64x, 0x%0I64x) for Address 0x%0I64x\n", start, end, length, addr);
+        EXT_F_OUT("%s\n", std::string(180, '-').c_str());
+
+        ULONG64 match_offset = 0;
+
+        if (mask > 5)
+            mask = 5;
+        // Make mask more friendly
+        // 1 : 16 bytes mask, mask = 0xFFFFFFFFFFFFFFF0
+        // 2 : 256 bytes mask, mask = 0xFFFFFFFFFFFFFF00
+        // 3 : 1 page (4KB) mask, mask = 0xFFFFFFFFFFFFF000
+        // 4 : 16 pages (64KB) mask, mask = 0xFFFFFFFFFFFF0000
+        // 5 : 256 pages (1MB) mask, mask = 0xFFFFFFFFFFF00000
+
+        size_t addr_masked = addr;
+        size_t addr_mask = 0xFFFFFFFFFFFFFFFF;
+        size_t addr_pattern = 0;
+        size_t addr_bytes = 8;
+        switch (mask)
+        {
+        case 1:
+            addr_mask = 0xFFFFFFFFFFFFFFF0;
+            addr_masked = addr & addr_mask;
+            addr_pattern = (addr & 0xFFFFFFFFFFFFFF00) >> 8;
+            addr_bytes = 7;
+            break;
+        case 2:
+            addr_mask = 0xFFFFFFFFFFFFFF00;
+            addr_masked = addr & addr_mask;
+            addr_pattern = (addr & 0xFFFFFFFFFFFFFF00) >> 8;
+            addr_bytes = 7;
+            break;
+        case 3:
+            addr_mask = 0xFFFFFFFFFFFFF000;
+            addr_masked = addr & addr_mask;
+            addr_pattern = (addr & 0xFFFFFFFFFFFF0000) >> 16;
+            addr_bytes = 6;
+            break;
+        case 4:
+            addr_mask = 0xFFFFFFFFFFFF0000;
+            addr_masked = addr & addr_mask;
+            addr_pattern = (addr & 0xFFFFFFFFFFFF0000) >> 16;
+            addr_bytes = 6;
+            break;
+        case 5:
+            addr_mask = 0xFFFFFFFFFFF00000;
+            addr_masked = addr & addr_mask;
+            addr_pattern = (addr & 0xFFFFFFFFFF000000) >> 24;
+            addr_bytes = 5;
+            break;
+        default:    
+            break;
+        }
+
+        while (start < end)
+        {
+            auto hr = EXT_D_IDebugDataSpaces4->SearchVirtual2(start, length, DEBUG_VSEARCH_DEFAULT, &addr_pattern, addr_bytes, 1, &match_offset);
+            if (S_OK == hr)
+            {
+                if (match_offset % 8 != 8 - addr_bytes)
                 {
-                    CUsermodeMemory::GetInstance()->set_ref_by_tree_levels(level);
-
-                    CUsermodeMemory::GetInstance()->analyze_ref_tree(match_offset);
+                    start = match_offset + 1;
+                    continue;
                 }
+                else
+                {
+                    match_offset -= 8 - addr_bytes;
+                }
+
+                auto real_addr = EXT_F_READ<size_t>(match_offset);
+                char ch = ' ';
+                if (real_addr == addr)
+                    ch = '*';
+                //else if ((real_addr > (addr - 0x10)) && (real_addr < (addr + 0x10)))
+                else if ((real_addr & addr_mask) == addr_masked)
+                    ch = '-';
+
+                if (ch != ' ')
+                {
+                    EXT_F_OUT("[%c] Found pattern 0x%0I64x at 0x%0I64x\t", ch, real_addr, match_offset);
+
+                    std::stringstream dml_ss;
+
+                    dml_ss << DML_CMD << "!dk usearch_addr " << std::hex << std::showbase << match_offset
+                        << DML_TEXT << "ref_by"
+                        << DML_END
+                        << " ";
+
+                    EXT_F_STR_DML(dml_ss);
+
+                    size_t page = match_offset & 0xFFFFFFFFFFFFF000;
+
+                    dml_ss.str("");
+
+                    dml_ss << DML_CMD << "!dk page_2_svg " << std::hex << std::showbase << page << " 1"
+                        << DML_TEXT << "page"
+                        << DML_END
+                        << std::endl;
+
+                    EXT_F_STR_DML(dml_ss);
+                }
+
+                //CUsermodeMemory::GetInstance()->analyze_mem((match_offset - 0x40) & 0xFFFFFFFFFFF0, 0x80, (match_offset - 0x40) & 0xFFFFFFFFFFF0);
+
+                //if (level != 0)
+                //{
+                //    CUsermodeMemory::GetInstance()->set_ref_by_tree_levels(level);
+
+                //    CUsermodeMemory::GetInstance()->analyze_ref_tree(match_offset);
+                //}
 
                 start = match_offset + 8;
             }

@@ -1,3 +1,4 @@
+#include "model.h"
 #include "thread.h"
 #include "CmdExt.h"
 #include "CmdList.h"
@@ -6,11 +7,18 @@
 
 DEFINE_CMD(threads)
 {
+    if (!DK_MODEL_ACCESS->isKernelmode())
+    {
+        CMD_LIST->PrintUsage("threads");
+        EXT_F_OUT("Kernel Mode Only\n");
+        return;
+    }
+
     size_t proc_addr = EXT_F_IntArg(args, 1, 0);
 
     if (proc_addr == 0)
     {
-        EXT_F_ERR("Usage: !dk threads <proc_addr>\n");
+        CMD_LIST->PrintUsage("threads");
         EXT_F_ERR("proc_addr can't be 0 or empty\n");
         return;
     }

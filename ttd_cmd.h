@@ -11,7 +11,10 @@
 #include <map>
 
 DECLARE_CMD(ldttd)
+DECLARE_CMD(ldttd_by_range)
 DECLARE_CMD(dump_ttd_events)
+DECLARE_CMD(dump_ttd_events_to_csv)
+DECLARE_CMD(ttd_vis_info)
 
 typedef struct _ttd_position
 {
@@ -134,13 +137,21 @@ public:
 
 	void load_ttd();
 
+	void set_ttd_range(uint64_t start, uint64_t end);
+
 	void dump_ttd_model_events(std::string out_filename);
+
+	void dump_ttd_model_events_to_csv(std::string out_filename);
+
+	std::string escape_symbol_name(size_t addr);
 
 	std::string dump_ttd_callnode(DK_TTD_CALLNODE callnode, size_t level = 0);
 
 protected:
 	std::vector<ttd_event> m_ttd_events;
 
+	size_t m_ttd_range_start{ 0 };
+	size_t m_ttd_range_end{ 0 };
 	std::vector<DK_TTD_CALLNODE> m_ttd_call_forest;
 };
 

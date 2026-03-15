@@ -8,6 +8,7 @@ DECLARE_CMD(usearch_astr)
 DECLARE_CMD(usearch_ustr)
 DECLARE_CMD(usearch_bytes)
 DECLARE_CMD(usearch_addr)
+DECLARE_CMD(usearch_addr_mask)
 DECLARE_CMD(uaddr_ref_disp)
 DECLARE_CMD(uaddr_ref_by)
 DECLARE_CMD(uaddr_ref_tree)
@@ -23,6 +24,7 @@ void usermode_search_astr(std::string pattern, size_t level);
 void usermode_search_ustr(std::string pattern, size_t level);
 void usermode_search_bytes(std::string bytes, size_t level);
 void usermode_search_addr(size_t addr, size_t level);
+void usermode_search_addr_mask(size_t addr, size_t mask);
 void usermode_addr_ref_disp(size_t start, size_t len, size_t ref_start, size_t ref_len, size_t ref_disp);
 void usermode_addr_ref_by(size_t start);
 void usermode_addr_ref_tree(size_t start, size_t level);

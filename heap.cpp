@@ -8,7 +8,8 @@ DEFINE_CMD(heap_ssum)
 {
     if (!DK_MODEL_ACCESS->isUsermode())
     {
-        EXT_F_OUT("Usage: !dk heap_ssum\nUser Mode Only\n");
+        CMD_LIST->PrintUsage("heap_ssum");
+        EXT_F_OUT("User Mode Only\n");
         return;
     }
 
@@ -19,7 +20,8 @@ DEFINE_CMD(heap_bysize)
 {
     if (!DK_MODEL_ACCESS->isUsermode() || args.size() < 2)
     {
-        EXT_F_OUT("Usage: !dk heap_bysize <size_in_hex>\nUser Mode Only\n");
+        CMD_LIST->PrintUsage("heap_bysize");
+        EXT_F_OUT("User Mode Only\n");
         return;
     }
 
@@ -32,7 +34,8 @@ DEFINE_CMD(heap_oversize)
 {
     if (!DK_MODEL_ACCESS->isUsermode() || args.size() < 2)
     {
-        EXT_F_OUT("Usage: !dk heap_oversize <size_in_hex>\nUser Mode Only\n");
+        CMD_LIST->PrintUsage("heap_oversize");
+        EXT_F_OUT("User Mode Only\n");
         return;
     }
 

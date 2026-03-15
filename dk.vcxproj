@@ -183,6 +183,7 @@
     <ClInclude Include="handle.h" />
     <ClInclude Include="heap.h" />
     <ClInclude Include="hexsvg.h" />
+    <ClInclude Include="json\json.hpp" />
     <ClInclude Include="list.h" />
     <ClInclude Include="memory.h" />
     <ClInclude Include="MemoryAnalyzer.h" />

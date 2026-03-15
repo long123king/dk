@@ -14,6 +14,10 @@ DECLARE_CMD(args)
 DECLARE_CMD(vad)
 DECLARE_CMD(memcpy)
 DECLARE_CMD(page_2_svg)
+DECLARE_CMD(pages_2_svg)
+DECLARE_CMD(carve_strs)
+DECLARE_CMD(carve_ustrs)
+DECLARE_CMD(unloaded_pe)
 
 void dump_size(size_t value);
 void dump_args();
@@ -22,6 +26,11 @@ void analyze_qword(size_t value);
 void analyze_mem(size_t start, size_t len, size_t offset = 0);
 void extract_mem(size_t start, size_t len, size_t offset = 0);
 bool like_kaddr(size_t addr);
+
+void carve_strings(size_t addr, size_t len);
+void carve_ustrings(size_t addr, size_t len);
+
+void dump_unloaded_pe();
 
 bool in_curr_stack(size_t addr);
 std::string va_region_name(size_t addr);
@@ -42,7 +51,7 @@ void visit_vad(size_t vad_node_addr);
 
 void do_memcpy(size_t src_addr, size_t dst_addr, size_t count);
 
-void page_to_svg(size_t addr, std::string svg_filename);
+void page_to_svg(size_t addr, std::string svg_filename, size_t local_start = 0, size_t local_end = 0);
 
 void mem_access_to_svg(size_t start_addr, size_t end_addr, std::string mode, std::string svg_filename);
 
