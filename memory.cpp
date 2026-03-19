@@ -13,10 +13,13 @@
 
 #include "svg/Coordinates.h"
 #include "svg/SvgElements.h"
+#include <algorithm>
 
 #pragma warning( disable : 4244)
 
 std::set<std::tuple<size_t, size_t, std::string>> g_va_regions;
+
+bool IsDarkThemeArg(std::string value);
 
 DEFINE_CMD(size)
 {
@@ -145,11 +148,12 @@ DEFINE_CMD(page_2_svg)
 {
     if (args.size() < 3)
     {
-        EXT_F_OUT("Usage: !dk page_2_svg <addr> <output_filename>\n");
+        EXT_F_OUT("Usage: !dk page_2_svg <addr> <output_filename> [dark]\n");
         return;
     }
     size_t addr = EXT_F_IntArg(args, 1, 0);
     std::string out_filename = args[2];
+    bool dark_theme = (args.size() >= 4) ? IsDarkThemeArg(args[3]) : false;
 
     addr = addr & 0xFFFFFFFFFFFFF000;
 
@@ -164,19 +168,20 @@ DEFINE_CMD(page_2_svg)
         out_filename = ss.str();
     }
 
-    page_to_svg(addr, out_filename, addr, addr + 0x1000);
+    page_to_svg(addr, out_filename, addr, addr + 0x1000, dark_theme);
 }
 
 DEFINE_CMD(pages_2_svg)
 {
-    if (args.size() < 3)
+    if (args.size() < 4)
     {
-        EXT_F_OUT("Usage: !dk pages_2_svg <addr> <count> <output_filename>\n");
+        EXT_F_OUT("Usage: !dk pages_2_svg <addr> <count> <output_filename> [dark]\n");
         return;
     }
     size_t addr = EXT_F_IntArg(args, 1, 0);
     size_t count = EXT_F_IntArg(args, 2, 0);
     std::string out_filename = args[3];
+    bool dark_theme = (args.size() >= 5) ? IsDarkThemeArg(args[4]) : false;
 
     addr = addr & 0xFFFFFFFFFFFFF000;
 
@@ -205,7 +210,7 @@ DEFINE_CMD(pages_2_svg)
         else
             ss << out_filename << "_" << std::hex << std::showbase << addr + i * 0x1000 << "_" << std::noshowbase << std::setw(4) << std::setfill('0') << i << ".svg";
 
-        page_to_svg(addr + i * 0x1000, ss.str(), addr, addr + count * 0x1000);
+        page_to_svg(addr + i * 0x1000, ss.str(), addr, addr + count * 0x1000, dark_theme);
     }
 }
 
@@ -238,7 +243,61 @@ void dump_regs()
 #define GRID_HEIGHT         30
 #define GRID_ADDR_WIDTH     180
 
-std::string Byte2FontStyle(uint8_t byte)
+
+constexpr uint64_t kPointerBoxTextPadding = 10;
+constexpr uint64_t kPointerNoteGap = 30;
+
+bool IsDarkThemeArg(std::string value)
+{
+    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char ch)
+    {
+        return static_cast<char>(std::tolower(ch));
+    });
+
+    return value == "dark" || value == "--dark" || value == "dark_theme" || value == "1" || value == "true";
+}
+
+uint64_t EstimateMonospaceTextWidth(const std::string& text, uint64_t minimum_width = 160)
+{
+    uint64_t estimated_width = static_cast<uint64_t>(text.size()) * 10 + 20;
+    return estimated_width > minimum_width ? estimated_width : minimum_width;
+}
+
+std::string JoinStringAnnotations(const std::vector<std::string>& annotations)
+{
+    std::stringstream ss;
+
+    for (size_t index = 0; index < annotations.size(); index++)
+    {
+        if (index != 0)
+            ss << " | ";
+
+        ss << annotations[index];
+    }
+
+    return ss.str();
+}
+
+std::string escape_fmt_str(std::string str)
+{
+    std::string escaped_str;
+    for (char ch : str)
+    {
+        switch (ch)
+        {
+        case '%':
+            escaped_str += "%%";
+            break;
+
+        default:
+            escaped_str += ch;
+            break;
+        }
+    }
+    return escaped_str;
+}
+
+std::string Byte2FontStyle(uint8_t byte, bool dark_theme)
 {
     std::string character_color = "#affc41";
     std::string numeric_color = "#16db93";
@@ -262,35 +321,62 @@ std::string Byte2FontStyle(uint8_t byte)
     //    fill_color = maximum_color;
     //else if (byte >= 0x80)
     //    fill_color = non_ascii;
-    if (byte == 0)
-        fill_color = "#a0f0f0";
-    else if (byte >= 'a' && byte <= 'z')
-        fill_color = "#f0f0a0";
-    else if (byte >= 'A' && byte <= 'Z')
-        fill_color = "#f0f0a0";
-    else if (byte >= '0' && byte <= '9')
-        fill_color = "#a0ffa0";
-    else if (byte <= 0x80)
-        fill_color = "#a0a0f0";
-    else if (byte <= 0xF0)
-        fill_color = "#f0a0f0";
+    if (!dark_theme)
+    {
+        if (byte == 0)
+            fill_color = "#a0f0f0";
+        else if (byte >= 'a' && byte <= 'z')
+            fill_color = "#f0f0a0";
+        else if (byte >= 'A' && byte <= 'Z')
+            fill_color = "#f0f0a0";
+        else if (byte >= '0' && byte <= '9')
+            fill_color = "#a0ffa0";
+        else if (byte <= 0x80)
+            fill_color = "#a0a0f0";
+        else if (byte <= 0xF0)
+            fill_color = "#f0a0f0";
+        else
+            fill_color = "#f0a0a0";
+    }
     else
-        fill_color = "#f0a0a0";
+    {
+        if (byte == 0)
+            fill_color = "#2f7ea0";
+        else if (byte >= 'a' && byte <= 'z')
+            fill_color = "#7a6f2a";
+        else if (byte >= 'A' && byte <= 'Z')
+            fill_color = "#7a6f2a";
+        else if (byte >= '0' && byte <= '9')
+            fill_color = "#2a7a42";
+        else if (byte <= 0x80)
+            fill_color = "#3d48a0";
+        else if (byte <= 0xF0)
+            fill_color = "#7f3f7f";
+        else
+            fill_color = "#8a3f3f";
+    }
 
     return "fill: " + fill_color + ";";
 }
 
-std::shared_ptr<CSvgDoc> visual_page(std::string page_content, uint64_t page_addr, CoordinatesManager& coordinates_mgr)
+std::shared_ptr<CSvgDoc> visual_page(std::string page_content, uint64_t page_addr, CoordinatesManager& coordinates_mgr, bool dark_theme)
 {
     auto canvas_size = coordinates_mgr.GetCanvasSize();
     auto svg_doc = std::make_shared<CSvgDoc>(get<0>(canvas_size), get<1>(canvas_size), CSvgPoint(0, 0), get<0>(canvas_size), get<1>(canvas_size));
 
+    auto canvas_bg = std::make_shared<CSvgRect>(
+        CSvgPoint(0, 0),
+        get<0>(canvas_size),
+        get<1>(canvas_size),
+        dark_theme ? "fill: #161b22; stroke:none;" : "fill: #f6f8fa; stroke:none;");
+    svg_doc->appendElement(canvas_bg);
+
     auto svg_defr = std::make_shared<CSvgDefsArrowHead>("arrowheadr", 10, 7);
     auto svg_defg = std::make_shared<CSvgDefsArrowHead>("arrowheadg", 10, 7);
     auto svg_defb = std::make_shared<CSvgDefsArrowHead>("arrowheadb", 10, 7);
-    svg_defr->addStyle("stroke: none; fill:red; fill-opacity: 0.4; stroke-opacity: 0.4;");
-    svg_defg->addStyle("stroke: none; fill:green; fill-opacity: 0.4; stroke-opacity: 0.4;");
-    svg_defb->addStyle("stroke: none; fill:blue; fill-opacity: 0.4; stroke-opacity: 0.4;");
+    svg_defr->addStyle(dark_theme ? "stroke: none; fill:#ff938a; fill-opacity: 0.72; stroke-opacity: 0.72;" : "stroke: none; fill:red; fill-opacity: 0.4; stroke-opacity: 0.4;");
+    svg_defg->addStyle(dark_theme ? "stroke: none; fill:#8ff79a; fill-opacity: 0.72; stroke-opacity: 0.72;" : "stroke: none; fill:green; fill-opacity: 0.4; stroke-opacity: 0.4;");
+    svg_defb->addStyle(dark_theme ? "stroke: none; fill:#8acbff; fill-opacity: 0.72; stroke-opacity: 0.72;" : "stroke: none; fill:blue; fill-opacity: 0.4; stroke-opacity: 0.4;");
 
     std::vector<std::string> addr_texts;
     std::vector<std::string> addr_styles;
@@ -309,8 +395,8 @@ std::shared_ptr<CSvgDoc> visual_page(std::string page_content, uint64_t page_add
         get<0>(addr_parameters), get<1>(addr_parameters), get<2>(addr_parameters), get<3>(addr_parameters),
         addr_texts, std::vector<std::string>(), std::vector<std::string>());
 
-    svg_addr_grids->addLineStyle("stroke: white;");
-    svg_addr_grids->addTextStyle("stroke: none; fill: black; font-size: 16; font-weight: normal; font-family: monospace; ");
+    svg_addr_grids->addLineStyle(dark_theme ? "stroke: #465161;" : "stroke: white;");
+    svg_addr_grids->addTextStyle(dark_theme ? "stroke: none; fill: #dbe3eb; font-size: 16; font-weight: normal; font-family: monospace; " : "stroke: none; fill: black; font-size: 16; font-weight: normal; font-family: monospace; ");
     svg_addr_grids->addRectStyle("stroke: none; fill: none; font-size: 16; font-weight: normal;");
 
     std::vector<std::string> content_texts;
@@ -331,15 +417,15 @@ std::shared_ptr<CSvgDoc> visual_page(std::string page_content, uint64_t page_add
         content_texts.push_back(ss.str());
 
         ss.str("");
-        ss << Byte2FontStyle((uint8_t)page_content[i]);
+        ss << Byte2FontStyle((uint8_t)page_content[i], dark_theme);
         content_styles.push_back(ss.str());
 
         for (uint64_t j = 0; j < 8; j++)
         {
             if ((uint8_t)page_content[i] & (1 << (7 - j)))
-                bitmap_styles.push_back("fill: #e0e0e0; stroke:black; stroke-width: 1;");                         
+                bitmap_styles.push_back(dark_theme ? "fill: #a2adba; stroke:#465161; stroke-width: 1;" : "fill: #e0e0e0; stroke:black; stroke-width: 1;");
             else
-                bitmap_styles.push_back("fill: #606060; stroke:black; stroke-width: 1;");
+                bitmap_styles.push_back(dark_theme ? "fill: #495666; stroke:#465161; stroke-width: 1;" : "fill: #606060; stroke:black; stroke-width: 1;");
         }
 
         if (i % 8 == 7)
@@ -391,12 +477,12 @@ std::shared_ptr<CSvgDoc> visual_page(std::string page_content, uint64_t page_add
     //svg_content_grids->addTextStyle("font-family: sans-serif; fill-width: 6; stroke: none; fill: white; font-size: 16; font-weight: normal;");
     //svg_content_grids->addRectStyle("stroke: white; stroke-width: 2; fill: black; font-size: 16; font-weight: normal;");
 
-    svg_content_grids->addLineStyle("stroke: black, fill: black;");
-    svg_content_grids->addRectStyle("stroke: black; stroke-width: 1; fill: white;");
-    svg_content_grids->addTextStyle("font-family: monospace; fill-width: 6; stroke:none; fill: black; font-size: 16; font-weight: normal;");
+    svg_content_grids->addLineStyle(dark_theme ? "stroke: #1d2430; fill: #1d2430;" : "stroke: black, fill: black;");
+    svg_content_grids->addRectStyle(dark_theme ? "stroke: #465161; stroke-width: 1; fill: #202733;" : "stroke: black; stroke-width: 1; fill: white;");
+    svg_content_grids->addTextStyle(dark_theme ? "font-family: monospace; fill-width: 6; stroke:none; fill: #f0f6fc; font-size: 16; font-weight: normal;" : "font-family: monospace; fill-width: 6; stroke:none; fill: black; font-size: 16; font-weight: normal;");
    
     ascii_grids->addRectStyle("stroke: none; fill: none;");
-    ascii_grids->addTextStyle("font-family: monospace; fill-width: 3; stroke:none; fill: black; font-size: 6; font-weight: normal;");
+    ascii_grids->addTextStyle(dark_theme ? "font-family: monospace; fill-width: 3; stroke:none; fill: #b5bfca; font-size: 6; font-weight: normal;" : "font-family: monospace; fill-width: 3; stroke:none; fill: black; font-size: 6; font-weight: normal;");
 
     svg_doc->appendElement(svg_defr);
     svg_doc->appendElement(svg_defg);
@@ -426,7 +512,7 @@ void update_page(std::shared_ptr<CSvgDoc> svg_doc, std::string page_content, Coo
         content_texts.push_back(ss.str());
 
         ss.str("");
-        ss << Byte2FontStyle((uint8_t)page_content[i]);
+        ss << Byte2FontStyle((uint8_t)page_content[i], false);
         content_styles.push_back(ss.str());
     }
 
@@ -487,13 +573,22 @@ void AddPtr2Sym(std::shared_ptr<CSvgGroup> g_arrows, std::shared_ptr<CSvgGroup> 
 
     std::stringstream ss;
     ss << "0x" << std::hex << std::setfill('0') << std::setw(16) << target_addr;
-    auto text = std::make_shared<CSvgText>(CSvgPoint(get<0>(v_pivot) + 10, get<1>(v_pivot) - half_height), ss.str());
+    auto target_text = ss.str();
+    auto box_width = EstimateMonospaceTextWidth(target_text);
+    auto text = std::make_shared<CSvgText>(
+        CSvgPoint(get<0>(v_pivot) + kPointerBoxTextPadding, get<1>(v_pivot) - half_height),
+        target_text);
 
-    auto rect = std::make_shared<CSvgRect>(CSvgPoint(get<0>(v_pivot), get<1>(v_pivot) - half_height * 2), 160, half_height * 2);
+    auto rect = std::make_shared<CSvgRect>(
+        CSvgPoint(get<0>(v_pivot), get<1>(v_pivot) - half_height * 2),
+        box_width,
+        half_height * 2);
 
     ss.str("");
     ss << notes;
-    auto text_v = std::make_shared<CSvgText>(CSvgPoint(get<0>(v_pivot) + 200, get<1>(v_pivot) - get<1>(coordinates_mgr.GetLAddrParameters()) / 2), ss.str());
+    auto text_v = std::make_shared<CSvgText>(
+        CSvgPoint(get<0>(v_pivot) + box_width + kPointerNoteGap, get<1>(v_pivot) - get<1>(coordinates_mgr.GetLAddrParameters()) / 2),
+        ss.str());
 
     g_arrows->appendElement(arrow_v);
     g_texts->appendElement(text);
@@ -501,42 +596,23 @@ void AddPtr2Sym(std::shared_ptr<CSvgGroup> g_arrows, std::shared_ptr<CSvgGroup> 
     g_rects->appendElement(rect);
 }
 
-void AddPtr2Astr(std::shared_ptr<CSvgGroup> g_texts, uint64_t variable_addr, std::string notes, CoordinatesManager& coordinates_mgr)
+void AddStringAnnotations(std::shared_ptr<CSvgGroup> g_string_texts, uint64_t variable_addr, const std::vector<std::string>& notes, CoordinatesManager& coordinates_mgr)
 {
+    if (notes.empty())
+        return;
+
     uint64_t v_page = variable_addr & 0xFFFFFFFFFFFFF000;
 
     uint64_t v_row_index = ((variable_addr - v_page) + 8) / 8;
-    uint64_t v_column_index = variable_addr % 8;
 
     auto v_pivot = coordinates_mgr.GetMRowPivot(v_row_index);
+    auto annotation_x = get<0>(v_pivot) + EstimateMonospaceTextWidth("0x0000000000000000") + kPointerNoteGap;
 
-    auto half_height = get<1>(coordinates_mgr.GetLAddrParameters()) / 2;
-    auto grid_width = get<0>(coordinates_mgr.GetLGridParameters());
+    auto text_v = std::make_shared<CSvgText>(
+        CSvgPoint(annotation_x, get<1>(v_pivot) - get<1>(coordinates_mgr.GetLAddrParameters()) / 8),
+        JoinStringAnnotations(notes));
 
-    std::stringstream ss;
-    ss << "\"" << notes << "\"";
-    auto text_v = std::make_shared<CSvgText>(CSvgPoint(get<0>(v_pivot), get<1>(v_pivot) - get<1>(coordinates_mgr.GetLAddrParameters()) / 8), ss.str());
-
-    g_texts->appendElement(text_v);
-}
-
-void AddPtr2Ustr(std::shared_ptr<CSvgGroup> g_texts, uint64_t variable_addr, std::string notes, CoordinatesManager& coordinates_mgr)
-{
-    uint64_t v_page = variable_addr & 0xFFFFFFFFFFFFF000;
-
-    uint64_t v_row_index = ((variable_addr - v_page) + 8) / 8;
-    uint64_t v_column_index = variable_addr % 8;
-
-    auto v_pivot = coordinates_mgr.GetMRowPivot(v_row_index);
-
-    auto half_height = get<1>(coordinates_mgr.GetLAddrParameters()) / 2;
-    auto grid_width = get<0>(coordinates_mgr.GetLGridParameters());
-
-    std::stringstream ss;
-    ss << "L\"" << notes << "\"";
-    auto text_v = std::make_shared<CSvgText>(CSvgPoint(get<0>(v_pivot), get<1>(v_pivot) - get<1>(coordinates_mgr.GetLAddrParameters()) / 8), ss.str());
-
-    g_texts->appendElement(text_v);
+    g_string_texts->appendElement(text_v);
 }
 
 void AddMem(std::shared_ptr<CSvgDoc> svg_doc, size_t addr, size_t size, CSvgPoint disp)
@@ -586,7 +662,7 @@ void AddMem(std::shared_ptr<CSvgDoc> svg_doc, size_t addr, size_t size, CSvgPoin
         content_texts.push_back(ss.str());
 
         ss.str("");
-        ss << Byte2FontStyle((uint8_t)content[i]);
+        ss << Byte2FontStyle((uint8_t)content[i], false);
         content_styles.push_back(ss.str());
     }
 
@@ -617,7 +693,7 @@ void AddBytes(std::shared_ptr<CSvgDoc> svg_doc, std::string content, CSvgPoint d
         content_texts.push_back(ss.str());
 
         ss.str("");
-        ss << Byte2FontStyle((uint8_t)content[i]);
+        ss << Byte2FontStyle((uint8_t)content[i], false);
         content_styles.push_back(ss.str());
     }
 
@@ -635,10 +711,11 @@ void AddBytes(std::shared_ptr<CSvgDoc> svg_doc, std::string content, CSvgPoint d
 }
 
 
-void AddPtr2Heap(std::shared_ptr<CSvgDoc> svg_doc, std::shared_ptr<CSvgGroup> g_arrows, std::shared_ptr<CSvgGroup> g_besier, std::shared_ptr<CSvgGroup> g_texts, std::shared_ptr<CSvgGroup> g_rects, 
+void AddPtr2Heap(std::shared_ptr<CSvgDoc> svg_doc, std::shared_ptr<CSvgGroup> g_arrows, std::shared_ptr<CSvgGroup> g_besier, std::shared_ptr<CSvgGroup> g_texts, std::shared_ptr<CSvgGroup> g_rects,
     uint64_t variable_addr, uint64_t target_addr, uint64_t heap_base, uint64_t heap_size, 
     CoordinatesManager& coordinates_mgr,
-    std::string base_filename)
+    std::string base_filename,
+    bool dark_theme)
 {
     uint64_t v_page = variable_addr & 0xFFFFFFFFFFFFF000;
 
@@ -667,7 +744,11 @@ void AddPtr2Heap(std::shared_ptr<CSvgDoc> svg_doc, std::shared_ptr<CSvgGroup> g_
 
     std::stringstream ss;
     ss << "0x" << std::hex << std::setfill('0') << std::setw(16) << target_addr;
-    auto text_v = std::make_shared<CSvgText>(CSvgPoint(get<0>(v_pivot) + 10, get<1>(v_pivot) - half_height), ss.str());
+    auto target_text = ss.str();
+    auto box_width = EstimateMonospaceTextWidth(target_text);
+    auto text_v = std::make_shared<CSvgText>(
+        CSvgPoint(get<0>(v_pivot) + kPointerBoxTextPadding, get<1>(v_pivot) - half_height),
+        target_text);
 
     ss.str("");
     ss << base_filename << "mem_access_0x" << target_addr << "_8.svg";
@@ -676,7 +757,11 @@ void AddPtr2Heap(std::shared_ptr<CSvgDoc> svg_doc, std::shared_ptr<CSvgGroup> g_
 
     mem_access_to_svg(target_addr, target_addr + 8, "W", ss.str());
 
-    auto rect = std::make_shared<CSvgRect>(CSvgPoint(get<0>(v_pivot), get<1>(v_pivot) - half_height * 2), 160, half_height * 2, "fill: blue; stroke:blue;");
+    auto rect = std::make_shared<CSvgRect>(
+        CSvgPoint(get<0>(v_pivot), get<1>(v_pivot) - half_height * 2),
+        box_width,
+        half_height * 2,
+        dark_theme ? "fill: #79c0ff; stroke:#79c0ff;" : "fill: blue; stroke:blue;");
 
     mem_access_link->appendElement(rect);
 
@@ -691,7 +776,7 @@ void AddPtr2Heap(std::shared_ptr<CSvgDoc> svg_doc, std::shared_ptr<CSvgGroup> g_
     g_rects->appendElement(mem_access_link);
 }
 
-void AddPtr2Local(std::shared_ptr<CSvgGroup> g_arrows, std::shared_ptr<CSvgGroup> g_besier, std::shared_ptr<CSvgGroup> g_texts, std::shared_ptr<CSvgGroup> g_rects, uint64_t variable_addr, uint64_t target_addr, CoordinatesManager& coordinates_mgr)
+void AddPtr2Local(std::shared_ptr<CSvgGroup> g_arrows, std::shared_ptr<CSvgGroup> g_besier, std::shared_ptr<CSvgGroup> g_texts, std::shared_ptr<CSvgGroup> g_rects, uint64_t variable_addr, uint64_t target_addr, CoordinatesManager& coordinates_mgr, bool dark_theme)
 {
     uint64_t v_page = variable_addr & 0xFFFFFFFFFFFFF000;
 
@@ -725,9 +810,17 @@ void AddPtr2Local(std::shared_ptr<CSvgGroup> g_arrows, std::shared_ptr<CSvgGroup
 
     std::stringstream ss;
     ss << "0x" << std::hex << std::setfill('0') << std::setw(16) << target_addr;
-    auto text_v = std::make_shared<CSvgText>(CSvgPoint(get<0>(v_pivot) + 10, get<1>(v_pivot) - half_height), ss.str());
+    auto target_text = ss.str();
+    auto box_width = EstimateMonospaceTextWidth(target_text);
+    auto text_v = std::make_shared<CSvgText>(
+        CSvgPoint(get<0>(v_pivot) + kPointerBoxTextPadding, get<1>(v_pivot) - half_height),
+        target_text);
 
-    auto rect = std::make_shared<CSvgRect>(CSvgPoint(get<0>(v_pivot), get<1>(v_pivot) - half_height*2), 160, half_height * 2, "fill: green; stroke:green;");
+    auto rect = std::make_shared<CSvgRect>(
+        CSvgPoint(get<0>(v_pivot), get<1>(v_pivot) - half_height*2),
+        box_width,
+        half_height * 2,
+        dark_theme ? "fill: #7ee787; stroke:#7ee787;" : "fill: green; stroke:green;");
 
     g_arrows->appendElement(arrow_v);
     if (b_same_page )
@@ -736,7 +829,7 @@ void AddPtr2Local(std::shared_ptr<CSvgGroup> g_arrows, std::shared_ptr<CSvgGroup
     g_rects->appendElement(rect);
 }
 
-void page_to_svg(size_t addr, std::string svg_filename, size_t local_start, size_t local_end)
+void page_to_svg(size_t addr, std::string svg_filename, size_t local_start, size_t local_end, bool dark_theme)
 {
     std::string page(0x1000, '0');
 
@@ -763,7 +856,7 @@ void page_to_svg(size_t addr, std::string svg_filename, size_t local_start, size
 
     CoordinatesManager coordinates_mgr(GRID_WIDTH, GRID_HEIGHT, GRID_ADDR_WIDTH);
 
-    auto stack_svg_doc = visual_page(page, (uint64_t)ch_page, coordinates_mgr);
+    auto stack_svg_doc = visual_page(page, (uint64_t)ch_page, coordinates_mgr, dark_theme);
 
     auto inner_script = std::make_shared<CSvgInnerScript>();
 
@@ -801,17 +894,20 @@ void page_to_svg(size_t addr, std::string svg_filename, size_t local_start, size
     inner_script->addScript(script);
 
     auto svg_g_arrows = std::make_shared<CSvgGroup>();
-    svg_g_arrows->addStyle("stroke: red; stroke-width: 3; stroke-opacity: 0.4;");
+    svg_g_arrows->addStyle(dark_theme ? "stroke: #ff938a; stroke-width: 3; stroke-opacity: 0.72;" : "stroke: red; stroke-width: 3; stroke-opacity: 0.4;");
 
     auto svg_g_texts = std::make_shared<CSvgGroup>();
-    svg_g_texts->addStyle("stroke: none; fill: black; font-size: 16; font-weight: normal; font-family: monospace; ");
+    svg_g_texts->addStyle(dark_theme ? "stroke: none; fill: #f0f6fc; font-size: 16; font-weight: normal; font-family: monospace; " : "stroke: none; fill: black; font-size: 16; font-weight: normal; font-family: monospace; ");
+
+    auto svg_g_string_texts = std::make_shared<CSvgGroup>();
+    svg_g_string_texts->addStyle(dark_theme ? "stroke: none; fill: #ffb4ad; font-size: 12; font-style: italic; font-weight: bold; font-family: monospace; " : "stroke: none; fill: red; font-size: 12; font-style: italic; font-weight: bold; font-family: monospace; ");
 
     auto svg_g_besier = std::make_shared<CSvgGroup>();
-    svg_g_besier->addStyle("stroke: green; stroke-width: 3; stroke-opacity: 0.4; fill: none;");
+    svg_g_besier->addStyle(dark_theme ? "stroke: #8ff79a; stroke-width: 3; stroke-opacity: 0.72; fill: none;" : "stroke: green; stroke-width: 3; stroke-opacity: 0.4; fill: none;");
     svg_g_besier->setId("besier_g");
 
     auto svg_g_rects = std::make_shared<CSvgGroup>();
-    svg_g_rects->addStyle("stroke: red; stroke-width: 2; fill: red; font-size: 16; font-weight: normal; font-family: monospace;  fill-opacity: 0.2;");
+    svg_g_rects->addStyle(dark_theme ? "stroke: #ff938a; stroke-width: 2; fill: #ff938a; font-size: 16; font-weight: normal; font-family: monospace; fill-opacity: 0.3;" : "stroke: red; stroke-width: 2; fill: red; font-size: 16; font-weight: normal; font-family: monospace;  fill-opacity: 0.2;");
 
     //AddStackVariable(svg_g_arrows, svg_g_texts, (uint64_t)addr, "addr", coordinates_mgr);
 
@@ -824,29 +920,41 @@ void page_to_svg(size_t addr, std::string svg_filename, size_t local_start, size
 
     for (auto ptr2local : manalyzer.get_ptr2local())
     {
-        AddPtr2Local(svg_g_arrows, svg_g_besier, svg_g_texts, svg_g_rects, ch_page + ptr2local.first, ch_page + ptr2local.second, coordinates_mgr);
+        AddPtr2Local(svg_g_arrows, svg_g_besier, svg_g_texts, svg_g_rects, ch_page + ptr2local.first, ch_page + ptr2local.second, coordinates_mgr, dark_theme);
     }
 
     for (auto ptr2heap : manalyzer.get_ptr2heap())
     {
-        AddPtr2Heap(stack_svg_doc, svg_g_arrows, svg_g_besier, svg_g_texts, svg_g_rects, ch_page + ptr2heap.first, get<0>(ptr2heap.second), get<1>(ptr2heap.second), get<2>(ptr2heap.second), coordinates_mgr, svg_filename);
+        AddPtr2Heap(stack_svg_doc, svg_g_arrows, svg_g_besier, svg_g_texts, svg_g_rects, ch_page + ptr2heap.first, get<0>(ptr2heap.second), get<1>(ptr2heap.second), get<2>(ptr2heap.second), coordinates_mgr, svg_filename, dark_theme);
     }
 
 
+    std::map<uint64_t, std::vector<std::string>> row_annotations;
+
     for (auto ptr2astr : manalyzer.get_ptr2astr())
     {
-        AddPtr2Astr(svg_g_texts, ptr2astr.first, SvgEscapeText(ptr2astr.second), coordinates_mgr);
+        std::stringstream ss;
+        ss << "\"" << SvgEscapeText(ptr2astr.second) << "\"";
+        row_annotations[ptr2astr.first & ~static_cast<uint64_t>(0x7)].push_back(ss.str());
     }
 
     for (auto ptr2ustr : manalyzer.get_ptr2ustr())
     {
-        AddPtr2Ustr(svg_g_texts, ptr2ustr.first, SvgEscapeText(ptr2ustr.second), coordinates_mgr);
+        std::stringstream ss;
+        ss << "L\"" << SvgEscapeText(ptr2ustr.second) << "\"";
+        row_annotations[ptr2ustr.first & ~static_cast<uint64_t>(0x7)].push_back(ss.str());
+    }
+
+    for (auto& row_annotation : row_annotations)
+    {
+        AddStringAnnotations(svg_g_string_texts, row_annotation.first, row_annotation.second, coordinates_mgr);
     }
     stack_svg_doc->appendElement(inner_script);
-    stack_svg_doc->appendDynamicElement(svg_g_arrows);
-    stack_svg_doc->appendDynamicElement(svg_g_texts);
-    stack_svg_doc->appendDynamicElement(svg_g_besier);
     stack_svg_doc->appendDynamicElement(svg_g_rects);
+    stack_svg_doc->appendDynamicElement(svg_g_arrows);
+    stack_svg_doc->appendDynamicElement(svg_g_besier);
+    stack_svg_doc->appendDynamicElement(svg_g_texts);
+    stack_svg_doc->appendDynamicElement(svg_g_string_texts);
 
     stack_svg_doc->Save(svg_filename);
 
@@ -2251,9 +2359,9 @@ void carve_strings(size_t addr, size_t len)
     }
 
     std::string str;
-    for (size_t i = 0; i <= handle_len; i++)
+    for (size_t i = 0; i < handle_len; i++)
     {
-        if (isprint(page[i]))
+        if ((page[i] & 0x80) == 0 && isprint(page[i]))
         {
             str.push_back(page[i]);
             continue;
@@ -2263,7 +2371,7 @@ void carve_strings(size_t addr, size_t len)
             if (str.length() >= 4)
             {
                 std::stringstream ss;
-                ss << "string @ " << std::hex << std::showbase << addr + i - str.length() << " : " << str << std::endl;
+                ss << "string @ " << std::hex << std::showbase << addr + i - str.length() << " : " << escape_fmt_str(str) << std::endl;
                 EXT_F_STR_OUT(ss);
 
                 str.clear();
@@ -2275,7 +2383,7 @@ void carve_strings(size_t addr, size_t len)
             if (str.length() >= 4)
             {
                 std::stringstream ss;
-                ss << "string @ " << std::hex << std::showbase << addr + i - str.length() << " : " << str << std::endl;
+                ss << "string @ " << std::hex << std::showbase << addr + i - str.length() << " : " << escape_fmt_str(str) << std::endl;
                 EXT_F_STR_OUT(ss);
 
                 str.clear();
@@ -2308,9 +2416,9 @@ void carve_ustrings(size_t addr, size_t len)
     }
 
     std::string str;
-    for (size_t i = 0; i <= handle_len; i+=2)
+    for (size_t i = 0; i < handle_len; i+=2)
     {
-        if (isprint(page[i]) && page[i+1] == 0)
+        if ((page[i] & 0x80) == 0 && isprint(page[i]) && page[i+1] == 0)
         {
             str.push_back(page[i]);
             continue;
@@ -2320,7 +2428,7 @@ void carve_ustrings(size_t addr, size_t len)
             if (str.length() >= 4)
             {
                 std::stringstream ss;
-                ss << "ustring @ " << std::hex << std::showbase << addr + i - 2 * str.length() << " : " << str << std::endl;
+                ss << "ustring @ " << std::hex << std::showbase << addr + i - 2 * str.length() << " : " << escape_fmt_str(str) << std::endl;
                 EXT_F_STR_OUT(ss);
 
                 str.clear();
@@ -2332,7 +2440,7 @@ void carve_ustrings(size_t addr, size_t len)
             if (str.length() >= 4)
             {
                 std::stringstream ss;
-                ss << "ustring @ " << std::hex << std::showbase << addr + i - 2 * str.length() << " : " << str << std::endl;
+                ss << "ustring @ " << std::hex << std::showbase << addr + i - 2 * str.length() << " : " << escape_fmt_str(str) << std::endl;
                 EXT_F_STR_OUT(ss);
 
                 str.clear();

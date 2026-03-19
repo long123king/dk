@@ -51,7 +51,9 @@ void visit_vad(size_t vad_node_addr);
 
 void do_memcpy(size_t src_addr, size_t dst_addr, size_t count);
 
-void page_to_svg(size_t addr, std::string svg_filename, size_t local_start = 0, size_t local_end = 0);
+std::string escape_fmt_str(std::string str);
+
+void page_to_svg(size_t addr, std::string svg_filename, size_t local_start = 0, size_t local_end = 0, bool dark_theme = false);
 
 void mem_access_to_svg(size_t start_addr, size_t end_addr, std::string mode, std::string svg_filename);
 
