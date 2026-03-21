@@ -1663,6 +1663,10 @@ T CModelAccess::get_value(DK_MOBJ_PTR& mobj)
     return T(0);
 }
 
+// Explicit instantiations for types used outside model.cpp
+template DWORD    CModelAccess::get_value<DWORD,   VT_UI4>(DK_MOBJ_PTR& mobj);
+template int64_t  CModelAccess::get_value<int64_t,  VT_I8 >(DK_MOBJ_PTR& mobj);
+
 DK_MOBJ_PTR CModelAccess::get_pobj(DK_MOBJ_PTR& mobj, std::string key)
 {
     std::wstring wstr_key(key.begin(), key.end());
@@ -1802,6 +1806,11 @@ std::tuple<uint64_t, uint64_t, std::string> CModelAccess::get_module(DK_MOBJ_PTR
     auto module_name = BSTR2str(DK_MGET_PVAL<BSTR, VT_BSTR>(mobj, "Name"));
     auto module_size = DK_MGET_PVAL<uint64_t, VT_UI8>(mobj, "Size");
     auto module_base = DK_MGET_PVAL<uint64_t, VT_UI8>(mobj, "BaseAddress");
+
+    if (module_base == 0)
+    {
+        module_base = DK_MGET_PVAL<uint64_t, VT_UI8>(mobj, "Address");
+    }
 
     return std::make_tuple(module_base, module_size, module_name);
 }

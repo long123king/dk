@@ -117,6 +117,12 @@
     <ClInclude Include="json\json.hpp">
       <Filter>json</Filter>
     </ClInclude>
+    <ClInclude Include="dk_server.h">
+      <Filter>framework</Filter>
+    </ClInclude>
+    <ClInclude Include="dk_server_cmd.h">
+      <Filter>CmdList</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dbgdata.cpp">
@@ -193,6 +199,12 @@
     </ClCompile>
     <ClCompile Include="hexsvg.cpp">
       <Filter>SVG</Filter>
+    </ClCompile>
+    <ClCompile Include="dk_server.cpp">
+      <Filter>framework</Filter>
+    </ClCompile>
+    <ClCompile Include="dk_server_cmd.cpp">
+      <Filter>CmdList</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

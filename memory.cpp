@@ -961,6 +961,126 @@ void page_to_svg(size_t addr, std::string svg_filename, size_t local_start, size
     EXT_F_OUT("SVG file is completed\n");
 }
 
+std::string page_to_svg_string(size_t addr, size_t local_start, size_t local_end, bool dark_theme)
+{
+    std::string page(0x1000, '0');
+
+    size_t ch_page = addr & 0xFFFFFFFFFFFFF000;
+
+    size_t bytes_read = 0;
+    HRESULT result = EXT_D_IDebugDataSpaces->ReadVirtual(ch_page, (uint8_t*)page.data(), 0x1000, (PULONG)&bytes_read);
+    if (result != 0 || bytes_read != 0x1000)
+    {
+        for (size_t i = 0; i < 0x1000; i++)
+        {
+            try
+            {
+                EXT_D_IDebugDataSpaces->ReadVirtual(ch_page + i, (uint8_t*)page.data() + i, 0x1, (PULONG)&bytes_read);
+            }
+            FC;
+        }
+    }
+
+    CoordinatesManager coordinates_mgr(GRID_WIDTH, GRID_HEIGHT, GRID_ADDR_WIDTH);
+
+    auto stack_svg_doc = visual_page(page, (uint64_t)ch_page, coordinates_mgr, dark_theme);
+
+    auto inner_script = std::make_shared<CSvgInnerScript>();
+
+    std::string script = R"(
+
+	    function toggle_click(evt) 
+	    {
+		    var choice = evt.target;
+		    var v = choice.getAttribute("stroke-width");
+		    if (v != "7")
+		    {
+			    choice.setAttribute("stroke-width", "7");
+			    choice.setAttribute("stroke-opacity", "0.8");
+		    }
+		    else
+		    {
+			    choice.setAttribute("stroke-width", "3");
+			    choice.setAttribute("stroke-opacity", "0.4");
+		    }
+	    }
+
+	    function init(evt)
+	    {
+		    var besier_group = document.getElementById("besier_g");
+
+		    var besiers = besier_group.children;
+		    for (var i=0;i<besiers.length;i++)
+		    {
+			    besiers[i].addEventListener("click", toggle_click);
+		    }
+	    }
+
+    )";
+
+    inner_script->addScript(script);
+
+    auto svg_g_arrows = std::make_shared<CSvgGroup>();
+    svg_g_arrows->addStyle(dark_theme ? "stroke: #ff938a; stroke-width: 3; stroke-opacity: 0.72;" : "stroke: red; stroke-width: 3; stroke-opacity: 0.4;");
+
+    auto svg_g_texts = std::make_shared<CSvgGroup>();
+    svg_g_texts->addStyle(dark_theme ? "stroke: none; fill: #f0f6fc; font-size: 16; font-weight: normal; font-family: monospace; " : "stroke: none; fill: black; font-size: 16; font-weight: normal; font-family: monospace; ");
+
+    auto svg_g_string_texts = std::make_shared<CSvgGroup>();
+    svg_g_string_texts->addStyle(dark_theme ? "stroke: none; fill: #ffb4ad; font-size: 12; font-style: italic; font-weight: bold; font-family: monospace; " : "stroke: none; fill: red; font-size: 12; font-style: italic; font-weight: bold; font-family: monospace; ");
+
+    auto svg_g_besier = std::make_shared<CSvgGroup>();
+    svg_g_besier->addStyle(dark_theme ? "stroke: #8ff79a; stroke-width: 3; stroke-opacity: 0.72; fill: none;" : "stroke: green; stroke-width: 3; stroke-opacity: 0.4; fill: none;");
+    svg_g_besier->setId("besier_g");
+
+    auto svg_g_rects = std::make_shared<CSvgGroup>();
+    svg_g_rects->addStyle(dark_theme ? "stroke: #ff938a; stroke-width: 2; fill: #ff938a; font-size: 16; font-weight: normal; font-family: monospace; fill-opacity: 0.3;" : "stroke: red; stroke-width: 2; fill: red; font-size: 16; font-weight: normal; font-family: monospace;  fill-opacity: 0.2;");
+
+    CMemoryAnalyzer manalyzer(page, ch_page, 0x1000, local_start, local_end);
+    manalyzer.analyze();
+    for (auto ptr2sym : manalyzer.get_ptr2sym())
+    {
+        AddPtr2Sym(svg_g_arrows, svg_g_texts, svg_g_rects, ch_page + ptr2sym.first, get<1>(ptr2sym.second), SvgEscapeText(get<0>(ptr2sym.second)), coordinates_mgr);
+    }
+
+    for (auto ptr2local : manalyzer.get_ptr2local())
+    {
+        AddPtr2Local(svg_g_arrows, svg_g_besier, svg_g_texts, svg_g_rects, ch_page + ptr2local.first, ch_page + ptr2local.second, coordinates_mgr, dark_theme);
+    }
+
+    // ptr2heap skipped: AddPtr2Heap writes external SVG files as a side-effect,
+    // which is undesirable when generating SVG in-memory for the HTTP API.
+
+    std::map<uint64_t, std::vector<std::string>> row_annotations;
+
+    for (auto ptr2astr : manalyzer.get_ptr2astr())
+    {
+        std::stringstream ss;
+        ss << "\"" << SvgEscapeText(ptr2astr.second) << "\"";
+        row_annotations[ptr2astr.first & ~static_cast<uint64_t>(0x7)].push_back(ss.str());
+    }
+
+    for (auto ptr2ustr : manalyzer.get_ptr2ustr())
+    {
+        std::stringstream ss;
+        ss << "L\"" << SvgEscapeText(ptr2ustr.second) << "\"";
+        row_annotations[ptr2ustr.first & ~static_cast<uint64_t>(0x7)].push_back(ss.str());
+    }
+
+    for (auto& row_annotation : row_annotations)
+    {
+        AddStringAnnotations(svg_g_string_texts, row_annotation.first, row_annotation.second, coordinates_mgr);
+    }
+    stack_svg_doc->appendElement(inner_script);
+    stack_svg_doc->appendDynamicElement(svg_g_rects);
+    stack_svg_doc->appendDynamicElement(svg_g_arrows);
+    stack_svg_doc->appendDynamicElement(svg_g_besier);
+    stack_svg_doc->appendDynamicElement(svg_g_texts);
+    stack_svg_doc->appendDynamicElement(svg_g_string_texts);
+
+    return stack_svg_doc->Draw();
+}
+
 void mem_access_to_svg(size_t start_addr, size_t end_addr, std::string mode, std::string svg_filename)
 {
     auto accesses = DK_GET_MEM_ACCESS(start_addr, end_addr, mode);

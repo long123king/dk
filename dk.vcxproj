@@ -179,6 +179,8 @@
     <ClInclude Include="CmdInterface.h" />
     <ClInclude Include="CmdList.h" />
     <ClInclude Include="dbgdata.h" />
+    <ClInclude Include="dk_server.h" />
+    <ClInclude Include="dk_server_cmd.h" />
     <ClInclude Include="dml.h" />
     <ClInclude Include="handle.h" />
     <ClInclude Include="heap.h" />
@@ -209,6 +211,8 @@
     <ClCompile Include="CmdExt.cpp" />
     <ClCompile Include="CmdList.cpp" />
     <ClCompile Include="dbgdata.cpp" />
+    <ClCompile Include="dk_server.cpp" />
+    <ClCompile Include="dk_server_cmd.cpp" />
     <ClCompile Include="dml.cpp" />
     <ClCompile Include="engextcpp.cpp" />
     <ClCompile Include="handle.cpp" />

@@ -54,6 +54,7 @@ void do_memcpy(size_t src_addr, size_t dst_addr, size_t count);
 std::string escape_fmt_str(std::string str);
 
 void page_to_svg(size_t addr, std::string svg_filename, size_t local_start = 0, size_t local_end = 0, bool dark_theme = false);
+std::string page_to_svg_string(size_t addr, size_t local_start = 0, size_t local_end = 0, bool dark_theme = false);
 
 void mem_access_to_svg(size_t start_addr, size_t end_addr, std::string mode, std::string svg_filename);
 
