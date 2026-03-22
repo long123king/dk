@@ -6,6 +6,7 @@
 #include <WS2tcpip.h>
 #include <Unknwn.h>
 #include <oaidl.h>
+#include <winnt.h>
 
 #include "model.h"
 #include "dk_server.h"
@@ -24,6 +25,7 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #pragma comment(lib, "Ws2_32.lib")
@@ -139,6 +141,110 @@ namespace
         return params;
     }
 
+    std::string JoinLines(const std::vector<std::string>& lines)
+    {
+        std::ostringstream stream;
+        for (size_t index = 0; index < lines.size(); ++index)
+        {
+            if (index > 0)
+                stream << "\n";
+            stream << lines[index];
+        }
+
+        return stream.str();
+    }
+
+    void ReplaceAll(std::string& value, const std::string& needle, const std::string& replacement)
+    {
+        if (needle.empty())
+            return;
+
+        size_t start = 0;
+        while ((start = value.find(needle, start)) != std::string::npos)
+        {
+            value.replace(start, needle.size(), replacement);
+            start += replacement.size();
+        }
+    }
+
+    std::string TrimAsciiWhitespace(const std::string& value)
+    {
+        if (value.empty())
+            return value;
+
+        size_t start = 0;
+        while (start < value.size() && std::isspace(static_cast<unsigned char>(value[start])) != 0)
+            ++start;
+
+        size_t end = value.size();
+        while (end > start && std::isspace(static_cast<unsigned char>(value[end - 1])) != 0)
+            --end;
+
+        return value.substr(start, end - start);
+    }
+
+    std::string SanitizeCommandOutputLine(std::string line)
+    {
+        if (line.empty())
+            return line;
+
+        ReplaceAll(line, "\r", "");
+        ReplaceAll(line, "</link>", "");
+        ReplaceAll(line, "</col>", "");
+
+        if (line.find("<link") != std::string::npos || line.find("cmd=\"") != std::string::npos)
+        {
+            size_t marker = line.rfind("\">");
+            if (marker != std::string::npos)
+                line = line.substr(marker + 2);
+        }
+
+        if (line.find("Debugger.Utility.Objects.Aggregate(") != std::string::npos)
+        {
+            size_t marker = line.rfind("\">");
+            if (marker != std::string::npos)
+                line = line.substr(marker + 2);
+        }
+
+        if (line.find("<col ") != std::string::npos)
+        {
+            std::string flattened;
+            flattened.reserve(line.size());
+            bool in_tag = false;
+            for (char ch : line)
+            {
+                if (ch == '<')
+                {
+                    in_tag = true;
+                    continue;
+                }
+                if (ch == '>')
+                {
+                    in_tag = false;
+                    continue;
+                }
+                if (!in_tag)
+                    flattened.push_back(ch);
+            }
+            line = flattened;
+        }
+
+        return TrimAsciiWhitespace(line);
+    }
+
+    std::vector<std::string> SanitizeCommandOutputLines(const std::vector<std::string>& lines)
+    {
+        std::vector<std::string> cleaned;
+        cleaned.reserve(lines.size());
+
+        for (const auto& line : lines)
+        {
+            cleaned.push_back(SanitizeCommandOutputLine(line));
+        }
+
+        return cleaned;
+    }
+
     bool TryParseU64(const std::string& value, uint64_t& out)
     {
         if (value.empty())
@@ -236,6 +342,107 @@ namespace
             {"major", std::to_string(std::get<0>(pos))},
             {"minor", std::get<1>(pos)}
         };
+    }
+
+    bool SeekToQueryPosition(
+        bool is_ttd,
+        DK_MOBJ_PTR& proc,
+        const std::map<std::string, std::string>& query_params,
+        std::tuple<uint64_t, uint64_t>& original_pos,
+        bool& should_restore_pos)
+    {
+        if (!is_ttd || proc == nullptr)
+            return false;
+
+        try
+        {
+            auto ttd = DK_MGET_POBJ(proc, "TTD");
+            auto lifetime = ttd != nullptr ? DK_MGET_POBJ(ttd, "Lifetime") : DK_MOBJ_PTR{};
+            if (lifetime == nullptr)
+                return false;
+
+            auto min_pos = DK_MGET_POS(lifetime, "MinPosition");
+            auto max_pos = DK_MGET_POS(lifetime, "MaxPosition");
+
+            uint64_t seq = 0;
+            uint64_t step = 0;
+            bool has_major = false;
+            bool has_minor = false;
+
+            auto it_major = query_params.find("major");
+            if (it_major != query_params.end())
+                has_major = TryParseU64(it_major->second, seq);
+
+            auto it_minor = query_params.find("minor");
+            if (it_minor != query_params.end())
+                has_minor = TryParseU64(it_minor->second, step);
+
+            if (has_major)
+            {
+                if (!has_minor)
+                    step = 0;
+
+                const uint64_t min_major = std::get<0>(min_pos);
+                const uint64_t min_minor = std::get<1>(min_pos);
+                const uint64_t max_major = std::get<0>(max_pos);
+                const uint64_t max_minor = std::get<1>(max_pos);
+
+                const bool below_min = (seq < min_major) || (seq == min_major && step < min_minor);
+                const bool above_max = (seq > max_major) || (seq == max_major && step > max_minor);
+
+                if (below_min)
+                {
+                    seq = min_major;
+                    step = min_minor;
+                }
+                else if (above_max)
+                {
+                    seq = max_major;
+                    step = max_minor;
+                }
+
+                original_pos = DK_GET_CURPOS();
+                DK_SEEK_TO(seq, step);
+                should_restore_pos = true;
+                return true;
+            }
+
+            auto it_time = query_params.find("time");
+            if (it_time == query_params.end())
+                return false;
+
+            double requested_time = 0.0;
+            if (!TryParseDouble(it_time->second, requested_time))
+                return false;
+
+            double ratio = requested_time;
+            if (requested_time > 1.0)
+                ratio = requested_time / 10000.0;
+            ratio = std::max(0.0, std::min(1.0, ratio));
+
+            seq = std::get<0>(min_pos);
+            if (std::get<0>(max_pos) > std::get<0>(min_pos))
+            {
+                double span = static_cast<double>(std::get<0>(max_pos) - std::get<0>(min_pos));
+                seq = std::get<0>(min_pos) + static_cast<uint64_t>(span * ratio);
+            }
+
+            step = std::get<1>(min_pos);
+            if (std::get<1>(max_pos) > std::get<1>(min_pos))
+            {
+                double span = static_cast<double>(std::get<1>(max_pos) - std::get<1>(min_pos));
+                step = std::get<1>(min_pos) + static_cast<uint64_t>(span * ratio);
+            }
+
+            original_pos = DK_GET_CURPOS();
+            DK_SEEK_TO(seq, step);
+            should_restore_pos = true;
+            return true;
+        }
+        catch (...)
+        {
+            return false;
+        }
     }
 }
 
@@ -484,20 +691,86 @@ void CDkEmbeddedServer::HandleClientSocket(uintptr_t client_socket_value)
         const std::string& path = parsed.path;
         const std::string& query = parsed.query;
 
+        // Log request details with timestamp
+        auto request_time = std::chrono::system_clock::now();
+        auto time_t_c = std::chrono::system_clock::to_time_t(request_time);
+        struct tm timeinfo;
+        localtime_s(&timeinfo, &time_t_c);
+        char timestamp_buf[32];
+        strftime(timestamp_buf, sizeof(timestamp_buf), "%Y-%m-%d %H:%M:%S", &timeinfo);
+        
+        // Measure response generation time
+        uint64_t start_ms = NowMs();
         std::string response = BuildHttpResponse(method, path, query);
+        uint64_t duration_ms = NowMs() - start_ms;
 
-        // Extract status code from "HTTP/1.1 NNN ..."
+        // Extract status code and Content-Length from response
         int status_code = 0;
+        size_t content_length = 0;
+        std::string content_type = "application/json";
         {
             size_t sp = response.find(' ');
             if (sp != std::string::npos && sp + 3 < response.size())
                 status_code = std::stoi(response.substr(sp + 1, 3));
+            
+            // Extract Content-Length header
+            size_t cl_pos = response.find("Content-Length: ");
+            if (cl_pos != std::string::npos)
+            {
+                size_t cl_end = response.find("\r\n", cl_pos);
+                if (cl_end != std::string::npos)
+                {
+                    try {
+                        content_length = std::stoul(response.substr(cl_pos + 16, cl_end - (cl_pos + 16)));
+                    } catch (...) { content_length = 0; }
+                }
+            }
+            
+            // Extract Content-Type header
+            size_t ct_pos = response.find("Content-Type: ");
+            if (ct_pos != std::string::npos)
+            {
+                size_t ct_end = response.find("\r\n", ct_pos);
+                if (ct_end != std::string::npos)
+                {
+                    content_type = response.substr(ct_pos + 14, ct_end - (ct_pos + 14));
+                }
+            }
         }
 
-        if (method.empty() || path.empty())
-            EXT_F_OUT("[dk serve] [%d] UNKNOWN <malformed request>\n", status_code);
-        else
-            EXT_F_OUT("[dk serve] [%d] %s %s\n", status_code, method.c_str(), path.c_str());
+        // Extract format short name from content-type
+        std::string format_name = "JSON";
+        if (content_type.find("svg") != std::string::npos) format_name = "SVG";
+        else if (content_type.find("text/html") != std::string::npos) format_name = "HTML";
+        else if (content_type.find("text/plain") != std::string::npos) format_name = "TXT";
+
+        // Build neat log message with padding: [status] METHOD PATH | ==> +Xms FORMAT SIZE
+        std::string path_and_query = path;
+        if (!query.empty()) path_and_query += "?" + query;
+        
+        // Pad path to 40 chars for alignment
+        while (path_and_query.length() < 40)
+            path_and_query += " ";
+        
+        std::ostringstream log_msg;
+        log_msg << "[dk_serve] [" << timestamp_buf << "] "
+                << "[" << status_code << "] "
+                << method << " " << path_and_query
+                << "| ==> +" << duration_ms << "ms   "
+                << std::left << std::setw(6) << format_name
+                << content_length << "B";
+        
+        EXT_F_OUT("%s\n", log_msg.str().c_str());
+        
+        // Periodic status log every 60 seconds
+        static uint64_t last_status_ms = NowMs();
+        uint64_t now_ms = NowMs();
+        if (now_ms - last_status_ms >= 60000)  // 60 seconds
+        {
+            last_status_ms = now_ms;
+            EXT_F_OUT("[dk serve] [PERIODIC STATUS] Server running, last request: %s %s (status %d)\n",
+                     method.c_str(), path.c_str(), status_code);
+        }
 
         send(client_socket, response.c_str(), static_cast<int>(response.size()), 0);
     }
@@ -547,13 +820,34 @@ std::string CDkEmbeddedServer::BuildHttpResponse(const std::string& method, cons
     if (path == "/api/page/svg")
         return HandlePageSvgRoute(query);
 
+    if (path == "/api/function-calls")
+        return BuildJsonResponseOk(HandleFunctionCallsRoute(query));
+
+    if (path == "/api/command/execute")
+        return BuildJsonResponseOk(HandleCommandRoute(query));
+
+    if (path == "/api/model")
+        return BuildJsonResponseOk(HandleModelRoute(query));
+
+    if (path == "/api/pe")
+        return BuildJsonResponseOk(HandlePeRoute(query));
+
+    if (path == "/api/strings")
+        return BuildJsonResponseOk(HandleStringsRoute(query));
+
+    if (path == "/api/memory/layout")
+        return BuildJsonResponseOk(HandleMemoryLayoutRoute(query));
+
+    if (path == "/api/environment")
+        return BuildJsonResponseOk(HandleEnvironmentRoute(query));
+
     if (path == "/")
     {
         json root = {
             {"schemaVersion", "1.0"},
             {"name", "dk embedded server"},
             {"phase", 2},
-            {"routes", json::array({"/api/server/status", "/api/server/stop", "/api/ttd/trace-info", "/api/ttd/modules", "/api/ttd/threads", "/api/ttd/events/lifetime", "/api/registers", "/api/callstack", "/api/page", "/api/page/svg"})}
+            {"routes", json::array({"/api/server/status", "/api/server/stop", "/api/ttd/trace-info", "/api/ttd/modules", "/api/ttd/threads", "/api/ttd/events/lifetime", "/api/registers", "/api/callstack", "/api/page", "/api/page/svg", "/api/function-calls", "/api/command/execute", "/api/model", "/api/pe", "/api/strings", "/api/memory/layout", "/api/environment"})}
         };
         return BuildJsonResponseOk(root.dump());
     }
@@ -1635,53 +1929,7 @@ std::string CDkEmbeddedServer::HandleRegistersRoute(const std::string& query)
 
     bool should_restore_pos = false;
     std::tuple<uint64_t, uint64_t> original_pos{ 0, 0 };
-    if (is_ttd)
-    {
-        auto it_time = query_params.find("time");
-        if (it_time != query_params.end())
-        {
-            double requested_time = 0.0;
-            if (TryParseDouble(it_time->second, requested_time))
-            {
-                try
-                {
-                    auto ttd = DK_MGET_POBJ(proc, "TTD");
-                    auto lifetime = ttd != nullptr ? DK_MGET_POBJ(ttd, "Lifetime") : DK_MOBJ_PTR{};
-                    if (lifetime != nullptr)
-                    {
-                        original_pos = DK_GET_CURPOS();
-                        auto min_pos = DK_MGET_POS(lifetime, "MinPosition");
-                        auto max_pos = DK_MGET_POS(lifetime, "MaxPosition");
-
-                        double ratio = requested_time;
-                        if (requested_time > 1.0)
-                            ratio = requested_time / 10000.0;
-                        ratio = std::max(0.0, std::min(1.0, ratio));
-
-                        uint64_t seq = std::get<0>(min_pos);
-                        if (std::get<0>(max_pos) > std::get<0>(min_pos))
-                        {
-                            double span = static_cast<double>(std::get<0>(max_pos) - std::get<0>(min_pos));
-                            seq = std::get<0>(min_pos) + static_cast<uint64_t>(span * ratio);
-                        }
-
-                        uint64_t step = std::get<1>(min_pos);
-                        if (std::get<1>(max_pos) > std::get<1>(min_pos))
-                        {
-                            double span = static_cast<double>(std::get<1>(max_pos) - std::get<1>(min_pos));
-                            step = std::get<1>(min_pos) + static_cast<uint64_t>(span * ratio);
-                        }
-
-                        DK_SEEK_TO(seq, step);
-                        should_restore_pos = true;
-                    }
-                }
-                catch (...)
-                {
-                }
-            }
-        }
-    }
+    (void)SeekToQueryPosition(is_ttd, proc, query_params, original_pos, should_restore_pos);
 
     DK_MOBJ_PTR selected_thread;
     auto threads_obj = DK_MGET_POBJ(proc, "Threads");
@@ -1880,53 +2128,7 @@ std::string CDkEmbeddedServer::HandleCallstackRoute(const std::string& query)
 
     bool should_restore_pos = false;
     std::tuple<uint64_t, uint64_t> original_pos{ 0, 0 };
-    if (is_ttd)
-    {
-        auto it_time = query_params.find("time");
-        if (it_time != query_params.end())
-        {
-            double requested_time = 0.0;
-            if (TryParseDouble(it_time->second, requested_time))
-            {
-                try
-                {
-                    auto ttd = DK_MGET_POBJ(proc, "TTD");
-                    auto lifetime = ttd != nullptr ? DK_MGET_POBJ(ttd, "Lifetime") : DK_MOBJ_PTR{};
-                    if (lifetime != nullptr)
-                    {
-                        original_pos = DK_GET_CURPOS();
-                        auto min_pos = DK_MGET_POS(lifetime, "MinPosition");
-                        auto max_pos = DK_MGET_POS(lifetime, "MaxPosition");
-
-                        double ratio = requested_time;
-                        if (requested_time > 1.0)
-                            ratio = requested_time / 10000.0;
-                        ratio = std::max(0.0, std::min(1.0, ratio));
-
-                        uint64_t seq = std::get<0>(min_pos);
-                        if (std::get<0>(max_pos) > std::get<0>(min_pos))
-                        {
-                            double span = static_cast<double>(std::get<0>(max_pos) - std::get<0>(min_pos));
-                            seq = std::get<0>(min_pos) + static_cast<uint64_t>(span * ratio);
-                        }
-
-                        uint64_t step = std::get<1>(min_pos);
-                        if (std::get<1>(max_pos) > std::get<1>(min_pos))
-                        {
-                            double span = static_cast<double>(std::get<1>(max_pos) - std::get<1>(min_pos));
-                            step = std::get<1>(min_pos) + static_cast<uint64_t>(span * ratio);
-                        }
-
-                        DK_SEEK_TO(seq, step);
-                        should_restore_pos = true;
-                    }
-                }
-                catch (...)
-                {
-                }
-            }
-        }
-    }
+    (void)SeekToQueryPosition(is_ttd, proc, query_params, original_pos, should_restore_pos);
 
     DK_MOBJ_PTR selected_thread;
     auto threads_obj = DK_MGET_POBJ(proc, "Threads");
@@ -2055,53 +2257,26 @@ std::string CDkEmbeddedServer::HandlePageRoute(const std::string& query)
     if (it_thread != query_params.end())
         has_requested_thread = TryParseU64(it_thread->second, requested_thread_id);
 
-    bool should_restore_pos = false;
-    std::tuple<uint64_t, uint64_t> original_pos{ 0, 0 };
-    if (is_ttd)
+    uint64_t requested_address = 0;
+    bool has_requested_address = false;
+    bool address_param_supplied = false;
     {
-        auto it_time = query_params.find("time");
-        if (it_time != query_params.end())
+        auto it_address = query_params.find("address");
+        if (it_address == query_params.end()) it_address = query_params.find("addr");
+        if (it_address == query_params.end()) it_address = query_params.find("va");
+        if (it_address == query_params.end()) it_address = query_params.find("page_base");
+        if (it_address == query_params.end()) it_address = query_params.find("page");
+
+        if (it_address != query_params.end())
         {
-            double requested_time = 0.0;
-            if (TryParseDouble(it_time->second, requested_time))
-            {
-                try
-                {
-                    auto ttd = DK_MGET_POBJ(proc, "TTD");
-                    auto lifetime = ttd != nullptr ? DK_MGET_POBJ(ttd, "Lifetime") : DK_MOBJ_PTR{};
-                    if (lifetime != nullptr)
-                    {
-                        original_pos = DK_GET_CURPOS();
-                        auto min_pos = DK_MGET_POS(lifetime, "MinPosition");
-                        auto max_pos = DK_MGET_POS(lifetime, "MaxPosition");
-
-                        double ratio = requested_time;
-                        if (requested_time > 1.0)
-                            ratio = requested_time / 10000.0;
-                        ratio = std::max(0.0, std::min(1.0, ratio));
-
-                        uint64_t seq = std::get<0>(min_pos);
-                        if (std::get<0>(max_pos) > std::get<0>(min_pos))
-                        {
-                            double span = static_cast<double>(std::get<0>(max_pos) - std::get<0>(min_pos));
-                            seq = std::get<0>(min_pos) + static_cast<uint64_t>(span * ratio);
-                        }
-
-                        uint64_t step = std::get<1>(min_pos);
-                        if (std::get<1>(max_pos) > std::get<1>(min_pos))
-                        {
-                            double span = static_cast<double>(std::get<1>(max_pos) - std::get<1>(min_pos));
-                            step = std::get<1>(min_pos) + static_cast<uint64_t>(span * ratio);
-                        }
-
-                        DK_SEEK_TO(seq, step);
-                        should_restore_pos = true;
-                    }
-                }
-                catch (...) {}
-            }
+            address_param_supplied = true;
+            has_requested_address = TryParseU64(TrimAsciiWhitespace(it_address->second), requested_address);
         }
     }
+
+    bool should_restore_pos = false;
+    std::tuple<uint64_t, uint64_t> original_pos{ 0, 0 };
+    (void)SeekToQueryPosition(is_ttd, proc, query_params, original_pos, should_restore_pos);
 
     // Select thread
     DK_MOBJ_PTR selected_thread;
@@ -2202,7 +2377,28 @@ std::string CDkEmbeddedServer::HandlePageRoute(const std::string& query)
         }
     }
 
-    if (!has_rsp || rsp_value == 0)
+    if (address_param_supplied && !has_requested_address)
+    {
+        root["error"] = "Invalid address query parameter";
+        if (should_restore_pos)
+        {
+            try { DK_SEEK_TO(std::get<0>(original_pos), std::get<1>(original_pos)); }
+            catch (...) {}
+        }
+        return root.dump();
+    }
+
+    uint64_t effective_address = 0;
+    if (has_requested_address && requested_address != 0)
+    {
+        effective_address = requested_address;
+    }
+    else if (has_rsp && rsp_value != 0)
+    {
+        effective_address = rsp_value;
+    }
+
+    if (effective_address == 0)
     {
         if (should_restore_pos)
         {
@@ -2212,7 +2408,7 @@ std::string CDkEmbeddedServer::HandlePageRoute(const std::string& query)
         return root.dump();
     }
 
-    uint64_t page_base = rsp_value & 0xFFFFFFFFFFFFF000ULL;
+    uint64_t page_base = effective_address & 0xFFFFFFFFFFFFF000ULL;
 
     // Read 4096 bytes of the stack page
     std::string page(0x1000, '\0');
@@ -2244,7 +2440,7 @@ std::string CDkEmbeddedServer::HandlePageRoute(const std::string& query)
     }
 
     root["pageAddr"]  = FormatHexU64(page_base);
-    root["rsp"]       = FormatHexU64(rsp_value);
+    root["rsp"]       = FormatHexU64(has_rsp ? rsp_value : effective_address);
     root["available"] = true;
 
     // Analyze the page with CMemoryAnalyzer (mirrors page_2_svg logic)
@@ -2332,47 +2528,25 @@ std::string CDkEmbeddedServer::HandlePageSvgRoute(const std::string& query)
             has_requested_thread = TryParseU64(it_thread->second, requested_thread_id);
     }
 
+    // Parse optional explicit page address.
+    uint64_t requested_address = 0;
+    bool has_requested_address = false;
+    {
+        auto it_addr = query_params.find("address");
+        if (it_addr == query_params.end()) it_addr = query_params.find("addr");
+        if (it_addr == query_params.end()) it_addr = query_params.find("va");
+        if (it_addr == query_params.end()) it_addr = query_params.find("page_base");
+        if (it_addr == query_params.end()) it_addr = query_params.find("page");
+        if (it_addr != query_params.end())
+            has_requested_address = TryParseU64(TrimAsciiWhitespace(it_addr->second), requested_address);
+
+        if (it_addr != query_params.end() && !has_requested_address)
+            return BuildJsonResponseError(400, "BAD_ADDRESS", "Query parameter 'address' is invalid");
+    }
+
     bool should_restore_pos = false;
     std::tuple<uint64_t, uint64_t> original_pos{ 0, 0 };
-    if (is_ttd)
-    {
-        auto it_time = query_params.find("time");
-        if (it_time != query_params.end())
-        {
-            double requested_time = 0.0;
-            if (TryParseDouble(it_time->second, requested_time))
-            {
-                try
-                {
-                    auto ttd = DK_MGET_POBJ(proc, "TTD");
-                    auto lifetime = ttd != nullptr ? DK_MGET_POBJ(ttd, "Lifetime") : DK_MOBJ_PTR{};
-                    if (lifetime != nullptr)
-                    {
-                        original_pos = DK_GET_CURPOS();
-                        auto min_pos = DK_MGET_POS(lifetime, "MinPosition");
-                        auto max_pos = DK_MGET_POS(lifetime, "MaxPosition");
-
-                        double ratio = requested_time;
-                        if (requested_time > 1.0)
-                            ratio = requested_time / 10000.0;
-                        ratio = std::max(0.0, std::min(1.0, ratio));
-
-                        uint64_t seq = std::get<0>(min_pos);
-                        if (std::get<0>(max_pos) > std::get<0>(min_pos))
-                            seq = std::get<0>(min_pos) + static_cast<uint64_t>((std::get<0>(max_pos) - std::get<0>(min_pos)) * ratio);
-
-                        uint64_t step = std::get<1>(min_pos);
-                        if (std::get<1>(max_pos) > std::get<1>(min_pos))
-                            step = std::get<1>(min_pos) + static_cast<uint64_t>((std::get<1>(max_pos) - std::get<1>(min_pos)) * ratio);
-
-                        DK_SEEK_TO(seq, step);
-                        should_restore_pos = true;
-                    }
-                }
-                catch (...) {}
-            }
-        }
-    }
+    (void)SeekToQueryPosition(is_ttd, proc, query_params, original_pos, should_restore_pos);
 
     // Select thread
     DK_MOBJ_PTR selected_thread;
@@ -2405,10 +2579,10 @@ std::string CDkEmbeddedServer::HandlePageSvgRoute(const std::string& query)
         return false;
     };
 
-    // Extract RSP
+    // Extract RSP only when no explicit page address is provided.
     uint64_t rsp_value = 0;
-    bool has_rsp = false;
-    if (selected_thread != nullptr)
+    bool has_rsp = has_requested_address;
+    if (!has_requested_address && selected_thread != nullptr)
     {
         auto regs_obj = DK_MGET_POBJ(selected_thread, "Registers");
         std::vector<DK_MOBJ_PTR> reg_roots;
@@ -2464,7 +2638,7 @@ std::string CDkEmbeddedServer::HandlePageSvgRoute(const std::string& query)
         }
     }
 
-    if (!has_rsp || rsp_value == 0)
+    if (!has_rsp || (!has_requested_address && rsp_value == 0))
     {
         if (should_restore_pos)
         {
@@ -2474,7 +2648,9 @@ std::string CDkEmbeddedServer::HandlePageSvgRoute(const std::string& query)
         return BuildJsonResponseError(503, "NO_RSP", "Could not read RSP register");
     }
 
-    uint64_t page_base = rsp_value & 0xFFFFFFFFFFFFF000ULL;
+    uint64_t page_base = has_requested_address
+        ? (requested_address & 0xFFFFFFFFFFFFF000ULL)
+        : (rsp_value & 0xFFFFFFFFFFFFF000ULL);
 
     std::string svg;
     try
@@ -2506,4 +2682,2574 @@ std::string CDkEmbeddedServer::HandlePageSvgRoute(const std::string& query)
        << svg;
 
     return ss.str();
+}
+
+std::string CDkEmbeddedServer::HandleCommandRoute(const std::string& query)
+{
+    uint64_t request_id = ++m_request_counter;
+
+    auto params = ParseQueryParams(query);
+    std::string command;
+
+    auto command_iter = params.find("command");
+    if (command_iter != params.end())
+        command = command_iter->second;
+
+    if (command.empty())
+    {
+        auto alias_iter = params.find("cmd");
+        if (alias_iter != params.end())
+            command = alias_iter->second;
+    }
+
+    auto lines = command.empty()
+        ? std::vector<std::string>{}
+        : DK_MODEL_ACCESS->execute_cmd(command);
+    auto sanitized_lines = SanitizeCommandOutputLines(lines);
+
+    json root = {
+        {"schemaVersion", "1.0"},
+        {"requestId", std::to_string(request_id)},
+        {"command", {
+            {"input", command},
+            {"lineCount", sanitized_lines.size()},
+            {"lines", sanitized_lines},
+            {"output", JoinLines(sanitized_lines)}
+        }}
+    };
+
+    if (command.empty())
+    {
+        root["command"]["message"] = "Query parameter 'command' is required.";
+    }
+
+    return root.dump();
+}
+
+std::string CDkEmbeddedServer::HandleModelRoute(const std::string& query)
+{
+    uint64_t request_id = ++m_request_counter;
+
+    auto params = ParseQueryParams(query);
+
+    auto ReadParam = [&](const std::initializer_list<const char*>& keys, const std::string& fallback = "") -> std::string {
+        for (const auto* key : keys)
+        {
+            auto it = params.find(key);
+            if (it != params.end())
+            {
+                std::string value = TrimAsciiWhitespace(it->second);
+                if (!value.empty())
+                    return value;
+            }
+        }
+        return fallback;
+    };
+
+    auto ToLower = [](std::string text) -> std::string {
+        std::transform(text.begin(), text.end(), text.begin(), [](unsigned char ch) {
+            return static_cast<char>(std::tolower(ch));
+        });
+        return text;
+    };
+
+    auto ParseBool = [&](const std::string& value, bool fallback) -> bool {
+        if (value.empty()) return fallback;
+        const std::string lower = ToLower(value);
+        if (lower == "1" || lower == "true" || lower == "yes" || lower == "on") return true;
+        if (lower == "0" || lower == "false" || lower == "no" || lower == "off") return false;
+        return fallback;
+    };
+
+    auto FormatHex = [](uint64_t value) -> std::string {
+        std::ostringstream stream;
+        stream << "0x" << std::hex << std::nouppercase << value;
+        return stream.str();
+    };
+
+    auto VarTypeName = [](VARTYPE vt) -> std::string {
+        switch (vt)
+        {
+        case VT_EMPTY: return "EMPTY";
+        case VT_NULL: return "NULL";
+        case VT_I1: return "I1";
+        case VT_I2: return "I2";
+        case VT_I4: return "I4";
+        case VT_I8: return "I8";
+        case VT_UI1: return "UI1";
+        case VT_UI2: return "UI2";
+        case VT_UI4: return "UI4";
+        case VT_UI8: return "UI8";
+        case VT_INT: return "INT";
+        case VT_UINT: return "UINT";
+        case VT_BOOL: return "BOOL";
+        case VT_BSTR: return "BSTR";
+        case VT_R4: return "R4";
+        case VT_R8: return "R8";
+        case VT_UNKNOWN: return "UNKNOWN";
+        case VT_DISPATCH: return "DISPATCH";
+        default:
+            {
+                std::ostringstream stream;
+                stream << "VT(" << vt << ")";
+                return stream.str();
+            }
+        }
+    };
+
+    auto VariantToString = [&](VARIANT& value) -> std::string {
+        std::ostringstream stream;
+        switch (value.vt)
+        {
+        case VT_EMPTY:
+            return "";
+        case VT_NULL:
+            return "null";
+        case VT_BOOL:
+            return value.boolVal == VARIANT_TRUE ? "true" : "false";
+        case VT_UI1:
+            stream << static_cast<unsigned int>(value.bVal);
+            return stream.str();
+        case VT_UI2:
+            stream << value.uiVal;
+            return stream.str();
+        case VT_UI4:
+            stream << value.ulVal << " (" << FormatHex(value.ulVal) << ")";
+            return stream.str();
+        case VT_UI8:
+            stream << value.ullVal << " (" << FormatHex(value.ullVal) << ")";
+            return stream.str();
+        case VT_I1:
+            stream << static_cast<int>(value.cVal);
+            return stream.str();
+        case VT_I2:
+            stream << value.iVal;
+            return stream.str();
+        case VT_I4:
+        case VT_INT:
+            stream << value.intVal;
+            return stream.str();
+        case VT_I8:
+            stream << value.llVal;
+            return stream.str();
+        case VT_UINT:
+            stream << value.uintVal;
+            return stream.str();
+        case VT_R4:
+            stream << value.fltVal;
+            return stream.str();
+        case VT_R8:
+            stream << value.dblVal;
+            return stream.str();
+        case VT_BSTR:
+            return BSTR2str(value.bstrVal);
+        default:
+            return VarTypeName(value.vt);
+        }
+    };
+
+    auto KindToString = [](ModelObjectKind kind) -> std::string {
+        auto it = CModelAccess::s_map_kind_name.find(kind);
+        if (it != CModelAccess::s_map_kind_name.end())
+            return it->second;
+        return "Unknown";
+    };
+
+    auto expr = ReadParam({ "expr", "expression", "path", "query" }, "@$cursession");
+    auto trimmed_expr = TrimAsciiWhitespace(expr);
+
+    uint64_t depth = 2;
+    auto depth_text = ReadParam({ "depth", "r" }, "");
+    if (!depth_text.empty())
+    {
+        uint64_t parsed = 0;
+        if (TryParseU64(depth_text, parsed))
+            depth = std::min<uint64_t>(8, parsed);
+    }
+
+    auto BuildPropertyPath = [](const std::string& parent, const std::string& child) -> std::string {
+        if (parent.empty()) return child;
+        if (child.empty()) return parent;
+        return parent + "." + child;
+    };
+
+    auto SplitMethodPath = [](const std::string& fullPath) -> std::pair<std::string, std::string> {
+        int bracket_depth = 0;
+        for (int i = static_cast<int>(fullPath.size()) - 1; i >= 0; --i)
+        {
+            const char ch = fullPath[static_cast<size_t>(i)];
+            if (ch == ']')
+            {
+                ++bracket_depth;
+                continue;
+            }
+            if (ch == '[')
+            {
+                --bracket_depth;
+                continue;
+            }
+            if (ch == '.' && bracket_depth == 0)
+            {
+                return { fullPath.substr(0, static_cast<size_t>(i)), fullPath.substr(static_cast<size_t>(i + 1)) };
+            }
+        }
+        return { "", fullPath };
+    };
+
+    auto ParseArgList = [&](const std::string& text) -> std::vector<std::string> {
+        std::vector<std::string> args;
+        std::string current;
+        bool in_quotes = false;
+        char quote_char = '\0';
+
+        auto PushCurrent = [&]() {
+            const std::string trimmed = TrimAsciiWhitespace(current);
+            if (!trimmed.empty())
+                args.push_back(trimmed);
+            current.clear();
+        };
+
+        for (size_t i = 0; i < text.size(); ++i)
+        {
+            const char ch = text[i];
+            if ((ch == '"' || ch == '\'') && (i == 0 || text[i - 1] != '\\'))
+            {
+                if (!in_quotes)
+                {
+                    in_quotes = true;
+                    quote_char = ch;
+                    continue;
+                }
+                if (quote_char == ch)
+                {
+                    in_quotes = false;
+                    quote_char = '\0';
+                    continue;
+                }
+            }
+
+            if (!in_quotes && ch == ',')
+            {
+                PushCurrent();
+                continue;
+            }
+
+            current.push_back(ch);
+        }
+
+        PushCurrent();
+
+        return args;
+    };
+
+    auto ParseInvocationExpression = [&](const std::string& expression, std::string& method_path, std::vector<std::string>& args) -> bool {
+        method_path.clear();
+        args.clear();
+
+        const std::string trimmed = TrimAsciiWhitespace(expression);
+        if (trimmed.size() < 3 || trimmed.back() != ')')
+            return false;
+
+        const size_t open_paren = trimmed.find_last_of('(');
+        if (open_paren == std::string::npos || open_paren == 0)
+            return false;
+
+        method_path = TrimAsciiWhitespace(trimmed.substr(0, open_paren));
+        if (method_path.empty())
+            return false;
+
+        const std::string arg_text = trimmed.substr(open_paren + 1, trimmed.size() - open_paren - 2);
+        args = ParseArgList(arg_text);
+        return true;
+    };
+
+    auto ResolveRelative = [&](DK_MOBJ_PTR root, const std::string& relativePath) -> DK_MOBJ_PTR {
+        if (root == nullptr)
+            return nullptr;
+        if (relativePath.empty())
+            return root;
+        return DK_MODEL_ACCESS->get_pobj_tree(root, relativePath);
+    };
+
+    auto ResolveModelObject = [&](const std::string& expression) -> DK_MOBJ_PTR {
+        const std::string trimmed = TrimAsciiWhitespace(expression);
+        if (trimmed.empty())
+            return nullptr;
+
+        if (trimmed == "@$cursession")
+            return DK_MODEL_ACCESS->get_current_session();
+        if (trimmed.rfind("@$cursession.", 0) == 0)
+            return ResolveRelative(DK_MODEL_ACCESS->get_current_session(), trimmed.substr(13));
+
+        if (trimmed == "@$curprocess")
+            return DK_MODEL_ACCESS->get_current_process();
+        if (trimmed.rfind("@$curprocess.", 0) == 0)
+            return ResolveRelative(DK_MODEL_ACCESS->get_current_process(), trimmed.substr(13));
+
+        if (trimmed == "@$curthread")
+            return DK_MODEL_ACCESS->get_current_thread();
+        if (trimmed.rfind("@$curthread.", 0) == 0)
+            return ResolveRelative(DK_MODEL_ACCESS->get_current_thread(), trimmed.substr(12));
+
+        if (trimmed == "@$curstack")
+            return DK_MODEL_ACCESS->get_current_stack();
+        if (trimmed.rfind("@$curstack.", 0) == 0)
+            return ResolveRelative(DK_MODEL_ACCESS->get_current_stack(), trimmed.substr(11));
+
+        if (trimmed == "@$curframe")
+            return DK_MODEL_ACCESS->get_current_frame();
+        if (trimmed.rfind("@$curframe.", 0) == 0)
+            return ResolveRelative(DK_MODEL_ACCESS->get_current_frame(), trimmed.substr(11));
+
+        auto named = DK_MODEL_ACCESS->path2mobj(trimmed);
+        if (named != nullptr)
+            return named;
+
+        return DK_MODEL_ACCESS->get_mobj_tree(trimmed);
+    };
+
+    auto SummarizeObject = [&](const std::string& path, const std::string& label, DK_MOBJ_PTR object) -> json {
+        json summary = {
+            {"label", label},
+            {"path", path},
+            {"kind", "Unavailable"},
+            {"value", ""},
+            {"valueType", ""},
+            {"address", ""},
+            {"display", "Unavailable"},
+            {"browsable", object != nullptr}
+        };
+
+        if (object == nullptr)
+        {
+            summary["error"] = "Object unavailable";
+            return summary;
+        }
+
+        summary["kind"] = KindToString(DK_MODEL_ACCESS->get_kind(object));
+
+        Location location = {};
+        if (SUCCEEDED(object->GetLocation(&location)) && location.Offset != 0)
+            summary["address"] = FormatHex(location.Offset);
+
+        VARIANT intrinsic = {};
+        VariantInit(&intrinsic);
+        if (SUCCEEDED(object->GetIntrinsicValue(&intrinsic)))
+        {
+            summary["valueType"] = VarTypeName(intrinsic.vt);
+            summary["value"] = VariantToString(intrinsic);
+            VariantClear(&intrinsic);
+        }
+
+        const std::string value = summary["value"].get<std::string>();
+        const std::string address = summary["address"].get<std::string>();
+        if (!value.empty())
+            summary["display"] = value;
+        else if (!address.empty())
+            summary["display"] = address;
+        else
+            summary["display"] = summary["kind"];
+
+        return summary;
+    };
+
+    json roots = json::array({
+        "Debugger",
+        "Debugger.Sessions",
+        "@$cursession",
+        "@$cursession.Processes",
+        "@$curprocess",
+        "@$curprocess.Threads",
+        "@$curprocess.Modules",
+        "@$curthread",
+        "@$curstack",
+        "@$curframe"
+    });
+
+    json snippets = json::array({
+        { {"label", "List Sessions"}, {"expr", "Debugger.Sessions"}, {"mode", "browse"}, {"depth", 2} },
+        { {"label", "Current Session"}, {"expr", "@$cursession"}, {"mode", "browse"}, {"depth", 2} },
+        { {"label", "Session Processes"}, {"expr", "@$cursession.Processes"}, {"mode", "browse"}, {"depth", 2} },
+        { {"label", "Current Process"}, {"expr", "@$curprocess"}, {"mode", "browse"}, {"depth", 2} },
+        { {"label", "Current Thread"}, {"expr", "@$curthread"}, {"mode", "browse"}, {"depth", 2} },
+        { {"label", "Current Process Threads"}, {"expr", "@$curprocess.Threads"}, {"mode", "browse"}, {"depth", 2} },
+        { {"label", "Current Process Modules"}, {"expr", "@$curprocess.Modules"}, {"mode", "browse"}, {"depth", 2} },
+        { {"label", "Current Stack"}, {"expr", "@$curstack"}, {"mode", "browse"}, {"depth", 1} },
+        { {"label", "Current Frame"}, {"expr", "@$curframe"}, {"mode", "browse"}, {"depth", 1} },
+        { {"label", "Process Memory"}, {"expr", "@$curprocess.Memory"}, {"mode", "browse"}, {"depth", 2} }
+    });
+
+    json notes = json::array({
+        "Model Explorer uses direct model-object access and collection traversal. It no longer relies on dx text rendering.",
+        "Prefer @$cursession / @$curprocess / @$curthread over Debugger.Sessions[0].Processes[0] style indexing. Indexed collections can be unavailable for some targets and may raise 0x8000000b.",
+        "Invoke methods with expression syntax: <path.to.Method>() or <path.to.Method>(arg1, \"arg2\", true)."
+    });
+
+    const bool explicit_invoke = ParseBool(ReadParam({ "invoke" }, ""), false);
+    const std::vector<std::string> explicit_args = ParseArgList(ReadParam({ "args" }, ""));
+
+    json model = {
+        {"expression", trimmed_expr},
+        {"depth", depth},
+        {"available", false},
+        {"invocation", {
+            {"requested", false},
+            {"target", ""},
+            {"args", json::array()},
+            {"succeeded", false}
+        }},
+        {"roots", roots},
+        {"snippets", snippets},
+        {"notes", notes},
+        {"summary", nullptr},
+        {"properties", json::array()},
+        {"items", json::array()},
+        {"limits", {
+            {"propertyLimit", 64},
+            {"itemLimit", 64}
+        }}
+    };
+
+    if (trimmed_expr.empty())
+    {
+        model["error"] = "Expression is required.";
+    }
+    else if (trimmed_expr.rfind("dx ", 0) == 0 || trimmed_expr.rfind("dx\t", 0) == 0)
+    {
+        model["error"] = "Model Explorer accepts model paths and aliases only, not raw dx commands.";
+    }
+    else
+    {
+        bool invocation_requested = false;
+        std::string invocation_target = trimmed_expr;
+        std::vector<std::string> invocation_args;
+
+        if (ParseInvocationExpression(trimmed_expr, invocation_target, invocation_args))
+        {
+            invocation_requested = true;
+        }
+        else if (explicit_invoke)
+        {
+            invocation_requested = true;
+            invocation_target = trimmed_expr;
+            invocation_args = explicit_args;
+        }
+
+        model["invocation"]["requested"] = invocation_requested;
+        model["invocation"]["target"] = invocation_target;
+        model["invocation"]["args"] = invocation_args;
+
+        DK_MOBJ_PTR object = nullptr;
+
+        if (invocation_requested)
+        {
+            auto method_object = ResolveModelObject(invocation_target);
+            if (method_object == nullptr)
+            {
+                model["error"] = "Unable to resolve method path in the current debugging context.";
+            }
+            else
+            {
+                std::vector<DK_MOBJ_PTR> arg_objects;
+                bool args_ok = true;
+                for (const auto& arg : invocation_args)
+                {
+                    const std::string raw_arg = TrimAsciiWhitespace(arg);
+
+                    auto CreateStringArg = [&](std::string value) -> DK_MOBJ_PTR {
+                        return DK_MODEL_ACCESS->create_str_intrinsic_obj(value);
+                    };
+
+                    auto ParseSignedI64 = [](const std::string& value, int64_t& out) -> bool {
+                        if (value.empty())
+                            return false;
+                        char* end_ptr = nullptr;
+                        const long long parsed = std::strtoll(value.c_str(), &end_ptr, 0);
+                        if (end_ptr == value.c_str() || (end_ptr != nullptr && *end_ptr != '\0'))
+                            return false;
+                        out = static_cast<int64_t>(parsed);
+                        return true;
+                    };
+
+                    DK_MOBJ_PTR arg_obj;
+                    if (raw_arg.size() >= 2 && ((raw_arg.front() == '"' && raw_arg.back() == '"') || (raw_arg.front() == '\'' && raw_arg.back() == '\'')))
+                    {
+                        arg_obj = CreateStringArg(raw_arg.substr(1, raw_arg.size() - 2));
+                    }
+                    else
+                    {
+                        const std::string lower = ToLower(raw_arg);
+                        if (lower == "true" || lower == "false")
+                        {
+                            arg_obj = DK_MODEL_ACCESS->create_bool_intrinsic_obj(lower == "true");
+                        }
+                        else
+                        {
+                            uint64_t unsigned_val = 0;
+                            int64_t signed_val = 0;
+                            if (TryParseU64(raw_arg, unsigned_val))
+                            {
+                                arg_obj = DK_MODEL_ACCESS->create_u64_intrinsic_obj(unsigned_val);
+                            }
+                            else if (ParseSignedI64(raw_arg, signed_val))
+                            {
+                                arg_obj = DK_MODEL_ACCESS->create_i64_intrinsic_obj(signed_val);
+                            }
+                            else
+                            {
+                                arg_obj = CreateStringArg(raw_arg);
+                            }
+                        }
+                    }
+
+                    if (arg_obj == nullptr)
+                    {
+                        args_ok = false;
+                        break;
+                    }
+                    arg_objects.push_back(arg_obj);
+                }
+
+                if (!args_ok)
+                {
+                    model["error"] = "Failed to build invocation argument objects.";
+                }
+                else
+                {
+                    auto path_parts = SplitMethodPath(invocation_target);
+                    DK_MOBJ_PTR context_object = path_parts.first.empty()
+                        ? method_object
+                        : ResolveModelObject(path_parts.first);
+                    if (context_object == nullptr)
+                        context_object = method_object;
+
+                    auto call_result = DK_MODEL_ACCESS->call(method_object, context_object, arg_objects);
+                    if (call_result == nullptr)
+                    {
+                        model["error"] = "Method invocation failed. Verify method path, context, and parameter types.";
+                    }
+                    else
+                    {
+                        object = call_result;
+                        model["invocation"]["succeeded"] = true;
+                        model["notes"].push_back("Method invoked through direct model-method call.");
+                    }
+                }
+            }
+        }
+        else
+        {
+            object = ResolveModelObject(trimmed_expr);
+        }
+
+        if (object == nullptr)
+        {
+            if (!model.contains("error"))
+                model["error"] = "Unable to resolve model path in the current debugging context.";
+        }
+        else
+        {
+            auto property_entries = DK_MODEL_ACCESS->enum_keys(object);
+            auto item_entries = DK_MODEL_ACCESS->iterate(object);
+
+            const std::string summary_path = invocation_requested
+                ? (invocation_target + "()")
+                : trimmed_expr;
+
+            model["available"] = true;
+            model["summary"] = SummarizeObject(summary_path, summary_path, object);
+            model["summary"]["propertyCount"] = property_entries.size();
+            model["summary"]["itemCount"] = item_entries.size();
+
+            if (depth > 0)
+            {
+                const size_t property_limit = 64;
+                const size_t item_limit = 64;
+
+                size_t property_count = 0;
+                for (auto& entry : property_entries)
+                {
+                    if (property_count++ >= property_limit)
+                        break;
+
+                    const std::string name = std::get<0>(entry);
+                    const std::string path = BuildPropertyPath(summary_path, name);
+                    json summary = SummarizeObject(path, name, std::get<2>(entry));
+                    summary["declaredKind"] = std::get<1>(entry);
+                    model["properties"].push_back(summary);
+                }
+
+                size_t item_count = 0;
+                for (auto& entry : item_entries)
+                {
+                    if (item_count++ >= item_limit)
+                        break;
+
+                    const uint64_t index = std::get<0>(entry);
+                    std::ostringstream label;
+                    label << "[" << index << "]";
+                    std::ostringstream path;
+                    path << summary_path << "[" << index << "]";
+                    json summary = SummarizeObject(path.str(), label.str(), std::get<1>(entry));
+                    summary["index"] = index;
+                    model["items"].push_back(summary);
+                }
+
+                if (property_entries.size() > property_limit)
+                {
+                    std::ostringstream message;
+                    message << "Properties truncated to first " << property_limit << " entries.";
+                    model["notes"].push_back(message.str());
+                }
+
+                if (item_entries.size() > item_limit)
+                {
+                    std::ostringstream message;
+                    message << "Collection items truncated to first " << item_limit << " entries.";
+                    model["notes"].push_back(message.str());
+                }
+            }
+        }
+    }
+
+    json root = {
+        {"schemaVersion", "1.0"},
+        {"requestId", std::to_string(request_id)},
+        {"model", model}
+    };
+
+    return root.dump();
+}
+
+std::string CDkEmbeddedServer::HandlePeRoute(const std::string& query)
+{
+    uint64_t request_id = ++m_request_counter;
+
+    auto FormatHex = [](uint64_t value) -> std::string {
+        std::ostringstream stream;
+        stream << "0x" << std::hex << std::nouppercase << value;
+        return stream.str();
+    };
+
+    auto FormatHex32 = [](uint32_t value) -> std::string {
+        std::ostringstream stream;
+        stream << "0x" << std::hex << std::nouppercase << value;
+        return stream.str();
+    };
+
+    auto ReadVirtualExact = [](uint64_t address, void* buffer, size_t size) -> bool {
+        ULONG bytes_read = 0;
+        if (address == 0 || buffer == nullptr || size == 0)
+            return false;
+        if (EXT_D_IDebugDataSpaces == nullptr)
+            return false;
+        HRESULT hr = EXT_D_IDebugDataSpaces->ReadVirtual(address, buffer, static_cast<ULONG>(size), &bytes_read);
+        return SUCCEEDED(hr) && bytes_read == size;
+    };
+
+    auto ReadString = [&](uint64_t address, size_t max_len = 260) -> std::string {
+        std::string out;
+        if (address == 0 || max_len == 0)
+            return out;
+        out.reserve(max_len);
+        for (size_t i = 0; i < max_len; ++i)
+        {
+            char ch = 0;
+            if (!ReadVirtualExact(address + i, &ch, sizeof(ch)))
+                break;
+            if (ch == '\0')
+                break;
+            out.push_back(ch);
+        }
+        return out;
+    };
+
+    const char* directory_names[IMAGE_NUMBEROF_DIRECTORY_ENTRIES] = {
+        "EXPORT", "IMPORT", "RESOURCE", "EXCEPTION", "SECURITY", "BASERELOC", "DEBUG", "ARCHITECTURE",
+        "GLOBALPTR", "TLS", "LOAD_CONFIG", "BOUND_IMPORT", "IAT", "DELAY_IMPORT", "COM_DESCRIPTOR", "RESERVED"
+    };
+
+    json root = {
+        {"schemaVersion", "1.0"},
+        {"requestId", std::to_string(request_id)},
+        {"available", false},
+        {"imageBase", ""},
+        {"moduleName", ""},
+        {"architecture", ""},
+        {"headers", {
+            {"dos", nullptr},
+            {"nt", nullptr}
+        }},
+        {"sections", json::array()},
+        {"dataDirectories", json::array()},
+        {"imports", json::array()},
+        {"exports", nullptr},
+        {"relationships", json::array()},
+        {"notes", json::array()}
+    };
+
+    uint64_t image_base = 0;
+    auto params = ParseQueryParams(query);
+    auto image_it = params.find("imageBase");
+    if (image_it != params.end()) {
+        TryParseU64(TrimAsciiWhitespace(image_it->second), image_base);
+    }
+    if (image_base == 0) {
+        auto address_it = params.find("address");
+        if (address_it != params.end()) {
+            TryParseU64(TrimAsciiWhitespace(address_it->second), image_base);
+        }
+    }
+
+    auto proc = DK_MODEL_ACCESS->get_current_process();
+    if (image_base == 0 && proc != nullptr)
+    {
+        try { image_base = DK_MGET_PVAL<uint64_t, VT_UI8>(proc, "ImageBaseAddress"); } catch (...) {}
+        if (image_base == 0)
+        {
+            try {
+                auto env = DK_MGET_POBJ(proc, "Environment");
+                if (env != nullptr) {
+                    try { image_base = DK_MGET_PVAL<uint64_t, VT_UI8>(env, "ImageBaseAddress"); } catch (...) {}
+                }
+            } catch (...) {}
+        }
+        if (image_base == 0)
+        {
+            try {
+                auto modules = DK_MGET_POBJ(proc, "Modules");
+                if (modules != nullptr)
+                {
+                    auto first = DK_MODEL_ACCESS->at(modules, 0);
+                    if (first != nullptr)
+                    {
+                        try { image_base = DK_MGET_PVAL<uint64_t, VT_UI8>(first, "BaseAddress"); } catch (...) {}
+                        if (image_base == 0) {
+                            try { image_base = DK_MGET_PVAL<uint64_t, VT_UI8>(first, "Address"); } catch (...) {}
+                        }
+                        try { root["moduleName"] = BSTR2str(DK_MGET_PVAL<BSTR, VT_BSTR>(first, "Name")); } catch (...) {}
+                    }
+                }
+            } catch (...) {}
+        }
+    }
+
+    if (image_base == 0)
+    {
+        root["notes"].push_back("Unable to resolve image base for current process.");
+        return root.dump();
+    }
+
+    IMAGE_DOS_HEADER dos = {};
+    if (!ReadVirtualExact(image_base, &dos, sizeof(dos)) || dos.e_magic != IMAGE_DOS_SIGNATURE)
+    {
+        root["notes"].push_back("Image base does not point to a valid IMAGE_DOS_HEADER.");
+        return root.dump();
+    }
+
+    uint64_t nt_address = image_base + static_cast<uint32_t>(dos.e_lfanew);
+    DWORD nt_signature = 0;
+    if (!ReadVirtualExact(nt_address, &nt_signature, sizeof(nt_signature)) || nt_signature != IMAGE_NT_SIGNATURE)
+    {
+        root["notes"].push_back("IMAGE_NT_HEADERS signature is invalid.");
+        return root.dump();
+    }
+
+    IMAGE_FILE_HEADER file_header = {};
+    if (!ReadVirtualExact(nt_address + sizeof(DWORD), &file_header, sizeof(file_header)))
+    {
+        root["notes"].push_back("Unable to read IMAGE_FILE_HEADER.");
+        return root.dump();
+    }
+
+    WORD optional_magic = 0;
+    if (!ReadVirtualExact(nt_address + sizeof(DWORD) + sizeof(IMAGE_FILE_HEADER), &optional_magic, sizeof(optional_magic)))
+    {
+        root["notes"].push_back("Unable to read IMAGE_OPTIONAL_HEADER magic.");
+        return root.dump();
+    }
+
+    bool is_64 = optional_magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC;
+    IMAGE_OPTIONAL_HEADER64 optional64 = {};
+    IMAGE_OPTIONAL_HEADER32 optional32 = {};
+    uint32_t size_of_headers = 0;
+    uint32_t size_of_image = 0;
+    uint32_t address_of_entry_point = 0;
+    uint64_t image_base_from_optional = image_base;
+
+    if (is_64)
+    {
+        IMAGE_NT_HEADERS64 nt64 = {};
+        if (!ReadVirtualExact(nt_address, &nt64, sizeof(nt64)))
+        {
+            root["notes"].push_back("Unable to read IMAGE_NT_HEADERS64.");
+            return root.dump();
+        }
+        optional64 = nt64.OptionalHeader;
+        size_of_headers = nt64.OptionalHeader.SizeOfHeaders;
+        size_of_image = nt64.OptionalHeader.SizeOfImage;
+        address_of_entry_point = nt64.OptionalHeader.AddressOfEntryPoint;
+        image_base_from_optional = nt64.OptionalHeader.ImageBase;
+        root["architecture"] = "x64";
+    }
+    else
+    {
+        IMAGE_NT_HEADERS32 nt32 = {};
+        if (!ReadVirtualExact(nt_address, &nt32, sizeof(nt32)))
+        {
+            root["notes"].push_back("Unable to read IMAGE_NT_HEADERS32.");
+            return root.dump();
+        }
+        optional32 = nt32.OptionalHeader;
+        size_of_headers = nt32.OptionalHeader.SizeOfHeaders;
+        size_of_image = nt32.OptionalHeader.SizeOfImage;
+        address_of_entry_point = nt32.OptionalHeader.AddressOfEntryPoint;
+        image_base_from_optional = nt32.OptionalHeader.ImageBase;
+        root["architecture"] = "x86";
+    }
+
+    root["available"] = true;
+    root["imageBase"] = FormatHex(image_base);
+
+    root["headers"]["dos"] = {
+        {"id", "dos"},
+        {"name", "IMAGE_DOS_HEADER"},
+        {"address", FormatHex(image_base)},
+        {"size", sizeof(IMAGE_DOS_HEADER)},
+        {"fields", json::array({
+            json{{"name", "e_magic"}, {"value", FormatHex32(dos.e_magic)}},
+            json{{"name", "e_lfanew"}, {"value", FormatHex32(static_cast<uint32_t>(dos.e_lfanew))}},
+            json{{"name", "ntHeaderAddress"}, {"value", FormatHex(nt_address)}}
+        })}
+    };
+
+    root["headers"]["nt"] = {
+        {"id", "nt"},
+        {"name", is_64 ? "IMAGE_NT_HEADERS64" : "IMAGE_NT_HEADERS32"},
+        {"address", FormatHex(nt_address)},
+        {"size", is_64 ? sizeof(IMAGE_NT_HEADERS64) : sizeof(IMAGE_NT_HEADERS32)},
+        {"fields", json::array({
+            json{{"name", "Signature"}, {"value", FormatHex32(nt_signature)}},
+            json{{"name", "Machine"}, {"value", FormatHex32(file_header.Machine)}},
+            json{{"name", "NumberOfSections"}, {"value", std::to_string(file_header.NumberOfSections)}},
+            json{{"name", "TimeDateStamp"}, {"value", FormatHex32(file_header.TimeDateStamp)}},
+            json{{"name", "Characteristics"}, {"value", FormatHex32(file_header.Characteristics)}},
+            json{{"name", "AddressOfEntryPoint"}, {"value", FormatHex32(address_of_entry_point)}},
+            json{{"name", "ImageBase"}, {"value", FormatHex(image_base_from_optional)}},
+            json{{"name", "SizeOfImage"}, {"value", FormatHex32(size_of_image)}},
+            json{{"name", "SizeOfHeaders"}, {"value", FormatHex32(size_of_headers)}}
+        })}
+    };
+
+    uint64_t section_address = nt_address + sizeof(DWORD) + sizeof(IMAGE_FILE_HEADER) + file_header.SizeOfOptionalHeader;
+    for (uint32_t i = 0; i < file_header.NumberOfSections; ++i)
+    {
+        IMAGE_SECTION_HEADER section = {};
+        if (!ReadVirtualExact(section_address + (i * sizeof(IMAGE_SECTION_HEADER)), &section, sizeof(section)))
+            break;
+        std::string name(reinterpret_cast<const char*>(section.Name), reinterpret_cast<const char*>(section.Name) + 8);
+        size_t zero = name.find('\0');
+        if (zero != std::string::npos) name.resize(zero);
+
+        root["sections"].push_back({
+            {"name", name},
+            {"virtualAddress", FormatHex32(section.VirtualAddress)},
+            {"virtualSize", FormatHex32(section.Misc.VirtualSize)},
+            {"rawSize", FormatHex32(section.SizeOfRawData)},
+            {"characteristics", FormatHex32(section.Characteristics)},
+            {"address", FormatHex(image_base + section.VirtualAddress)}
+        });
+    }
+
+    const IMAGE_DATA_DIRECTORY* directories = is_64 ? optional64.DataDirectory : optional32.DataDirectory;
+    for (int i = 0; i < IMAGE_NUMBEROF_DIRECTORY_ENTRIES; ++i)
+    {
+        const auto& dir = directories[i];
+        json entry = {
+            {"id", std::string("dir-") + std::to_string(i)},
+            {"index", i},
+            {"name", directory_names[i]},
+            {"virtualAddress", FormatHex32(dir.VirtualAddress)},
+            {"size", FormatHex32(dir.Size)},
+            {"address", dir.VirtualAddress != 0 ? FormatHex(image_base + dir.VirtualAddress) : ""}
+        };
+        root["dataDirectories"].push_back(entry);
+    }
+
+    auto import_dir = directories[IMAGE_DIRECTORY_ENTRY_IMPORT];
+    if (import_dir.VirtualAddress != 0 && import_dir.Size != 0)
+    {
+        const uint64_t import_base = image_base + import_dir.VirtualAddress;
+        const uint64_t thunk_size = is_64 ? sizeof(uint64_t) : sizeof(uint32_t);
+        for (size_t descriptor_index = 0; descriptor_index < 512; ++descriptor_index)
+        {
+            IMAGE_IMPORT_DESCRIPTOR descriptor = {};
+            uint64_t descriptor_addr = import_base + descriptor_index * sizeof(IMAGE_IMPORT_DESCRIPTOR);
+            if (!ReadVirtualExact(descriptor_addr, &descriptor, sizeof(descriptor)))
+                break;
+            if (descriptor.Name == 0 && descriptor.FirstThunk == 0 && descriptor.OriginalFirstThunk == 0)
+                break;
+
+            json import_json = {
+                {"id", std::string("import-") + std::to_string(descriptor_index)},
+                {"name", ReadString(image_base + descriptor.Name)},
+                {"descriptorAddress", FormatHex(descriptor_addr)},
+                {"nameRva", FormatHex32(descriptor.Name)},
+                {"originalFirstThunk", FormatHex32(descriptor.OriginalFirstThunk)},
+                {"firstThunk", FormatHex32(descriptor.FirstThunk)},
+                {"timeDateStamp", FormatHex32(descriptor.TimeDateStamp)},
+                {"forwarderChain", FormatHex32(descriptor.ForwarderChain)},
+                {"functions", json::array()}
+            };
+
+            uint32_t thunk_rva = descriptor.OriginalFirstThunk != 0 ? descriptor.OriginalFirstThunk : descriptor.FirstThunk;
+            for (size_t thunk_index = 0; thunk_index < 256 && thunk_rva != 0; ++thunk_index)
+            {
+                uint64_t thunk_value = 0;
+                uint64_t thunk_addr = image_base + thunk_rva + thunk_index * thunk_size;
+                if (is_64)
+                {
+                    uint64_t raw_thunk = 0;
+                    if (!ReadVirtualExact(thunk_addr, &raw_thunk, sizeof(raw_thunk)) || raw_thunk == 0)
+                        break;
+                    thunk_value = raw_thunk;
+                }
+                else
+                {
+                    uint32_t raw_thunk = 0;
+                    if (!ReadVirtualExact(thunk_addr, &raw_thunk, sizeof(raw_thunk)) || raw_thunk == 0)
+                        break;
+                    thunk_value = raw_thunk;
+                }
+
+                json function_json = {
+                    {"index", thunk_index},
+                    {"thunkAddress", FormatHex(thunk_addr)},
+                    {"iatAddress", FormatHex(image_base + descriptor.FirstThunk + thunk_index * thunk_size)},
+                    {"ordinal", nullptr},
+                    {"hint", nullptr},
+                    {"name", ""}
+                };
+
+                bool is_ordinal = is_64
+                    ? ((thunk_value & IMAGE_ORDINAL_FLAG64) != 0)
+                    : ((thunk_value & IMAGE_ORDINAL_FLAG32) != 0);
+
+                if (is_ordinal)
+                {
+                    function_json["ordinal"] = static_cast<uint32_t>(thunk_value & 0xFFFF);
+                }
+                else
+                {
+                    uint64_t import_by_name_addr = image_base + static_cast<uint32_t>(thunk_value & 0xFFFFFFFF);
+                    WORD hint = 0;
+                    if (ReadVirtualExact(import_by_name_addr, &hint, sizeof(hint)))
+                    {
+                        function_json["hint"] = hint;
+                        function_json["name"] = ReadString(import_by_name_addr + sizeof(WORD), 512);
+                    }
+                }
+                import_json["functions"].push_back(function_json);
+            }
+
+            root["imports"].push_back(import_json);
+        }
+    }
+
+    auto export_dir = directories[IMAGE_DIRECTORY_ENTRY_EXPORT];
+    if (export_dir.VirtualAddress != 0 && export_dir.Size != 0)
+    {
+        IMAGE_EXPORT_DIRECTORY export_descriptor = {};
+        uint64_t export_addr = image_base + export_dir.VirtualAddress;
+        if (ReadVirtualExact(export_addr, &export_descriptor, sizeof(export_descriptor)))
+        {
+            std::map<uint32_t, std::string> names_by_ordinal;
+            for (uint32_t i = 0; i < export_descriptor.NumberOfNames && i < 2048; ++i)
+            {
+                uint32_t name_rva = 0;
+                uint16_t ordinal_index = 0;
+                if (!ReadVirtualExact(image_base + export_descriptor.AddressOfNames + i * sizeof(uint32_t), &name_rva, sizeof(name_rva)))
+                    break;
+                if (!ReadVirtualExact(image_base + export_descriptor.AddressOfNameOrdinals + i * sizeof(uint16_t), &ordinal_index, sizeof(ordinal_index)))
+                    break;
+                names_by_ordinal[ordinal_index] = ReadString(image_base + name_rva, 512);
+            }
+
+            json functions = json::array();
+            for (uint32_t i = 0; i < export_descriptor.NumberOfFunctions && i < 2048; ++i)
+            {
+                uint32_t func_rva = 0;
+                if (!ReadVirtualExact(image_base + export_descriptor.AddressOfFunctions + i * sizeof(uint32_t), &func_rva, sizeof(func_rva)))
+                    break;
+                if (func_rva == 0)
+                    continue;
+                bool is_forwarder = func_rva >= export_dir.VirtualAddress && func_rva < export_dir.VirtualAddress + export_dir.Size;
+                json func = {
+                    {"ordinal", export_descriptor.Base + i},
+                    {"rva", FormatHex32(func_rva)},
+                    {"address", FormatHex(image_base + func_rva)},
+                    {"name", names_by_ordinal.count(i) ? names_by_ordinal[i] : ""},
+                    {"forwarder", is_forwarder ? ReadString(image_base + func_rva, 256) : ""}
+                };
+                functions.push_back(func);
+            }
+
+            root["exports"] = {
+                {"id", "export"},
+                {"name", "IMAGE_EXPORT_DIRECTORY"},
+                {"descriptorAddress", FormatHex(export_addr)},
+                {"dllName", ReadString(image_base + export_descriptor.Name)},
+                {"ordinalBase", export_descriptor.Base},
+                {"numberOfFunctions", export_descriptor.NumberOfFunctions},
+                {"numberOfNames", export_descriptor.NumberOfNames},
+                {"addressOfFunctions", FormatHex32(export_descriptor.AddressOfFunctions)},
+                {"addressOfNames", FormatHex32(export_descriptor.AddressOfNames)},
+                {"addressOfNameOrdinals", FormatHex32(export_descriptor.AddressOfNameOrdinals)},
+                {"functions", functions}
+            };
+        }
+    }
+
+    root["relationships"] = json::array({
+        json{{"from", "dos"}, {"to", "nt"}, {"label", "e_lfanew"}},
+        json{{"from", "nt"}, {"to", "dir-0"}, {"label", "Export Directory"}},
+        json{{"from", "nt"}, {"to", "dir-1"}, {"label", "Import Directory"}}
+    });
+    for (size_t i = 0; i < root["imports"].size(); ++i)
+    {
+        root["relationships"].push_back({{"from", "dir-1"}, {"to", root["imports"][i]["id"]}, {"label", "descriptor"}});
+    }
+    if (!root["exports"].is_null())
+    {
+        root["relationships"].push_back({{"from", "dir-0"}, {"to", "export"}, {"label", "descriptor"}});
+    }
+
+    if (root["imports"].size() == 0)
+        root["notes"].push_back("No import descriptors found or import directory is empty.");
+    if (root["exports"].is_null())
+        root["notes"].push_back("No export descriptor found or export directory is empty.");
+
+    return root.dump();
+}
+
+std::string CDkEmbeddedServer::HandleFunctionCallsRoute(const std::string& query)
+{
+    uint64_t request_id = ++m_request_counter;
+
+    auto FormatHexU64 = [](uint64_t value) -> std::string
+    {
+        std::stringstream ss;
+        ss << "0x" << std::hex << std::setw(16) << std::setfill('0') << value;
+        return ss.str();
+    };
+
+    json root = {
+        {"schemaVersion", "1.0"},
+        {"requestId", std::to_string(request_id)},
+        {"available", false},
+        {"events", json::array()},
+        {"returnedCount", 0},
+        {"totalCount", 0},
+        {"query", {
+            {"input", ""},
+            {"pattern", ""},
+            {"resolvedSymbol", nullptr},
+            {"mode", "symbol"}
+        }}
+    };
+
+    auto params = ParseQueryParams(query);
+    std::string target;
+
+    auto target_iter = params.find("target");
+    if (target_iter != params.end())
+        target = TrimAsciiWhitespace(target_iter->second);
+
+    if (target.empty())
+    {
+        auto query_iter = params.find("query");
+        if (query_iter != params.end())
+            target = TrimAsciiWhitespace(query_iter->second);
+    }
+
+    if (target.empty())
+    {
+        auto name_iter = params.find("name");
+        if (name_iter != params.end())
+            target = TrimAsciiWhitespace(name_iter->second);
+    }
+
+    root["query"]["input"] = target;
+
+    uint64_t requested_limit = 200;
+    auto limit_iter = params.find("limit");
+    if (limit_iter != params.end())
+    {
+        uint64_t parsed_limit = 0;
+        if (TryParseU64(limit_iter->second, parsed_limit) && parsed_limit > 0)
+            requested_limit = std::min<uint64_t>(parsed_limit, 1000);
+    }
+
+    if (target.empty())
+    {
+        root["message"] = "Query parameter 'target' is required.";
+        return root.dump();
+    }
+
+    if (!DK_MODEL_ACCESS->isTTD())
+    {
+        root["message"] = "Function-call search requires TTD mode.";
+        return root.dump();
+    }
+
+    auto session = DK_MODEL_ACCESS->get_current_session();
+    auto ttd = session != nullptr ? DK_MGET_POBJ(session, "TTD") : DK_MOBJ_PTR{};
+
+    // Fallback only: some contexts may expose TTD under process.
+    if (ttd == nullptr)
+    {
+        auto proc = DK_MODEL_ACCESS->get_current_process();
+        if (proc != nullptr)
+            ttd = DK_MGET_POBJ(proc, "TTD");
+    }
+
+    if (ttd == nullptr)
+    {
+        root["message"] = "TTD object unavailable.";
+        return root.dump();
+    }
+
+    auto calls_pobj = DK_MGET_POBJ(ttd, "Calls");
+    if (calls_pobj == nullptr)
+    {
+        root["message"] = "TTD call adapter unavailable.";
+        return root.dump();
+    }
+
+    uint64_t target_address = 0;
+    bool has_target_address = TryParseU64(target, target_address);
+    std::string resolved_symbol;
+    std::string call_pattern = target;
+
+    if (has_target_address)
+    {
+        auto symbol_info = EXT_F_Addr2Sym(target_address);
+        resolved_symbol = std::get<0>(symbol_info);
+        if (!resolved_symbol.empty())
+            call_pattern = resolved_symbol;
+
+        root["query"]["mode"] = "address";
+        root["query"]["address"] = FormatHexU64(target_address);
+    }
+
+    root["query"]["pattern"] = call_pattern;
+    if (!resolved_symbol.empty())
+        root["query"]["resolvedSymbol"] = resolved_symbol;
+
+    auto arg = DK_MODEL_ACCESS->create_str_intrinsic_obj(call_pattern);
+    std::vector<DK_MOBJ_PTR> vec_args;
+    vec_args.push_back(arg);
+
+    auto call_result = DK_MODEL_ACCESS->call(calls_pobj, ttd, vec_args);
+    if (call_result == nullptr)
+    {
+        root["message"] = "TTD.Calls query returned no data.";
+        return root.dump();
+    }
+
+    auto ExtractModuleName = [](const std::string& symbol_name) -> std::string
+    {
+        auto bang_pos = symbol_name.find('!');
+        return bang_pos == std::string::npos ? "" : symbol_name.substr(0, bang_pos);
+    };
+
+    size_t total_count = 0;
+    auto results = DK_MODEL_ACCESS->iterate(call_result);
+    for (auto& result : results)
+    {
+        auto call_info = std::get<1>(result);
+        if (call_info == nullptr)
+            continue;
+
+        std::tuple<uint64_t, uint64_t> start_pos{ 0, 0 };
+        std::tuple<uint64_t, uint64_t> end_pos{ 0, 0 };
+        std::string function;
+        uint64_t function_address = 0;
+        uint64_t return_address = 0;
+        uint64_t return_value = 0;
+        uint64_t thread_id = 0;
+        uint64_t event_type = 0;
+
+        try { start_pos = DK_MODEL_ACCESS->get_pos(call_info, "TimeStart"); } catch (...) {}
+        try { end_pos = DK_MODEL_ACCESS->get_pos(call_info, "TimeEnd"); } catch (...) {}
+        try { function = BSTR2str(DK_MODEL_ACCESS->get_pvalue<BSTR, VT_BSTR>(call_info, "Function")); } catch (...) {}
+        try { function_address = DK_MODEL_ACCESS->get_pvalue<uint64_t, VT_UI8>(call_info, "FunctionAddress"); } catch (...) {}
+        try { return_address = DK_MODEL_ACCESS->get_pvalue<uint64_t, VT_UI8>(call_info, "ReturnAddress"); } catch (...) {}
+        try { return_value = DK_MODEL_ACCESS->get_pvalue<uint64_t, VT_UI8>(call_info, "ReturnValue"); } catch (...) {}
+        try { thread_id = DK_MODEL_ACCESS->get_pvalue<uint64_t, VT_UI8>(call_info, "ThreadId"); } catch (...) {}
+        try { event_type = DK_MODEL_ACCESS->get_pvalue<uint64_t, VT_UI8>(call_info, "EventType"); } catch (...) {}
+
+        auto symbol_info = EXT_F_Addr2Sym(function_address);
+        std::string symbol_name = std::get<0>(symbol_info);
+        uint64_t displacement = std::get<1>(symbol_info);
+
+        std::string display_name = !symbol_name.empty()
+            ? symbol_name
+            : (!function.empty() ? function : FormatHexU64(function_address));
+        std::string module_name = ExtractModuleName(display_name);
+
+        bool matches = true;
+        if (has_target_address)
+        {
+            matches = function_address == target_address || return_address == target_address;
+            if (!matches && !resolved_symbol.empty())
+                matches = ContainsCaseInsensitive(display_name, resolved_symbol);
+            if (!matches)
+                matches = ContainsCaseInsensitive(display_name, target);
+        }
+        else
+        {
+            matches = ContainsCaseInsensitive(display_name, target)
+                || ContainsCaseInsensitive(function, target)
+                || ContainsCaseInsensitive(module_name, target);
+        }
+
+        if (!matches)
+            continue;
+
+        ++total_count;
+
+        if (root["events"].size() >= requested_limit)
+            continue;
+
+        std::stringstream summary;
+        summary << display_name
+            << "  tid=" << thread_id
+            << "  " << std::get<0>(start_pos) << ":" << std::get<1>(start_pos);
+
+        json parameters = json::array();
+        auto parameters_pobj = DK_MGET_POBJ(call_info, "Parameters");
+        if (parameters_pobj != nullptr)
+        {
+            auto parameter_items = DK_MODEL_ACCESS->iterate(parameters_pobj);
+            for (auto& parameter : parameter_items)
+            {
+                try
+                {
+                    uint64_t value = DK_MODEL_ACCESS->get_value<uint64_t, VT_UI8>(std::get<1>(parameter));
+                    parameters.push_back(FormatHexU64(value));
+                }
+                catch (...)
+                {
+                }
+            }
+        }
+
+        // Collect stack-based arguments (args 5-16) by seeking to TimeStart,
+        // reading RSP, then reading [RSP+0x28], [RSP+0x30], ... (x64 calling convention:
+        // RSP+0 = return address, RSP+8..+32 = shadow space, RSP+0x28 = arg5).
+        if (std::get<0>(start_pos) != 0 && EXT_D_IDebugDataSpaces != nullptr)
+        {
+            try
+            {
+                std::tuple<uint64_t, uint64_t> original_pos{ 0, 0 };
+                try { original_pos = DK_GET_CURPOS(); } catch (...) {}
+
+                bool seeked = false;
+                try
+                {
+                    DK_SEEK_TO(std::get<0>(start_pos), std::get<1>(start_pos));
+                    seeked = true;
+                }
+                catch (...) {}
+
+                if (seeked)
+                {
+                    // Read RSP from the calling thread's registers.
+                    uint64_t rsp_value = 0;
+                    bool has_rsp = false;
+
+                    auto proc_obj = DK_MODEL_ACCESS->get_current_process();
+                    if (proc_obj != nullptr)
+                    {
+                        auto threads_pobj = DK_MGET_POBJ(proc_obj, "Threads");
+                        if (threads_pobj != nullptr)
+                        {
+                            for (auto& t : DK_MODEL_ACCESS->iterate(threads_pobj))
+                            {
+                                if (has_rsp) break;
+                                auto t_obj = std::get<1>(t);
+                                try
+                                {
+                                    uint64_t tid = DK_MGET_PVAL<uint64_t, VT_UI8>(t_obj, "Id");
+                                    if (tid != thread_id) continue;
+                                }
+                                catch (...) { continue; }
+
+                                auto regs_obj = DK_MGET_POBJ(t_obj, "Registers");
+                                if (regs_obj == nullptr) continue;
+
+                                std::vector<DK_MOBJ_PTR> reg_roots;
+                                reg_roots.push_back(regs_obj);
+                                auto user_obj2 = DK_MGET_POBJ(regs_obj, "User");
+                                if (user_obj2 != nullptr) reg_roots.push_back(user_obj2);
+
+                                for (auto& rr : reg_roots)
+                                {
+                                    if (has_rsp) break;
+                                    for (const auto& rname : std::vector<std::string>{"rsp", "Rsp", "RSP"})
+                                    {
+                                        try
+                                        {
+                                            auto reg_obj = DK_MGET_POBJ(rr, rname);
+                                            if (reg_obj != nullptr)
+                                            {
+                                                try
+                                                {
+                                                    rsp_value = DK_MODEL_ACCESS->get_value<uint64_t, VT_UI8>(reg_obj);
+                                                    has_rsp = (rsp_value != 0);
+                                                }
+                                                catch (...) {}
+                                            }
+                                        }
+                                        catch (...) {}
+                                        if (has_rsp) break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (has_rsp && rsp_value != 0)
+                    {
+                        // x64: arg5 starts at RSP+0x28 (return addr at RSP+0, then 4*8 shadow space).
+                        // Read up to 12 additional args so the total can reach 16.
+                        constexpr int kExtraArgs = 12;
+                        for (int i = 0; i < kExtraArgs; ++i)
+                        {
+                            uint64_t addr = rsp_value + 0x28 + static_cast<uint64_t>(i) * 8;
+                            uint64_t val = 0;
+                            ULONG bytes_read = 0;
+                            HRESULT hr = EXT_D_IDebugDataSpaces->ReadVirtual(
+                                addr, reinterpret_cast<uint8_t*>(&val), sizeof(val), &bytes_read);
+                            if (SUCCEEDED(hr) && bytes_read == sizeof(val))
+                                parameters.push_back(FormatHexU64(val));
+                            else
+                                break; // stop at first unreadable address
+                        }
+                    }
+
+                    // Restore original position.
+                    try { DK_SEEK_TO(std::get<0>(original_pos), std::get<1>(original_pos)); } catch (...) {}
+                }
+            }
+            catch (...) {}
+        }
+
+        std::stringstream event_id;
+        event_id << std::get<0>(start_pos) << ":"
+            << std::get<1>(start_pos) << ":"
+            << thread_id << ":"
+            << std::hex << function_address;
+
+        root["events"].push_back({
+            {"eventId", event_id.str()},
+            {"summary", summary.str()},
+            {"function", display_name},
+            {"rawFunction", function},
+            {"module", module_name},
+            {"threadId", thread_id},
+            {"eventType", event_type},
+            {"functionAddress", FormatHexU64(function_address)},
+            {"returnAddress", FormatHexU64(return_address)},
+            {"returnValue", FormatHexU64(return_value)},
+            {"symbolDisplacement", displacement},
+            {"startPosition", PosToJson(start_pos)},
+            {"endPosition", PosToJson(end_pos)},
+            {"parameters", parameters}
+        });
+    }
+
+    root["available"] = total_count > 0;
+    root["returnedCount"] = root["events"].size();
+    root["totalCount"] = total_count;
+
+    if (total_count == 0)
+        root["message"] = "No matching function-call events found.";
+
+    return root.dump();
+}
+
+std::string CDkEmbeddedServer::HandleStringsRoute(const std::string& query)
+{
+        uint64_t request_id = ++m_request_counter;
+        auto params = ParseQueryParams(query);
+
+        auto ReadParam = [&](const std::initializer_list<const char*>& keys, const std::string& fallback = "") -> std::string {
+            for (const auto* key : keys)
+            {
+                auto it = params.find(key);
+                if (it != params.end())
+                {
+                    std::string value = TrimAsciiWhitespace(it->second);
+                    if (!value.empty())
+                        return value;
+                }
+            }
+            return fallback;
+        };
+
+        auto FormatHex = [](uint64_t value) -> std::string {
+            std::ostringstream stream;
+            stream << "0x" << std::hex << std::nouppercase << value;
+            return stream.str();
+        };
+
+        auto Utf8ToUtf16 = [](const std::string& text) -> std::wstring {
+            if (text.empty()) return std::wstring();
+            int required = MultiByteToWideChar(CP_UTF8, 0, text.c_str(), static_cast<int>(text.size()), nullptr, 0);
+            if (required <= 0)
+            {
+                std::wstring fallback;
+                fallback.reserve(text.size());
+                for (unsigned char ch : text)
+                    fallback.push_back(static_cast<wchar_t>(ch));
+                return fallback;
+            }
+            std::wstring wide(static_cast<size_t>(required), L'\0');
+            MultiByteToWideChar(CP_UTF8, 0, text.c_str(), static_cast<int>(text.size()), &wide[0], required);
+            return wide;
+        };
+
+        json root = {
+            {"schemaVersion", "1.0"},
+            {"requestId", std::to_string(request_id)},
+            {"available", false},
+            {"query", { {"text", ""}, {"limit", 100}, {"rangeStart", "0x0"}, {"rangeEnd", "0x7fffffff0000"}, {"scope", "smart"} }},
+            {"ascii", json::array()},
+            {"unicode", json::array()},
+            {"notes", json::array()}
+        };
+
+        if (!DK_MODEL_ACCESS->isUsermode())
+        {
+            root["notes"].push_back("Strings search is supported in user mode only.");
+            return root.dump();
+        }
+
+        const std::string search_text = ReadParam({ "q", "query", "text", "pattern" });
+        root["query"]["text"] = search_text;
+        if (search_text.empty())
+        {
+            root["notes"].push_back("Query parameter 'q' is required.");
+            return root.dump();
+        }
+
+        uint64_t limit = 100;
+        uint64_t parsed_limit = 0;
+        if (TryParseU64(ReadParam({ "limit" }, "100"), parsed_limit) && parsed_limit > 0)
+            limit = std::min<uint64_t>(500, parsed_limit);
+        root["query"]["limit"] = limit;
+
+        uint64_t range_start = 0;
+        uint64_t range_end = 0x7fffffff0000ULL;
+        uint64_t parsed = 0;
+        if (TryParseU64(ReadParam({ "start", "rangeStart" }, ""), parsed))
+            range_start = parsed;
+        if (TryParseU64(ReadParam({ "end", "rangeEnd" }, ""), parsed))
+            range_end = parsed;
+        if (range_end <= range_start)
+            range_end = range_start + 0x8000000ULL;
+        root["query"]["rangeStart"] = FormatHex(range_start);
+        root["query"]["rangeEnd"] = FormatHex(range_end);
+
+        const std::string scope = ReadParam({ "scope" }, "smart");
+        const std::string writable_only_param = ReadParam({ "writableOnly", "writable" }, "");
+        const bool writable_only =
+            scope == "writable" || scope == "write" ||
+            writable_only_param == "1" || writable_only_param == "true" || writable_only_param == "yes";
+        const bool modules_only = scope == "modules" || scope == "images";
+        const bool all_pages = scope == "all";
+        root["query"]["scope"] = writable_only ? "writable" : (modules_only ? "modules" : (all_pages ? "all" : "smart"));
+
+        auto proc = DK_MODEL_ACCESS->get_current_process();
+        std::vector<std::pair<ULONG64, ULONG64>> module_ranges;
+        if (proc != nullptr)
+        {
+            try
+            {
+                auto modules_obj = DK_MGET_POBJ(proc, "Modules");
+                if (modules_obj != nullptr)
+                {
+                    auto module_entries = DK_MODEL_ACCESS->iterate(modules_obj);
+                    for (auto& entry : module_entries)
+                    {
+                        try
+                        {
+                            auto mod = std::get<1>(entry);
+                            auto info = DK_MGET_MODL(mod);
+                            const ULONG64 base = std::get<0>(info);
+                            const ULONG64 size = std::get<1>(info);
+                            if (base == 0 || size == 0)
+                                continue;
+
+                            const ULONG64 mod_start = std::max<ULONG64>(base, range_start);
+                            const ULONG64 mod_end = std::min<ULONG64>(base + size, range_end);
+                            if (mod_end > mod_start)
+                                module_ranges.push_back({ mod_start, mod_end });
+                        }
+                        catch (...) {}
+                    }
+                }
+            }
+            catch (...) {}
+        }
+
+        auto SearchPattern = [&](const void* pattern, ULONG pattern_size, ULONG pattern_granularity, uint64_t logical_length, const std::vector<std::pair<ULONG64, ULONG64>>& ranges, ULONG search_flags, json& out_results) {
+            if (pattern == nullptr || pattern_size == 0)
+                return;
+
+            const ULONG64 chunk_length = 0x8000000ULL;
+            std::unordered_set<ULONG64> seen_matches;
+
+            for (const auto& range : ranges)
+            {
+                ULONG64 cursor = range.first;
+                const ULONG64 range_limit = range.second;
+
+                while (cursor < range_limit && out_results.size() < limit)
+                {
+                    ULONG64 match_offset = 0;
+                    const ULONG64 current_length = std::min<ULONG64>(chunk_length, range_limit - cursor);
+                    HRESULT hr = EXT_D_IDebugDataSpaces4->SearchVirtual2(
+                        cursor,
+                        current_length,
+                        search_flags,
+                        const_cast<void*>(pattern),
+                        pattern_size,
+                        pattern_granularity,
+                        &match_offset);
+
+                    if (hr == S_OK)
+                    {
+                        if (seen_matches.insert(match_offset).second)
+                        {
+                            out_results.push_back({
+                                {"address", FormatHex(match_offset)},
+                                {"page", FormatHex(match_offset & 0xFFFFFFFFFFFFF000ULL)},
+                                {"offsetInPage", FormatHex(match_offset & 0xFFFULL)},
+                                {"length", logical_length}
+                            });
+                        }
+                        cursor = match_offset + std::max<ULONG64>(1, pattern_size);
+                        continue;
+                    }
+
+                    if (hr == HRESULT_FROM_WIN32(ERROR_NOT_FOUND) || hr == static_cast<HRESULT>(0x9000001A))
+                    {
+                        cursor += current_length;
+                        continue;
+                    }
+
+                    std::ostringstream note;
+                    note << "SearchVirtual2 failed with HRESULT 0x" << std::hex << static_cast<uint32_t>(hr);
+                    root["notes"].push_back(note.str());
+                    return;
+                }
+            }
+        };
+
+        const std::vector<std::pair<ULONG64, ULONG64>> full_range = { { range_start, range_end } };
+
+        auto ExecuteSearchPlan = [&](const void* pattern, ULONG pattern_size, ULONG pattern_granularity, uint64_t logical_length, json& out_results, const char* label) {
+            if (writable_only)
+            {
+                root["notes"].push_back(std::string(label) + ": writable pages only.");
+                SearchPattern(pattern, pattern_size, pattern_granularity, logical_length, full_range, DEBUG_VSEARCH_WRITABLE_ONLY, out_results);
+                return;
+            }
+
+            if (modules_only)
+            {
+                root["notes"].push_back(std::string(label) + ": loaded module images only.");
+                SearchPattern(pattern, pattern_size, pattern_granularity, logical_length, module_ranges, DEBUG_VSEARCH_DEFAULT, out_results);
+                return;
+            }
+
+            if (all_pages)
+            {
+                root["notes"].push_back(std::string(label) + ": full user-mode scan. This is slower on large processes.");
+                SearchPattern(pattern, pattern_size, pattern_granularity, logical_length, full_range, DEBUG_VSEARCH_DEFAULT, out_results);
+                return;
+            }
+
+            root["notes"].push_back(std::string(label) + ": smart search uses writable pages first, then loaded module images if needed.");
+            SearchPattern(pattern, pattern_size, pattern_granularity, logical_length, full_range, DEBUG_VSEARCH_WRITABLE_ONLY, out_results);
+            if (out_results.empty() && !module_ranges.empty())
+            {
+                root["notes"].push_back(std::string(label) + ": no writable-page hits, falling back to loaded module images.");
+                SearchPattern(pattern, pattern_size, pattern_granularity, logical_length, module_ranges, DEBUG_VSEARCH_DEFAULT, out_results);
+            }
+        };
+
+        ExecuteSearchPlan(search_text.data(), static_cast<ULONG>(search_text.size()), 1, static_cast<uint64_t>(search_text.size()), root["ascii"], "ASCII");
+
+        const std::wstring wide = Utf8ToUtf16(search_text);
+        if (!wide.empty())
+            ExecuteSearchPlan(wide.data(), static_cast<ULONG>(wide.size() * sizeof(wchar_t)), 1, static_cast<uint64_t>(wide.size()), root["unicode"], "UNICODE");
+
+        root["available"] = true;
+        if (root["ascii"].empty())
+            root["notes"].push_back("No ASCII matches found.");
+        if (root["unicode"].empty())
+            root["notes"].push_back("No Unicode matches found.");
+
+        return root.dump();
+}
+
+// ---------------------------------------------------------------------------
+// /api/memory/layout
+// Returns a snapshot of the target process virtual address space organised
+// into typed regions for the multi-level Memory Layout visualisation in the
+// front-end.  For each category (modules, threads/stacks, heaps, deterministic
+// areas) the route returns the VA range plus category-specific detail fields.
+// ---------------------------------------------------------------------------
+std::string CDkEmbeddedServer::HandleMemoryLayoutRoute(const std::string& query)
+{
+    uint64_t request_id = ++m_request_counter;
+    bool is_ttd = DK_MODEL_ACCESS->isTTD();
+
+    auto FormatHex = [](uint64_t v) -> std::string {
+        std::stringstream ss;
+        ss << "0x" << std::hex << std::setw(16) << std::setfill('0') << v;
+        return ss.str();
+    };
+
+    json root = {
+        {"schemaVersion", "1.0"},
+        {"requestId", std::to_string(request_id)},
+        {"available", false},
+        {"isUsermode", DK_MODEL_ACCESS->isUsermode()},
+        {"isKernelmode", DK_MODEL_ACCESS->isKernelmode()},
+        {"isTTD", is_ttd},
+        // Deterministic VA landmarks for 64-bit Windows user-mode
+        {"landmarks", json::array()},
+        {"modules", json::array()},
+        {"threads", json::array()},
+        {"heaps", json::array()}
+    };
+
+    // -----------------------------------------------------------------------
+    // Deterministic / well-known VA landmarks (user-mode 64-bit Windows)
+    // -----------------------------------------------------------------------
+    auto& landmarks = root["landmarks"];
+
+    // Null / reserved
+    landmarks.push_back({{"name","Null / Reserved"},  {"base","0x0000000000000000"}, {"end","0x0000000000010000"}, {"kind","reserved"}, {"color","#3a3a3a"}});
+    // User-mode accessible range ends at ~8 TB on current Windows
+    // (user-mode limit 0x00007FFFFFFFFFFF, though practical max is lower)
+    landmarks.push_back({{"name","User Space"},        {"base","0x0000000000010000"}, {"end","0x00007FFFFFFFFFFF"}, {"kind","user"},     {"color","#1a2a1a"}});
+    // Kernel-space starts (not accessible from user mode)
+    landmarks.push_back({{"name","Kernel Space"},      {"base","0xFFFF000000000000"}, {"end","0xFFFFFFFFFFFFFFFF"}, {"kind","kernel"},   {"color","#2a1a2a"}});
+
+    auto proc = DK_MODEL_ACCESS->get_current_process();
+    if (proc == nullptr)
+        return root.dump();
+
+    root["available"] = true;
+
+    // -----------------------------------------------------------------------
+    // Modules  (base, size, name, path)
+    // -----------------------------------------------------------------------
+    try
+    {
+        auto modules_obj = DK_MGET_POBJ(proc, "Modules");
+        if (modules_obj != nullptr)
+        {
+            auto module_entries = DK_MODEL_ACCESS->iterate(modules_obj);
+            for (auto& entry : module_entries)
+            {
+                auto mod = std::get<1>(entry);
+                try
+                {
+                    auto info = DK_MGET_MODL(mod);   // (base, size, name)
+                    uint64_t base = std::get<0>(info);
+                    uint64_t size = std::get<1>(info);
+                    std::string name = std::get<2>(info);
+                    if (base == 0 && size == 0) continue;
+
+                    // Attempt to read sections count via execute_cmd to keep
+                    // things non-intrusive; fall back to empty sections array.
+                    root["modules"].push_back({
+                        {"name",    Basename(name)},
+                        {"path",    name},
+                        {"base",    FormatHex(base)},
+                        {"end",     FormatHex(base + size)},
+                        {"size",    size},
+                        {"kind",    "module"}
+                    });
+                }
+                catch (...) {}
+            }
+        }
+    }
+    catch (...) {}
+
+    // -----------------------------------------------------------------------
+    // Threads - stack base/limit via Environment.StackBase / StackLimit or
+    // Stack.Attributes.StackBase / StackLimit (Model path depends on target).
+    // -----------------------------------------------------------------------
+    try
+    {
+        auto threads_obj = DK_MGET_POBJ(proc, "Threads");
+        if (threads_obj != nullptr)
+        {
+            auto thread_entries = DK_MODEL_ACCESS->iterate(threads_obj);
+            for (auto& entry : thread_entries)
+            {
+                auto thread_obj = std::get<1>(entry);
+                if (thread_obj == nullptr) continue;
+
+                uint64_t tid = 0;
+                try { tid = DK_MGET_PVAL<uint64_t, VT_UI8>(thread_obj, "Id"); }
+                catch (...) {
+                    try { tid = DK_MGET_PVAL<DWORD, VT_UI4>(thread_obj, "Id"); }
+                    catch (...) {}
+                }
+
+                uint64_t stack_base  = 0;
+                uint64_t stack_limit = 0;
+
+                // --- Try Environment.StackBase / StackLimit (TTD model path) ---
+                auto TryGetU64 = [](DK_MOBJ_PTR& parent, const char* key, uint64_t& out) -> bool {
+                    try {
+                        out = DK_MGET_PVAL<uint64_t, VT_UI8>(parent, key);
+                        return out != 0;
+                    } catch (...) {}
+                    try {
+                        out = static_cast<uint64_t>(DK_MGET_PVAL<DWORD, VT_UI4>(parent, key));
+                        return out != 0;
+                    } catch (...) {}
+                    try {
+                        auto child = DK_MGET_POBJ(parent, key);
+                        if (child) {
+                            try { out = DK_MGET_VAL<uint64_t, VT_UI8>(child); return out != 0; } catch (...) {}
+                            try { out = static_cast<uint64_t>(DK_MGET_VAL<DWORD, VT_UI4>(child)); return out != 0; } catch (...) {}
+                        }
+                    } catch (...) {}
+                    return false;
+                };
+
+                // Priority order:
+                // 1. Environment.StackBase / .StackLimit
+                // 2. Stack.Attributes.StackBase / .StackLimit
+                // 3. Environment.TEB -> TEB.StackBase / .StackLimit (kernel path)
+                bool found_stack = false;
+                try {
+                    auto env = DK_MGET_POBJ(thread_obj, "Environment");
+                    if (env) {
+                        found_stack = TryGetU64(env, "StackBase", stack_base) &&
+                                      TryGetU64(env, "StackLimit", stack_limit);
+                    }
+                } catch (...) {}
+
+                if (!found_stack) {
+                    try {
+                        auto stk = DK_MGET_POBJ(thread_obj, "Stack");
+                        if (stk) {
+                            auto attr = DK_MGET_POBJ(stk, "Attributes");
+                            if (attr) {
+                                found_stack = TryGetU64(attr, "StackBase", stack_base) &&
+                                              TryGetU64(attr, "StackLimit", stack_limit);
+                            }
+                        }
+                    } catch (...) {}
+                }
+
+                // Proc symbol for display
+                std::string proc_symbol;
+                try { proc_symbol = BSTR2str(DK_MGET_PVAL<BSTR, VT_BSTR>(thread_obj, "ThreadProcSymbol")); } catch (...) {}
+                if (proc_symbol.empty()) {
+                    try { proc_symbol = BSTR2str(DK_MGET_PVAL<BSTR, VT_BSTR>(thread_obj, "StartSymbol")); } catch (...) {}
+                }
+
+                // TEB address (try Environment.EnvironmentBlock as a proxy, or direct TEB key)
+                uint64_t teb_addr = 0;
+                try {
+                    auto env = DK_MGET_POBJ(thread_obj, "Environment");
+                    if (env) TryGetU64(env, "TEB", teb_addr);
+                } catch (...) {}
+                if (teb_addr == 0) {
+                    try { TryGetU64(thread_obj, "Teb", teb_addr); } catch (...) {}
+                }
+                if (teb_addr == 0) {
+                    try { TryGetU64(thread_obj, "TEB", teb_addr); } catch (...) {}
+                }
+
+                json t = {
+                    {"threadId",    tid},
+                    {"procSymbol",  proc_symbol},
+                    {"kind",        "threadStack"},
+                    {"tebAddress",  teb_addr != 0 ? FormatHex(teb_addr) : ""}
+                };
+
+                if (found_stack && stack_base != 0 && stack_limit != 0)
+                {
+                    // Windows convention: StackBase > StackLimit (stack grows down)
+                    uint64_t lo = std::min(stack_base, stack_limit);
+                    uint64_t hi = std::max(stack_base, stack_limit);
+                    t["stackBase"]  = FormatHex(stack_base);
+                    t["stackLimit"] = FormatHex(stack_limit);
+                    t["base"]       = FormatHex(lo);
+                    t["end"]        = FormatHex(hi);
+                    t["size"]       = hi - lo;
+                    t["hasRange"]   = true;
+                }
+                else
+                {
+                    t["stackBase"]  = "";
+                    t["stackLimit"] = "";
+                    t["base"]       = "";
+                    t["end"]        = "";
+                    t["size"]       = 0;
+                    t["hasRange"]   = false;
+                }
+
+                root["threads"].push_back(t);
+            }
+        }
+    }
+    catch (...) {}
+
+    // -----------------------------------------------------------------------
+    // Heaps - use get_heap_memory() for TTD traces; also try model path
+    // Process.Heaps[n].Address / CommittedSize for non-TTD.
+    // -----------------------------------------------------------------------
+    if (is_ttd)
+    {
+        try
+        {
+            // TTD heap events give allocation address + size
+            auto heap_events = DK_MODEL_ACCESS->get_heap_memory();
+            // Build per-heap-base summary
+            std::map<uint64_t, std::pair<uint64_t, size_t>> heap_map; // base -> (max_end, alloc_count)
+            for (auto& ev : heap_events)
+            {
+                if (ev.res_id == 0) continue;
+                uint64_t base = ev.res_id;       // allocation base address
+                uint64_t sz   = ev.size;
+                auto& slot = heap_map[base];
+                slot.second++;
+                if (sz > 0)
+                    slot.first = std::max(slot.first, base + sz);
+            }
+            for (auto& [base, info] : heap_map)
+            {
+                uint64_t end = info.first > base ? info.first : base + 0x1000;
+                root["heaps"].push_back({
+                    {"base",        FormatHex(base)},
+                    {"end",         FormatHex(end)},
+                    {"size",        end - base},
+                    {"allocCount",  info.second},
+                    {"kind",        "heap"},
+                    {"source",      "ttd"}
+                });
+            }
+        }
+        catch (...) {}
+    }
+    else
+    {
+        try
+        {
+            // Non-TTD: query Process.Heaps model collection
+            auto heaps_obj = DK_MGET_POBJ(proc, "Heaps");
+            if (heaps_obj != nullptr)
+            {
+                auto heap_entries = DK_MODEL_ACCESS->iterate(heaps_obj);
+                for (auto& entry : heap_entries)
+                {
+                    auto heap_obj = std::get<1>(entry);
+                    if (heap_obj == nullptr) continue;
+
+                    uint64_t addr = 0;
+                    uint64_t committed = 0;
+                    try { addr = DK_MGET_PVAL<uint64_t, VT_UI8>(heap_obj, "Address"); } catch (...) {}
+                    try { committed = DK_MGET_PVAL<uint64_t, VT_UI8>(heap_obj, "CommittedSize"); } catch (...) {}
+                    if (addr == 0) continue;
+
+                    if (committed == 0) committed = 0x10000; // 64 KB default
+                    root["heaps"].push_back({
+                        {"base",        FormatHex(addr)},
+                        {"end",         FormatHex(addr + committed)},
+                        {"size",        committed},
+                        {"allocCount",  0},
+                        {"kind",        "heap"},
+                        {"source",      "model"}
+                    });
+                }
+            }
+        }
+        catch (...) {}
+    }
+
+    // -----------------------------------------------------------------------
+    // Process-level addresses (PEB, image base from first/main module)
+    // -----------------------------------------------------------------------
+    try
+    {
+        uint64_t peb_addr = 0;
+        try { peb_addr = DK_MGET_PVAL<uint64_t, VT_UI8>(proc, "Peb"); } catch (...) {}
+        if (peb_addr == 0) {
+            try { peb_addr = DK_MGET_PVAL<uint64_t, VT_UI8>(proc, "PEB"); } catch (...) {}
+        }
+        if (peb_addr == 0) {
+            try {
+                auto env = DK_MGET_POBJ(proc, "Environment");
+                if (env) {
+                    try { peb_addr = DK_MGET_PVAL<uint64_t, VT_UI8>(env, "PEB"); } catch (...) {}
+                }
+            } catch (...) {}
+        }
+
+        root["pebAddress"] = peb_addr != 0 ? FormatHex(peb_addr) : "";
+    }
+    catch (...) {
+        root["pebAddress"] = "";
+    }
+
+    return root.dump();
+}
+
+std::string CDkEmbeddedServer::HandleEnvironmentRoute(const std::string& query)
+{
+    (void)query;
+    uint64_t request_id = ++m_request_counter;
+    bool is_ttd = DK_MODEL_ACCESS->isTTD();
+
+    auto FormatHex = [](uint64_t v) -> std::string {
+        std::stringstream ss;
+        ss << "0x" << std::hex << std::setw(16) << std::setfill('0') << v;
+        return ss.str();
+    };
+
+    auto EmptyList = []() -> json {
+        return json::array();
+    };
+
+    json root = {
+        {"schemaVersion", "1.0"},
+        {"requestId", std::to_string(request_id)},
+        {"available", false},
+        {"isTTD", is_ttd},
+        {"process", {
+            {"environmentBlockAddress", ""},
+            {"pebAddress", ""},
+            {"ldrAddress", ""},
+            {"processParametersAddress", ""},
+            {"imageBaseAddress", ""}
+        }},
+        {"threads", json::array()},
+        {"ldrLists", {
+            {"inLoadOrder", EmptyList()},
+            {"inMemoryOrder", EmptyList()},
+            {"inInitializationOrder", EmptyList()}
+        }},
+        {"pebFields", json::array()},
+        {"ldrFields", json::array()},
+        {"processParametersFields", json::array()},
+        {"structures", json::array()},
+        {"notes", json::array()}
+    };
+
+    auto proc = DK_MODEL_ACCESS->get_current_process();
+    if (proc == nullptr)
+        return root.dump();
+
+    root["available"] = true;
+
+    auto TryParseAddressFromText = [](const std::string& text, uint64_t& out) -> bool {
+        if (text.empty()) return false;
+
+        // Fast path: whole string is parseable numeric text.
+        if (TryParseU64(TrimAsciiWhitespace(text), out) && out != 0) {
+            return true;
+        }
+
+        // Fallback: extract first 0x<hex> token from display text like "Address 0x7ff6abcd0000".
+        const size_t n = text.size();
+        for (size_t i = 0; i + 2 < n; ++i)
+        {
+            if (text[i] != '0' || (text[i + 1] != 'x' && text[i + 1] != 'X'))
+                continue;
+
+            size_t j = i + 2;
+            while (j < n && std::isxdigit(static_cast<unsigned char>(text[j])) != 0)
+                ++j;
+
+            if (j == i + 2)
+                continue;
+
+            const std::string token = text.substr(i, j - i);
+            if (TryParseU64(token, out) && out != 0)
+                return true;
+        }
+
+        return false;
+    };
+
+    auto TryGetU64 = [&](DK_MOBJ_PTR& parent, const char* key, uint64_t& out) -> bool {
+        auto TryParseAddressFromTextLocal = [&](const std::string& text) -> bool {
+            return TryParseAddressFromText(text, out);
+        };
+
+        try {
+            out = DK_MGET_PVAL<uint64_t, VT_UI8>(parent, key);
+            return out != 0;
+        } catch (...) {}
+        try {
+            out = static_cast<uint64_t>(DK_MGET_PVAL<DWORD, VT_UI4>(parent, key));
+            return out != 0;
+        } catch (...) {}
+        try {
+            auto child = DK_MGET_POBJ(parent, key);
+            if (child != nullptr) {
+                try { out = DK_MGET_VAL<uint64_t, VT_UI8>(child); return out != 0; } catch (...) {}
+                try { out = static_cast<uint64_t>(DK_MGET_VAL<DWORD, VT_UI4>(child)); return out != 0; } catch (...) {}
+            }
+        } catch (...) {}
+        try {
+            const std::string text = BSTR2str(DK_MGET_PVAL<BSTR, VT_BSTR>(parent, key));
+            if (TryParseAddressFromTextLocal(text)) return true;
+        } catch (...) {}
+        try {
+            auto child = DK_MGET_POBJ(parent, key);
+            if (child != nullptr) {
+                try {
+                    const std::string text = BSTR2str(DK_MGET_VAL<BSTR, VT_BSTR>(child));
+                    if (TryParseAddressFromTextLocal(text)) return true;
+                } catch (...) {}
+            }
+        } catch (...) {}
+        return false;
+    };
+
+    auto TryGetString = [](DK_MOBJ_PTR& parent, const char* key, std::string& out) -> bool {
+        try {
+            out = BSTR2str(DK_MGET_PVAL<BSTR, VT_BSTR>(parent, key));
+            return !out.empty();
+        } catch (...) {}
+        try {
+            auto child = DK_MGET_POBJ(parent, key);
+            if (child != nullptr) {
+                try {
+                    out = BSTR2str(DK_MGET_VAL<BSTR, VT_BSTR>(child));
+                    return !out.empty();
+                } catch (...) {}
+            }
+        } catch (...) {}
+        return false;
+    };
+
+    auto TryGetObjU64 = [&](DK_MOBJ_PTR& obj, uint64_t& out) -> bool {
+        if (obj == nullptr) return false;
+
+        auto TryParseAddressFromTextLocal = [&](const std::string& text) -> bool {
+            return TryParseAddressFromText(text, out);
+        };
+
+        try { out = DK_MGET_VAL<uint64_t, VT_UI8>(obj); return out != 0; } catch (...) {}
+        try { out = static_cast<uint64_t>(DK_MGET_VAL<DWORD, VT_UI4>(obj)); return out != 0; } catch (...) {}
+        try {
+            const std::string text = BSTR2str(DK_MGET_VAL<BSTR, VT_BSTR>(obj));
+            if (TryParseAddressFromTextLocal(text)) return true;
+        } catch (...) {}
+
+        // Some model objects expose location through metadata-like keys.
+        const char* addr_keys[] = {
+            "Address", "ObjectAddress", "TargetLocation", "Location", "Pointer", "Ptr", "Value"
+        };
+        for (const auto* key : addr_keys)
+        {
+            try {
+                out = DK_MGET_PVAL<uint64_t, VT_UI8>(obj, key);
+                if (out != 0) return true;
+            } catch (...) {}
+            try {
+                const std::string text = BSTR2str(DK_MGET_PVAL<BSTR, VT_BSTR>(obj, key));
+                if (TryParseAddressFromTextLocal(text)) return true;
+            } catch (...) {}
+            try {
+                auto child = DK_MGET_POBJ(obj, key);
+                if (child != nullptr) {
+                    try { out = DK_MGET_VAL<uint64_t, VT_UI8>(child); if (out != 0) return true; } catch (...) {}
+                    try { out = static_cast<uint64_t>(DK_MGET_VAL<DWORD, VT_UI4>(child)); if (out != 0) return true; } catch (...) {}
+                    try {
+                        const std::string text = BSTR2str(DK_MGET_VAL<BSTR, VT_BSTR>(child));
+                        if (TryParseAddressFromTextLocal(text)) return true;
+                    } catch (...) {}
+                }
+            } catch (...) {}
+        }
+
+        return false;
+    };
+
+    auto VariantTypeName = [](VARTYPE vt) -> std::string {
+        switch (vt)
+        {
+        case VT_EMPTY: return "VT_EMPTY";
+        case VT_NULL: return "VT_NULL";
+        case VT_I1: return "VT_I1";
+        case VT_UI1: return "VT_UI1";
+        case VT_I2: return "VT_I2";
+        case VT_UI2: return "VT_UI2";
+        case VT_I4: return "VT_I4";
+        case VT_UI4: return "VT_UI4";
+        case VT_I8: return "VT_I8";
+        case VT_UI8: return "VT_UI8";
+        case VT_INT: return "VT_INT";
+        case VT_UINT: return "VT_UINT";
+        case VT_BOOL: return "VT_BOOL";
+        case VT_BSTR: return "VT_BSTR";
+        case VT_UNKNOWN: return "VT_UNKNOWN";
+        case VT_DISPATCH: return "VT_DISPATCH";
+        default: {
+            std::stringstream ss;
+            ss << "VT_" << std::hex << vt;
+            return ss.str();
+        }
+        }
+    };
+
+    auto VariantToDisplay = [&](const VARIANT& v) -> json {
+        json result = {
+            {"value", ""},
+            {"valueType", ""}
+        };
+        result["valueType"] = VariantTypeName(v.vt);
+
+        std::stringstream ss;
+        switch (v.vt)
+        {
+        case VT_BSTR:
+            result["value"] = BSTR2str(v.bstrVal);
+            break;
+        case VT_BOOL:
+            result["value"] = (v.boolVal == VARIANT_TRUE) ? "true" : "false";
+            break;
+        case VT_UI1:
+            ss << "0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<unsigned int>(v.bVal);
+            result["value"] = ss.str();
+            result["u64"] = static_cast<uint64_t>(v.bVal);
+            break;
+        case VT_UI2:
+            ss << "0x" << std::hex << std::setw(4) << std::setfill('0') << v.uiVal;
+            result["value"] = ss.str();
+            result["u64"] = static_cast<uint64_t>(v.uiVal);
+            break;
+        case VT_UI4:
+            ss << "0x" << std::hex << std::setw(8) << std::setfill('0') << v.ulVal;
+            result["value"] = ss.str();
+            result["u64"] = static_cast<uint64_t>(v.ulVal);
+            break;
+        case VT_UI8:
+            ss << "0x" << std::hex << std::setw(16) << std::setfill('0') << v.ullVal;
+            result["value"] = ss.str();
+            result["u64"] = static_cast<uint64_t>(v.ullVal);
+            break;
+        case VT_I1:
+            ss << static_cast<int>(v.cVal);
+            result["value"] = ss.str();
+            result["i64"] = static_cast<int64_t>(v.cVal);
+            break;
+        case VT_I2:
+            ss << v.iVal;
+            result["value"] = ss.str();
+            result["i64"] = static_cast<int64_t>(v.iVal);
+            break;
+        case VT_I4:
+        case VT_INT:
+            ss << v.lVal;
+            result["value"] = ss.str();
+            result["i64"] = static_cast<int64_t>(v.lVal);
+            break;
+        case VT_I8:
+            ss << v.llVal;
+            result["value"] = ss.str();
+            result["i64"] = static_cast<int64_t>(v.llVal);
+            break;
+        default:
+            if (v.vt == VT_EMPTY) {
+                result["value"] = "(empty)";
+            } else if (v.vt == VT_NULL) {
+                result["value"] = "(null)";
+            } else {
+                ss << "<" << std::string(result["valueType"]) << ">";
+                result["value"] = ss.str();
+            }
+            break;
+        }
+
+        return result;
+    };
+
+    auto ExtractObjectFields = [&](DK_MOBJ_PTR& obj, json& out_fields, size_t max_fields = 768) {
+        if (obj == nullptr) return;
+        std::vector<std::tuple<std::string, std::string, DK_MOBJ_PTR>> kvs;
+        try { kvs = DK_MODEL_ACCESS->enum_keyvalues(obj); } catch (...) {}
+        size_t emitted = 0;
+        for (auto& kv : kvs)
+        {
+            if (emitted >= max_fields) {
+                out_fields.push_back({
+                    {"name", "..."},
+                    {"kind", "Synthetic"},
+                    {"value", "(truncated)"},
+                    {"valueType", "note"}
+                });
+                break;
+            }
+
+            const auto& key_name = std::get<0>(kv);
+            const auto& key_kind = std::get<1>(kv);
+            auto key_obj = std::get<2>(kv);
+
+            json field = {
+                {"name", key_name},
+                {"kind", key_kind},
+                {"value", ""},
+                {"valueType", ""}
+            };
+
+            if (key_obj != nullptr && key_kind == "Intrinsic")
+            {
+                VARIANT v;
+                VariantInit(&v);
+                HRESULT hr = key_obj->GetIntrinsicValue(&v);
+                if (SUCCEEDED(hr)) {
+                    auto value_json = VariantToDisplay(v);
+                    field["value"] = value_json["value"];
+                    field["valueType"] = value_json["valueType"];
+                    if (value_json.contains("u64")) field["u64"] = value_json["u64"];
+                    if (value_json.contains("i64")) field["i64"] = value_json["i64"];
+                }
+                VariantClear(&v);
+            }
+            else
+            {
+                field["value"] = "(" + key_kind + ")";
+                field["valueType"] = key_kind;
+            }
+
+            out_fields.push_back(field);
+            emitted++;
+        }
+    };
+
+    struct ModuleInfo
+    {
+        std::string name;
+        std::string path;
+        uint64_t base{ 0 };
+        uint64_t size{ 0 };
+    };
+
+    std::vector<ModuleInfo> module_infos;
+    std::map<uint64_t, ModuleInfo> modules_by_base;
+    try
+    {
+        auto modules_obj = DK_MGET_POBJ(proc, "Modules");
+        if (modules_obj != nullptr)
+        {
+            auto module_entries = DK_MODEL_ACCESS->iterate(modules_obj);
+            for (auto& entry : module_entries)
+            {
+                auto mod = std::get<1>(entry);
+                if (mod == nullptr) continue;
+                try
+                {
+                    auto info = DK_MGET_MODL(mod);
+                    ModuleInfo item;
+                    item.base = std::get<0>(info);
+                    item.size = std::get<1>(info);
+                    item.path = std::get<2>(info);
+                    item.name = Basename(item.path);
+                    if (item.base == 0) continue;
+                    module_infos.push_back(item);
+                    modules_by_base[item.base] = item;
+                }
+                catch (...) {}
+            }
+        }
+    }
+    catch (...) {}
+
+    auto DecorateListLinks = [](json& arr) {
+        if (!arr.is_array()) return;
+        for (size_t i = 0; i < arr.size(); ++i)
+        {
+            arr[i]["orderIndex"] = i;
+            arr[i]["prevName"] = i > 0 ? arr[i - 1]["name"] : "";
+            arr[i]["nextName"] = (i + 1) < arr.size() ? arr[i + 1]["name"] : "";
+        }
+    };
+
+    auto MakeModuleJson = [&](const std::string& list_name, const std::string& source, size_t index, const ModuleInfo& mod) -> json {
+        return json{
+            {"listName", list_name},
+            {"source", source},
+            {"orderIndex", index},
+            {"name", mod.name},
+            {"path", mod.path},
+            {"base", mod.base != 0 ? FormatHex(mod.base) : ""},
+            {"end", (mod.base != 0 && mod.size != 0) ? FormatHex(mod.base + mod.size) : ""},
+            {"size", mod.size}
+        };
+    };
+
+    DK_MOBJ_PTR proc_env;
+    DK_MOBJ_PTR peb_obj;
+    DK_MOBJ_PTR ldr_obj;
+    DK_MOBJ_PTR proc_params_obj;
+    uint64_t peb_addr = 0;
+    uint64_t ldr_addr = 0;
+    uint64_t proc_params_addr = 0;
+    uint64_t image_base = 0;
+
+    try { proc_env = DK_MGET_POBJ(proc, "Environment"); } catch (...) {}
+    if (proc_env != nullptr)
+    {
+        TryGetU64(proc_env, "EnvironmentBlock", peb_addr);
+        if (peb_addr == 0) TryGetU64(proc_env, "PEB", peb_addr);
+        if (peb_addr == 0) TryGetU64(proc_env, "Peb", peb_addr);
+        if (peb_addr == 0) TryGetU64(proc_env, "EnvironmentBlockAddress", peb_addr);
+        TryGetU64(proc_env, "ImageBaseAddress", image_base);
+        try { peb_obj = DK_MGET_POBJ(proc_env, "EnvironmentBlock"); } catch (...) {}
+        if (peb_obj == nullptr) {
+            try { peb_obj = DK_MGET_POBJ(proc_env, "PEB"); } catch (...) {}
+        }
+        if (peb_obj == nullptr) {
+            try { peb_obj = DK_MGET_POBJ(proc_env, "Peb"); } catch (...) {}
+        }
+
+        if (peb_addr == 0 && peb_obj != nullptr) {
+            TryGetObjU64(peb_obj, peb_addr);
+        }
+    }
+
+    if (peb_addr == 0) {
+        try { TryGetU64(proc, "Peb", peb_addr); } catch (...) {}
+    }
+    if (peb_addr == 0) {
+        try { TryGetU64(proc, "PEB", peb_addr); } catch (...) {}
+    }
+    if (peb_addr == 0) {
+        try { TryGetU64(proc, "EnvironmentBlock", peb_addr); } catch (...) {}
+    }
+    if (peb_addr == 0 && peb_obj != nullptr) {
+        TryGetObjU64(peb_obj, peb_addr);
+    }
+    if (image_base == 0 && !module_infos.empty()) {
+        image_base = module_infos.front().base;
+    }
+
+    if (peb_obj != nullptr)
+    {
+        TryGetU64(peb_obj, "Ldr", ldr_addr);
+        if (ldr_addr == 0) TryGetU64(peb_obj, "LoaderData", ldr_addr);
+        TryGetU64(peb_obj, "ProcessParameters", proc_params_addr);
+
+        try { ldr_obj = DK_MGET_POBJ(peb_obj, "Ldr"); } catch (...) {}
+        if (ldr_obj == nullptr) {
+            try { ldr_obj = DK_MGET_POBJ(peb_obj, "LoaderData"); } catch (...) {}
+        }
+        try { proc_params_obj = DK_MGET_POBJ(peb_obj, "ProcessParameters"); } catch (...) {}
+    }
+
+    root["process"]["environmentBlockAddress"] = peb_addr != 0 ? FormatHex(peb_addr) : "";
+    root["process"]["pebAddress"] = peb_addr != 0 ? FormatHex(peb_addr) : "";
+    root["process"]["ldrAddress"] = ldr_addr != 0 ? FormatHex(ldr_addr) : "";
+    root["process"]["processParametersAddress"] = proc_params_addr != 0 ? FormatHex(proc_params_addr) : "";
+    root["process"]["imageBaseAddress"] = image_base != 0 ? FormatHex(image_base) : "";
+
+    if (peb_addr != 0) {
+        root["structures"].push_back({{"type", "PEB"}, {"address", FormatHex(peb_addr)}, {"source", "process.environment.environmentblock"}});
+    }
+    if (ldr_addr != 0) {
+        root["structures"].push_back({{"type", "LDR"}, {"address", FormatHex(ldr_addr)}, {"source", "peb.ldr"}});
+    }
+    if (proc_params_addr != 0) {
+        root["structures"].push_back({{"type", "ProcessParameters"}, {"address", FormatHex(proc_params_addr)}, {"source", "peb.processparameters"}});
+    }
+
+    if (peb_obj != nullptr) {
+        ExtractObjectFields(peb_obj, root["pebFields"]);
+    }
+    if (ldr_obj != nullptr) {
+        ExtractObjectFields(ldr_obj, root["ldrFields"]);
+    }
+    if (proc_params_obj != nullptr) {
+        ExtractObjectFields(proc_params_obj, root["processParametersFields"]);
+    }
+
+    try
+    {
+        auto threads_obj = DK_MGET_POBJ(proc, "Threads");
+        if (threads_obj != nullptr)
+        {
+            auto thread_entries = DK_MODEL_ACCESS->iterate(threads_obj);
+            for (auto& entry : thread_entries)
+            {
+                auto thread_obj = std::get<1>(entry);
+                if (thread_obj == nullptr) continue;
+
+                uint64_t tid = 0;
+                uint64_t teb_addr = 0;
+                uint64_t stack_base = 0;
+                uint64_t stack_limit = 0;
+                DK_MOBJ_PTR thread_env;
+                DK_MOBJ_PTR teb_obj;
+
+                try { tid = DK_MGET_PVAL<uint64_t, VT_UI8>(thread_obj, "Id"); } catch (...) {
+                    try { tid = DK_MGET_PVAL<DWORD, VT_UI4>(thread_obj, "Id"); } catch (...) {}
+                }
+
+                try { thread_env = DK_MGET_POBJ(thread_obj, "Environment"); } catch (...) {}
+                if (thread_env != nullptr)
+                {
+                    TryGetU64(thread_env, "EnvironmentBlock", teb_addr);
+                    if (teb_addr == 0) TryGetU64(thread_env, "TEB", teb_addr);
+                    TryGetU64(thread_env, "StackBase", stack_base);
+                    TryGetU64(thread_env, "StackLimit", stack_limit);
+                    try { teb_obj = DK_MGET_POBJ(thread_env, "EnvironmentBlock"); } catch (...) {}
+                }
+                if (teb_addr == 0) {
+                    TryGetU64(thread_obj, "Teb", teb_addr);
+                }
+                if (teb_addr == 0) {
+                    TryGetU64(thread_obj, "TEB", teb_addr);
+                }
+
+                json thread_json = {
+                    {"threadId", tid},
+                    {"environmentBlockAddress", teb_addr != 0 ? FormatHex(teb_addr) : ""},
+                    {"tebAddress", teb_addr != 0 ? FormatHex(teb_addr) : ""},
+                    {"stackBase", stack_base != 0 ? FormatHex(stack_base) : ""},
+                    {"stackLimit", stack_limit != 0 ? FormatHex(stack_limit) : ""},
+                    {"environmentFields", json::array()},
+                    {"tebFields", json::array()}
+                };
+
+                if (thread_env != nullptr) {
+                    ExtractObjectFields(thread_env, thread_json["environmentFields"], 256);
+                }
+                if (teb_obj != nullptr) {
+                    ExtractObjectFields(teb_obj, thread_json["tebFields"], 512);
+                }
+
+                root["threads"].push_back(thread_json);
+                if (teb_addr != 0) {
+                    root["structures"].push_back({{"type", "TEB"}, {"threadId", tid}, {"address", FormatHex(teb_addr)}, {"source", "thread.environment.environmentblock"}});
+                }
+            }
+        }
+    }
+    catch (...) {}
+
+    auto TryExtractLdrList = [&](DK_MOBJ_PTR& parent, const std::vector<std::string>& keys, const std::string& list_name, json& target) -> bool {
+        for (const auto& key : keys)
+        {
+            DK_MOBJ_PTR list_obj;
+            try { list_obj = DK_MGET_POBJ(parent, key); } catch (...) {}
+            if (list_obj == nullptr) continue;
+
+            auto entries = DK_MODEL_ACCESS->iterate(list_obj);
+            if (entries.empty()) continue;
+
+            for (size_t index = 0; index < entries.size(); ++index)
+            {
+                auto module_obj = std::get<1>(entries[index]);
+                if (module_obj == nullptr) continue;
+
+                ModuleInfo mod;
+                TryGetU64(module_obj, "DllBase", mod.base);
+                if (mod.base == 0) TryGetU64(module_obj, "BaseAddress", mod.base);
+                if (mod.base == 0) TryGetU64(module_obj, "Base", mod.base);
+                TryGetU64(module_obj, "SizeOfImage", mod.size);
+                if (mod.size == 0) TryGetU64(module_obj, "Size", mod.size);
+                TryGetString(module_obj, "BaseDllName", mod.name);
+                if (mod.name.empty()) TryGetString(module_obj, "Name", mod.name);
+                TryGetString(module_obj, "FullDllName", mod.path);
+                if (mod.path.empty()) TryGetString(module_obj, "Path", mod.path);
+                if (mod.name.empty() && mod.base != 0)
+                {
+                    auto found = modules_by_base.find(mod.base);
+                    if (found != modules_by_base.end()) {
+                        mod.name = found->second.name;
+                        mod.path = found->second.path;
+                        if (mod.size == 0) mod.size = found->second.size;
+                    }
+                }
+                if (mod.name.empty() && mod.base == 0) continue;
+                target.push_back(MakeModuleJson(list_name, "ldr", index, mod));
+            }
+
+            if (!target.empty()) {
+                DecorateListLinks(target);
+                return true;
+            }
+        }
+
+        return false;
+    };
+
+    bool have_load_order = false;
+    bool have_memory_order = false;
+    bool have_init_order = false;
+    if (ldr_obj != nullptr)
+    {
+        have_load_order = TryExtractLdrList(ldr_obj,
+            {"InLoadOrderModuleList", "LoadOrder", "InLoadOrder"},
+            "InLoadOrderModuleList",
+            root["ldrLists"]["inLoadOrder"]);
+        have_memory_order = TryExtractLdrList(ldr_obj,
+            {"InMemoryOrderModuleList", "MemoryOrder", "InMemoryOrder"},
+            "InMemoryOrderModuleList",
+            root["ldrLists"]["inMemoryOrder"]);
+        have_init_order = TryExtractLdrList(ldr_obj,
+            {"InInitializationOrderModuleList", "InitializationOrder", "InInitializationOrder"},
+            "InInitializationOrderModuleList",
+            root["ldrLists"]["inInitializationOrder"]);
+    }
+
+    if (!have_load_order && !module_infos.empty())
+    {
+        for (size_t i = 0; i < module_infos.size(); ++i)
+            root["ldrLists"]["inLoadOrder"].push_back(MakeModuleJson("InLoadOrderModuleList", "fallback-modules", i, module_infos[i]));
+        DecorateListLinks(root["ldrLists"]["inLoadOrder"]);
+        root["notes"].push_back("InLoadOrderModuleList fell back to Process.Modules enumeration.");
+    }
+
+    if (!have_memory_order && !module_infos.empty())
+    {
+        auto sorted = module_infos;
+        std::sort(sorted.begin(), sorted.end(), [](const ModuleInfo& lhs, const ModuleInfo& rhs) {
+            return lhs.base < rhs.base;
+        });
+        for (size_t i = 0; i < sorted.size(); ++i)
+            root["ldrLists"]["inMemoryOrder"].push_back(MakeModuleJson("InMemoryOrderModuleList", "fallback-modules", i, sorted[i]));
+        DecorateListLinks(root["ldrLists"]["inMemoryOrder"]);
+        root["notes"].push_back("InMemoryOrderModuleList fell back to base-address ordering.");
+    }
+
+    if (!have_init_order && !module_infos.empty())
+    {
+        for (size_t i = 0; i < module_infos.size(); ++i)
+            root["ldrLists"]["inInitializationOrder"].push_back(MakeModuleJson("InInitializationOrderModuleList", "fallback-modules", i, module_infos[i]));
+        DecorateListLinks(root["ldrLists"]["inInitializationOrder"]);
+        root["notes"].push_back("InInitializationOrderModuleList fell back to Process.Modules enumeration.");
+    }
+
+    return root.dump();
 }

@@ -5,7 +5,7 @@
 #include <mutex>
 #include <string>
 
-struct IDebugClient; // forward declaration — full type available in dk_server.cpp via CmdExt.h
+struct IDebugClient; // forward declaration - full type available in dk_server.cpp via CmdExt.h
 
 class CDkEmbeddedServer
 {
@@ -49,6 +49,13 @@ private:
     std::string HandleCallstackRoute(const std::string& query);
     std::string HandlePageRoute(const std::string& query);
     std::string HandlePageSvgRoute(const std::string& query);
+    std::string HandleFunctionCallsRoute(const std::string& query);
+    std::string HandleCommandRoute(const std::string& query);
+    std::string HandleModelRoute(const std::string& query);
+    std::string HandlePeRoute(const std::string& query);
+    std::string HandleStringsRoute(const std::string& query);
+    std::string HandleMemoryLayoutRoute(const std::string& query);
+    std::string HandleEnvironmentRoute(const std::string& query);
 
 private:
     mutable std::mutex m_mutex;

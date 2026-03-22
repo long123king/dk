@@ -1841,6 +1841,60 @@ DK_MOBJ_PTR CModelAccess::create_str_intrinsic_obj(std::string str)
     return nullptr;
 }
 
+DK_MOBJ_PTR CModelAccess::create_u64_intrinsic_obj(uint64_t val)
+{
+    VARIANT vt_arg;
+    VariantInit(&vt_arg);
+    vt_arg.vt = VT_UI8;
+    vt_arg.ullVal = val;
+
+    DK_MOBJ_PTR mobj_arg;
+    if (S_OK == m_model_mgr->CreateIntrinsicObject(ObjectIntrinsic, &vt_arg, &mobj_arg))
+    {
+        VariantClear(&vt_arg);
+        return mobj_arg;
+    }
+
+    VariantClear(&vt_arg);
+    return nullptr;
+}
+
+DK_MOBJ_PTR CModelAccess::create_i64_intrinsic_obj(int64_t val)
+{
+    VARIANT vt_arg;
+    VariantInit(&vt_arg);
+    vt_arg.vt = VT_I8;
+    vt_arg.llVal = val;
+
+    DK_MOBJ_PTR mobj_arg;
+    if (S_OK == m_model_mgr->CreateIntrinsicObject(ObjectIntrinsic, &vt_arg, &mobj_arg))
+    {
+        VariantClear(&vt_arg);
+        return mobj_arg;
+    }
+
+    VariantClear(&vt_arg);
+    return nullptr;
+}
+
+DK_MOBJ_PTR CModelAccess::create_bool_intrinsic_obj(bool val)
+{
+    VARIANT vt_arg;
+    VariantInit(&vt_arg);
+    vt_arg.vt = VT_BOOL;
+    vt_arg.boolVal = val ? VARIANT_TRUE : VARIANT_FALSE;
+
+    DK_MOBJ_PTR mobj_arg;
+    if (S_OK == m_model_mgr->CreateIntrinsicObject(ObjectIntrinsic, &vt_arg, &mobj_arg))
+    {
+        VariantClear(&vt_arg);
+        return mobj_arg;
+    }
+
+    VariantClear(&vt_arg);
+    return nullptr;
+}
+
 template<class T, VARTYPE VT>
 DK_MOBJ_PTR CModelAccess::create_int_intrinsic_obj(T val)
 {

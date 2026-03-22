@@ -176,6 +176,12 @@ public:
 
     DK_MOBJ_PTR create_str_intrinsic_obj(std::string str);
 
+    DK_MOBJ_PTR create_u64_intrinsic_obj(uint64_t val);
+
+    DK_MOBJ_PTR create_i64_intrinsic_obj(int64_t val);
+
+    DK_MOBJ_PTR create_bool_intrinsic_obj(bool val);
+
     template<class T, VARTYPE VT>
     DK_MOBJ_PTR create_int_intrinsic_obj(T val);
 
@@ -260,8 +266,7 @@ private:
     IDataModelManager*      m_model_mgr{ nullptr };
     IDebugHost*             m_debug_host{ nullptr };
 
-    static std::map<ModelObjectKind, std::string> s_map_kind_name;
-    static std::map<VARTYPE, std::string> s_map_vt_name;
+
 
     bool m_usermode = { false };
     bool m_kernelmode = { false };
@@ -280,4 +285,7 @@ public:
     DK_MOBJ_PTR m_cur_session;
 
     std::vector<std::tuple<uint64_t, DK_MOBJ_PTR>> m_sessions;
+
+    static std::map<ModelObjectKind, std::string> s_map_kind_name;
+    static std::map<VARTYPE, std::string> s_map_vt_name;
 };
