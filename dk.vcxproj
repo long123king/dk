@@ -79,14 +79,14 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <IncludePath>$(WindowsSDKDebuggerIncPath);$(IncludePath)</IncludePath>
     <LibraryPath>$(WindowsSDKDebuggerLibPath);$(LibraryPath)</LibraryPath>
-    <OutDir>x86\$(Configuration)\</OutDir>
-    <IntDir>x86\$(Configuration)\obj\</IntDir>
+    <OutDir>Win32\$(Configuration)\</OutDir>
+    <IntDir>Win32\$(Configuration)\obj\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>$(WindowsSDKDebuggerIncPath);$(IncludePath)</IncludePath>
     <LibraryPath>$(WindowsSDKDebuggerLibPath);$(LibraryPath)</LibraryPath>
-    <OutDir>x86\$(Configuration)\</OutDir>
-    <IntDir>x86\$(Configuration)\obj\</IntDir>
+    <OutDir>Win32\$(Configuration)\</OutDir>
+    <IntDir>Win32\$(Configuration)\obj\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(WindowsSDKDebuggerIncPath);$(IncludePath)</IncludePath>
