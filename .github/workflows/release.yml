@@ -5,12 +5,39 @@ on:
     tags:
       - 'v*.*.*'  # Triggers on version tags like v1.0.0, v1.0, v2.1.0, etc.
       - 'v*.*'    # Also supports v1.0 format
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release tag to create (for example v1.0.5)'
+        required: true
 
 permissions:
   contents: write  # Required to create releases
 
 jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.resolve-tag.outputs.tag_name }}
+    steps:
+    - name: Resolve release tag
+      id: resolve-tag
+      shell: bash
+      run: |
+        TAG_NAME="${{ github.event.inputs.tag_name }}"
+        if [ -z "$TAG_NAME" ]; then
+          TAG_NAME="${GITHUB_REF_NAME}"
+        fi
+
+        if [[ ! "$TAG_NAME" =~ ^v[0-9]+(\.[0-9]+){1,2}$ ]]; then
+          echo "Invalid release tag: $TAG_NAME"
+          exit 1
+        fi
+
+        echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+
   build-and-release:
+    needs: prepare-release
     runs-on: windows-latest
     
     strategy:
@@ -161,7 +188,7 @@ jobs:
         Copy-Item "$buildPath\dk.pdb" -Destination $releaseDir
         
         # Create a zip file
-        $zipName = "dk-${{ github.ref_name }}-$config-$platform.zip"
+        $zipName = "dk-${{ needs.prepare-release.outputs.tag_name }}-$config-$platform.zip"
         Compress-Archive -Path "$releaseDir\*" -DestinationPath $zipName
         
         Write-Host "Created release package: $zipName"
@@ -170,10 +197,12 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: release-${{ matrix.configuration }}-${{ matrix.platform }}
-        path: dk-${{ github.ref_name }}-${{ matrix.configuration }}-${{ matrix.platform }}.zip
+        path: dk-${{ needs.prepare-release.outputs.tag_name }}-${{ matrix.configuration }}-${{ matrix.platform }}.zip
 
   create-release:
-    needs: build-and-release
+    needs:
+      - prepare-release
+      - build-and-release
     runs-on: ubuntu-latest
     
     steps:
@@ -191,18 +220,20 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
+        tag_name: ${{ needs.prepare-release.outputs.tag_name }}
+        target_commitish: ${{ github.sha }}
         files: artifacts/**/*.zip
         body: |
-          # dk WinDbg Extension ${{ github.ref_name }}
+          # dk WinDbg Extension ${{ needs.prepare-release.outputs.tag_name }}
           
           WinDbg extension for dumping memory data in meaningful and organized ways.
           
           ## Downloads
           
-          - **Release Build x64 (Recommended)**: `dk-${{ github.ref_name }}-Release-x64.zip`
-          - **Release Build x86**: `dk-${{ github.ref_name }}-Release-Win32.zip`
-          - **Debug Build x64**: `dk-${{ github.ref_name }}-Debug-x64.zip`
-          - **Debug Build x86**: `dk-${{ github.ref_name }}-Debug-Win32.zip`
+          - **Release Build x64 (Recommended)**: `dk-${{ needs.prepare-release.outputs.tag_name }}-Release-x64.zip`
+          - **Release Build x86**: `dk-${{ needs.prepare-release.outputs.tag_name }}-Release-Win32.zip`
+          - **Debug Build x64**: `dk-${{ needs.prepare-release.outputs.tag_name }}-Debug-x64.zip`
+          - **Debug Build x86**: `dk-${{ needs.prepare-release.outputs.tag_name }}-Debug-Win32.zip`
           
           ## Installation
           
