@@ -709,16 +709,16 @@ std::string getProtectionText(uint8_t protection)
 
 size_t curr_proc()
 {
-	size_t curr_proc_addr = 0;
+	ULONG64 curr_proc_addr = 0;
 	EXT_D_IDebugSystemObjects->GetCurrentProcessDataOffset(&curr_proc_addr);
-	return curr_proc_addr;
+	return static_cast<size_t>(curr_proc_addr);
 }
 
 size_t curr_thread()
 {
-	size_t curr_thread_addr = 0;
+	ULONG64 curr_thread_addr = 0;
 	EXT_D_IDebugSystemObjects->GetCurrentThreadDataOffset(&curr_thread_addr);
-	return curr_thread_addr;
+	return static_cast<size_t>(curr_thread_addr);
 }
 
 size_t curr_tid()

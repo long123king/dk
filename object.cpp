@@ -13,8 +13,8 @@
 
 #pragma warning( disable : 4244)
 
-size_t g_header_cookie_addr = 0;
-size_t g_type_index_table_addr = 0;
+ULONG64 g_header_cookie_addr = 0;
+ULONG64 g_type_index_table_addr = 0;
 size_t g_ob_header_cookie = 0;
 
 std::map<uint8_t, std::wstring> g_type_name_map;

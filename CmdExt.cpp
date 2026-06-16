@@ -82,13 +82,13 @@ size_t CCmdExt::reg(size_t reg)
 
 size_t CCmdExt::getSymbolAddr(const char* name)
 {
-    size_t addr = 0;
+    ULONG64 addr = 0;
     try
     {
         m_Symbols->GetOffsetByName(name, &addr);
     }
     FC;
-    return addr;
+    return static_cast<size_t>(addr);
 }
 
 std::tuple<std::string, uint64_t> CCmdExt::getAddrSymbol(size_t addr)
