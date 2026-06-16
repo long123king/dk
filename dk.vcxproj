@@ -73,7 +73,20 @@
   <!-- Define Windows SDK Debugger paths with fallback to defaults -->
   <PropertyGroup>
     <WindowsSDKDebuggerIncPath Condition="'$(WindowsSDKDebuggerIncPath)'==''">C:\Program Files (x86)\Windows Kits\10\Debuggers\inc</WindowsSDKDebuggerIncPath>
-    <WindowsSDKDebuggerLibPath Condition="'$(WindowsSDKDebuggerLibPath)'==''">C:\Program Files (x86)\Windows Kits\10\Debuggers\lib\x64</WindowsSDKDebuggerLibPath>
+    <WindowsSDKDebuggerLibPath Condition="'$(WindowsSDKDebuggerLibPath)'=='' AND '$(Platform)'=='x64'">C:\Program Files (x86)\Windows Kits\10\Debuggers\lib\x64</WindowsSDKDebuggerLibPath>
+    <WindowsSDKDebuggerLibPath Condition="'$(WindowsSDKDebuggerLibPath)'=='' AND '$(Platform)'=='Win32'">C:\Program Files (x86)\Windows Kits\10\Debuggers\lib\x86</WindowsSDKDebuggerLibPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IncludePath>$(WindowsSDKDebuggerIncPath);$(IncludePath)</IncludePath>
+    <LibraryPath>$(WindowsSDKDebuggerLibPath);$(LibraryPath)</LibraryPath>
+    <OutDir>x86\$(Configuration)\</OutDir>
+    <IntDir>x86\$(Configuration)\obj\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IncludePath>$(WindowsSDKDebuggerIncPath);$(IncludePath)</IncludePath>
+    <LibraryPath>$(WindowsSDKDebuggerLibPath);$(LibraryPath)</LibraryPath>
+    <OutDir>x86\$(Configuration)\</OutDir>
+    <IntDir>x86\$(Configuration)\obj\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(WindowsSDKDebuggerIncPath);$(IncludePath)</IncludePath>
@@ -89,14 +102,20 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;DK_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile />
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/D _HAS_STD_BYTE=0 %(AdditionalOptions)</AdditionalOptions>
+      <TreatWarningAsError>false</TreatWarningAsError>
       <DisableSpecificWarnings>5040;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
+      <AdditionalDependencies>dbgeng.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>dk.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
@@ -108,8 +127,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;DK_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile />
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/D _HAS_STD_BYTE=0 %(AdditionalOptions)</AdditionalOptions>
+      <TreatWarningAsError>false</TreatWarningAsError>
       <DisableSpecificWarnings>5040;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
@@ -118,6 +142,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
+      <AdditionalDependencies>dbgeng.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>dk.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
