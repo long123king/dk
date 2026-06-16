@@ -16,6 +16,7 @@ jobs:
     strategy:
       matrix:
         configuration: [Debug, Release]
+        platform: [x64, Win32]
     
     steps:
     - name: Checkout code
@@ -106,9 +107,10 @@ jobs:
           exit 1
         }
         
-        # Find the corresponding lib\x64 path
+        # Find the corresponding lib path for the target platform
         $debuggerRoot = Split-Path -Parent $incPath
-        $libPath = Join-Path $debuggerRoot "lib\x64"
+        $arch = if ("${{ matrix.platform }}" -eq "x64") { "x64" } else { "x86" }
+        $libPath = Join-Path $debuggerRoot "lib\$arch"
         
         if (-not (Test-Path $libPath)) {
           Write-Host "ERROR: Could not find library path at: $libPath"
@@ -126,15 +128,15 @@ jobs:
         Write-Host "  Include: $incPath"
         Write-Host "  Library: $libPath"
     
-    - name: Build Solution - ${{ matrix.configuration }}
+    - name: Build Solution - ${{ matrix.configuration }} ${{ matrix.platform }}
       shell: powershell
       run: |
-        Write-Host "Building ${{ matrix.configuration }} configuration for x64 platform..."
+        Write-Host "Building ${{ matrix.configuration }} configuration for ${{ matrix.platform }} platform..."
         Write-Host "Using SDK paths:"
         Write-Host "  Include: $env:WindowsSDKDebuggerIncPath"
         Write-Host "  Library: $env:WindowsSDKDebuggerLibPath"
         
-        msbuild dk.sln /p:Configuration=${{ matrix.configuration }} /p:Platform=x64 /p:PlatformToolset=v143 /p:WindowsSDKDebuggerIncPath="$env:WindowsSDKDebuggerIncPath" /p:WindowsSDKDebuggerLibPath="$env:WindowsSDKDebuggerLibPath" /v:minimal
+        msbuild dk.sln /p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }} /p:PlatformToolset=v143 /p:WindowsSDKDebuggerIncPath="$env:WindowsSDKDebuggerIncPath" /p:WindowsSDKDebuggerLibPath="$env:WindowsSDKDebuggerLibPath" /v:minimal
         
         if ($LASTEXITCODE -ne 0) {
           Write-Host "Build failed with exit code $LASTEXITCODE"
@@ -147,10 +149,11 @@ jobs:
       shell: powershell
       run: |
         $config = "${{ matrix.configuration }}"
-        $buildPath = "x64\$config"
+        $platform = "${{ matrix.platform }}"
+        $buildPath = "$platform\$config"
         
         # Create a release directory
-        $releaseDir = "release-artifacts\$config"
+        $releaseDir = "release-artifacts\$platform-$config"
         New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
         
         # Copy DLL and PDB
@@ -158,7 +161,7 @@ jobs:
         Copy-Item "$buildPath\dk.pdb" -Destination $releaseDir
         
         # Create a zip file
-        $zipName = "dk-${{ github.ref_name }}-$config-x64.zip"
+        $zipName = "dk-${{ github.ref_name }}-$config-$platform.zip"
         Compress-Archive -Path "$releaseDir\*" -DestinationPath $zipName
         
         Write-Host "Created release package: $zipName"
@@ -166,8 +169,8 @@ jobs:
     - name: Upload artifacts for release job
       uses: actions/upload-artifact@v4
       with:
-        name: release-${{ matrix.configuration }}
-        path: dk-${{ github.ref_name }}-${{ matrix.configuration }}-x64.zip
+        name: release-${{ matrix.configuration }}-${{ matrix.platform }}
+        path: dk-${{ github.ref_name }}-${{ matrix.configuration }}-${{ matrix.platform }}.zip
 
   create-release:
     needs: build-and-release
@@ -196,8 +199,10 @@ jobs:
           
           ## Downloads
           
-          - **Release Build (Recommended)**: `dk-${{ github.ref_name }}-Release-x64.zip`
-          - **Debug Build**: `dk-${{ github.ref_name }}-Debug-x64.zip`
+          - **Release Build x64 (Recommended)**: `dk-${{ github.ref_name }}-Release-x64.zip`
+          - **Release Build x86**: `dk-${{ github.ref_name }}-Release-Win32.zip`
+          - **Debug Build x64**: `dk-${{ github.ref_name }}-Debug-x64.zip`
+          - **Debug Build x86**: `dk-${{ github.ref_name }}-Debug-Win32.zip`
           
           ## Installation
           
