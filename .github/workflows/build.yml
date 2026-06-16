@@ -16,6 +16,7 @@ jobs:
     strategy:
       matrix:
         configuration: [Debug, Release]
+        platform: [x64, Win32]
     
     steps:
     - name: Checkout code
@@ -106,9 +107,10 @@ jobs:
           exit 1
         }
         
-        # Find the corresponding lib\x64 path
+        # Find the corresponding lib path for the target platform
         $debuggerRoot = Split-Path -Parent $incPath
-        $libPath = Join-Path $debuggerRoot "lib\x64"
+        $arch = if ("${{ matrix.platform }}" -eq "x64") { "x64" } else { "x86" }
+        $libPath = Join-Path $debuggerRoot "lib\$arch"
         
         if (-not (Test-Path $libPath)) {
           Write-Host "ERROR: Could not find library path at: $libPath"
@@ -126,15 +128,15 @@ jobs:
         Write-Host "  Include: $incPath"
         Write-Host "  Library: $libPath"
     
-    - name: Build Solution - ${{ matrix.configuration }}
+    - name: Build Solution - ${{ matrix.configuration }} ${{ matrix.platform }}
       shell: powershell
       run: |
-        Write-Host "Building ${{ matrix.configuration }} configuration for x64 platform..."
+        Write-Host "Building ${{ matrix.configuration }} configuration for ${{ matrix.platform }} platform..."
         Write-Host "Using SDK paths:"
         Write-Host "  Include: $env:WindowsSDKDebuggerIncPath"
         Write-Host "  Library: $env:WindowsSDKDebuggerLibPath"
         
-        msbuild dk.sln /p:Configuration=${{ matrix.configuration }} /p:Platform=x64 /p:PlatformToolset=v143 /p:WindowsSDKDebuggerIncPath="$env:WindowsSDKDebuggerIncPath" /p:WindowsSDKDebuggerLibPath="$env:WindowsSDKDebuggerLibPath" /m /v:minimal
+        msbuild dk.sln /p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }} /p:PlatformToolset=v143 /p:WindowsSDKDebuggerIncPath="$env:WindowsSDKDebuggerIncPath" /p:WindowsSDKDebuggerLibPath="$env:WindowsSDKDebuggerLibPath" /m /v:minimal
         
         if ($LASTEXITCODE -ne 0) {
           Write-Host "Build failed with exit code $LASTEXITCODE"
@@ -146,7 +148,7 @@ jobs:
     - name: Verify Build Output
       shell: powershell
       run: |
-        $buildPath = "x64\${{ matrix.configuration }}\dk.dll"
+        $buildPath = "${{ matrix.platform }}\${{ matrix.configuration }}\dk.dll"
         if (Test-Path $buildPath) {
           Write-Host "SUCCESS: Build artifact found: $buildPath"
           $fileInfo = Get-Item $buildPath
@@ -156,8 +158,8 @@ jobs:
           Write-Host "FAILURE: Build artifact not found at expected location: $buildPath"
           Write-Host ""
           Write-Host "Listing build output directories:"
-          if (Test-Path "x64") {
-            Get-ChildItem -Path "x64" -Recurse | Select-Object FullName
+          if (Test-Path "${{ matrix.platform }}") {
+            Get-ChildItem -Path "${{ matrix.platform }}" -Recurse | Select-Object FullName
           }
           exit 1
         }
@@ -165,8 +167,8 @@ jobs:
     - name: Upload Build Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: dk-${{ matrix.configuration }}-x64
+        name: dk-${{ matrix.configuration }}-${{ matrix.platform }}
         path: |
-          x64/${{ matrix.configuration }}/dk.dll
-          x64/${{ matrix.configuration }}/dk.pdb
+          ${{ matrix.platform }}/${{ matrix.configuration }}/dk.dll
+          ${{ matrix.platform }}/${{ matrix.configuration }}/dk.pdb
         if-no-files-found: error
