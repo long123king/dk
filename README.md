@@ -5,7 +5,8 @@
 **A powerful WinDbg extension for deep Windows kernel and user-mode debugging, with rich visualizations and Time Travel Debugging support.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Platform: Windows](https://img.shields.io/badge/Platform-Windows-0078d7.svg)](https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/)
+[![Release](https://img.shields.io/badge/Release-v1.0.5-brightgreen.svg)](https://github.com/long123king/dk/releases/tag/v1.0.5)
+[![Platform: Windows x64 | x86](https://img.shields.io/badge/Platform-Windows%20x64%20%7C%20x86-0078d7.svg)](https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/)
 [![WinDbg Extension](https://img.shields.io/badge/WinDbg-Extension-orange.svg)](https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/)
 [![C++17](https://img.shields.io/badge/C%2B%2B-17-blueviolet.svg)](https://en.cppreference.com/w/cpp/17)
 
@@ -23,6 +24,7 @@
 - ⏱️ **Time Travel Debugging (TTD)** — replay and analyze recorded execution, memory access history, and call events
 - 🌐 **Embedded HTTP server** — serve debug data over a local REST API for external tooling
 - 🤖 **Debugger Data Model** — leverage WinDbg's modern structured object model
+- 🖥️ **x64 and x86 (Win32)** — supports both 64-bit and 32-bit WinDbg sessions
 
 ---
 
@@ -50,37 +52,54 @@ Generate an interactive SVG call-stack forest from a Time Travel Debugging sessi
 
 ---
 
+## 📦 Download
+
+Pre-built binaries for **v1.0.5** are available on the [Releases page](https://github.com/long123king/dk/releases/tag/v1.0.5). Pick the build that matches your WinDbg architecture:
+
+| Build | Architecture | Download |
+|-------|-------------|----------|
+| **Release x64** *(recommended)* | 64-bit WinDbg | [dk-v1.0.5-Release-x64.zip](https://github.com/long123king/dk/releases/download/v1.0.5/dk-v1.0.5-Release-x64.zip) |
+| **Release x86 (Win32)** | 32-bit WinDbg | [dk-v1.0.5-Release-Win32.zip](https://github.com/long123king/dk/releases/download/v1.0.5/dk-v1.0.5-Release-Win32.zip) |
+| Debug x64 | 64-bit WinDbg | [dk-v1.0.5-Debug-x64.zip](https://github.com/long123king/dk/releases/download/v1.0.5/dk-v1.0.5-Debug-x64.zip) |
+| Debug x86 (Win32) | 32-bit WinDbg | [dk-v1.0.5-Debug-Win32.zip](https://github.com/long123king/dk/releases/download/v1.0.5/dk-v1.0.5-Debug-Win32.zip) |
+
+> **Tip:** Use the Release build for everyday debugging. Use Debug builds only when diagnosing issues with the extension itself.
+
+---
+
 ## 🚀 Quick Start
 
-### Prerequisites
+### Option A — Use a pre-built release *(recommended)*
 
-- Windows 10/11 (x64)
+1. Download the ZIP for your architecture from the [📦 Download](#-download) section above.
+2. Extract it to a folder, e.g. `C:\tools\dk\`.
+3. Load the extension in WinDbg:
+   ```windbg
+   .load C:\tools\dk\dk.dll
+   ```
+4. Verify:
+   ```windbg
+   !dk help
+   ```
+
+### Option B — Build from source
+
+**Prerequisites**
+
+- Windows 10/11
 - [WinDbg Preview](https://apps.microsoft.com/detail/windbg-preview/9PGJGD53TN86) or classic WinDbg
 - [Windows SDK / WDK](https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/) with Debugging Tools
 - Visual Studio 2019 or later
 
-### Build
+**Steps**
 
 1. Clone the repository:
    ```sh
    git clone https://github.com/long123king/dk.git
    ```
-
 2. Open `dk.sln` in Visual Studio.
-
-3. Build in **Release | x64** configuration.
-
-### Load in WinDbg
-
-```windbg
-.load C:\path\to\dk.dll
-```
-
-### Verify
-
-```windbg
-!dk help
-```
+3. Build in **Release | x64** (or **Release | Win32** for 32-bit) configuration.
+4. Load the resulting `dk.dll` in WinDbg as shown above.
 
 ---
 
@@ -226,6 +245,14 @@ Default listens on `http://127.0.0.1:8080`. Stop with `GET /api/server/stop`.
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>C:\Program Files (x86)\Windows Kits\10\Debuggers\inc;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Program Files (x86)\Windows Kits\10\Debuggers\lib\x64;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IncludePath>C:\Program Files (x86)\Windows Kits\10\Debuggers\inc;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program Files (x86)\Windows Kits\10\Debuggers\lib\x86;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IncludePath>C:\Program Files (x86)\Windows Kits\10\Debuggers\inc;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program Files (x86)\Windows Kits\10\Debuggers\lib\x86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <!-- ... -->
 </Project>
