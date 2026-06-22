@@ -5315,13 +5315,13 @@ std::string CDkEmbeddedServer::HandleCapabilitiesRoute()
     ULONG ptr_size = static_cast<ULONG>(sizeof(size_t));
     if (m_preserved_client)
     {
-        IDebugControl* control = nullptr;
+        IDebugControl3* control3 = nullptr;
         if (SUCCEEDED(m_preserved_client->QueryInterface(
-                IID_IDebugControl, reinterpret_cast<void**>(&control)))
-            && control)
+                IID_IDebugControl3, reinterpret_cast<void**>(&control3)))
+            && control3)
         {
-            control->GetPointerSize(&ptr_size);
-            control->Release();
+            control3->GetPointerSize(&ptr_size);
+            control3->Release();
         }
     }
     session["pointerSize"] = static_cast<int>(ptr_size);
