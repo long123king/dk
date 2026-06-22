@@ -5309,21 +5309,12 @@ std::string CDkEmbeddedServer::HandleCapabilitiesRoute()
     session["isLive"] = DK_MODEL_ACCESS->isLive();
     session["isNT"] = DK_MODEL_ACCESS->isNT();
 
-    // Architecture information — query target pointer size from debug engine.
-    // Fall back to sizeof(size_t) (host-debugger word size) if the control
-    // interface is unavailable.
+    // Architecture information.
+    // sizeof(size_t) reflects the host debugger's pointer size:
+    //   4 on 32-bit (x86) WinDbg, 8 on 64-bit (x64/ARM64) WinDbg.
+    // This is the correct value for pointer-size-sensitive dispatch
+    // in WinDbg extensions, which must match the debugger's bitness.
     ULONG ptr_size = static_cast<ULONG>(sizeof(size_t));
-    if (m_preserved_client)
-    {
-        IDebugControl3* control3 = nullptr;
-        if (SUCCEEDED(m_preserved_client->QueryInterface(
-                IID_IDebugControl3, reinterpret_cast<void**>(&control3)))
-            && control3)
-        {
-            control3->GetPointerSize(&ptr_size);
-            control3->Release();
-        }
-    }
     session["pointerSize"] = static_cast<int>(ptr_size);
     session["is64Bit"] = (ptr_size == 8);
 
