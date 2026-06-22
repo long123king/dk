@@ -34,7 +34,7 @@ private:
 
     void ServerLoop();
     void HandleClientSocket(uintptr_t client_socket);
-    std::string BuildHttpResponse(const std::string& method, const std::string& path, const std::string& query);
+    std::string BuildHttpResponse(const std::string& method, const std::string& path, const std::string& query, const std::string& body);
 
     std::string BuildJsonResponseOk(const std::string& body_json) const;
     std::string BuildJsonResponseError(int status_code, const std::string& code, const std::string& message) const;
@@ -50,12 +50,13 @@ private:
     std::string HandlePageRoute(const std::string& query);
     std::string HandlePageSvgRoute(const std::string& query);
     std::string HandleFunctionCallsRoute(const std::string& query);
-    std::string HandleCommandRoute(const std::string& query);
+    std::string HandleCommandRoute(const std::string& query, const std::string& body);
     std::string HandleModelRoute(const std::string& query);
     std::string HandlePeRoute(const std::string& query);
     std::string HandleStringsRoute(const std::string& query);
     std::string HandleMemoryLayoutRoute(const std::string& query);
     std::string HandleEnvironmentRoute(const std::string& query);
+    std::string HandleCapabilitiesRoute();
 
 private:
     mutable std::mutex m_mutex;

@@ -43,6 +43,7 @@ namespace
         std::string method;
         std::string path;
         std::string query;
+        std::string body;
     };
 
     uint64_t NowMs()
@@ -74,6 +75,14 @@ namespace
         }
 
         return { method, path, query };
+
+        // Extract body: everything after the first \\r\\n\\r\\n
+        size_t body_start = request.find("\\r\\n\\r\\n");
+        std::string body;
+        if (body_start != std::string::npos)
+            body = request.substr(body_start + 4);
+
+        return { method, path, query, body };
     }
 
     int HexDigitValue(char c)
@@ -690,6 +699,7 @@ void CDkEmbeddedServer::HandleClientSocket(uintptr_t client_socket_value)
         const std::string& method = parsed.method;
         const std::string& path = parsed.path;
         const std::string& query = parsed.query;
+        const std::string& body = parsed.body;
 
         // Log request details with timestamp
         auto request_time = std::chrono::system_clock::now();
@@ -701,7 +711,7 @@ void CDkEmbeddedServer::HandleClientSocket(uintptr_t client_socket_value)
         
         // Measure response generation time
         uint64_t start_ms = NowMs();
-        std::string response = BuildHttpResponse(method, path, query);
+        std::string response = BuildHttpResponse(method, path, query, body);
         uint64_t duration_ms = NowMs() - start_ms;
 
         // Extract status code and Content-Length from response
@@ -783,11 +793,12 @@ void CDkEmbeddedServer::HandleClientSocket(uintptr_t client_socket_value)
     closesocket(client_socket);
 }
 
-std::string CDkEmbeddedServer::BuildHttpResponse(const std::string& method, const std::string& path, const std::string& query)
+std::string CDkEmbeddedServer::BuildHttpResponse(const std::string& method, const std::string& path, const std::string& query, const std::string& body)
 {
-    if (method != "GET")
+    if (method != "GET" && !(method == "POST" && path == "/api/command/execute"))
     {
-        return BuildJsonResponseError(405, "METHOD_NOT_ALLOWED", "Only GET is supported in phase 2");
+        return BuildJsonResponseError(405, "METHOD_NOT_ALLOWED",
+            "Only GET is supported (POST accepted for /api/command/execute)");
     }
 
     if (path == "/api/server/status")
@@ -824,7 +835,7 @@ std::string CDkEmbeddedServer::BuildHttpResponse(const std::string& method, cons
         return BuildJsonResponseOk(HandleFunctionCallsRoute(query));
 
     if (path == "/api/command/execute")
-        return BuildJsonResponseOk(HandleCommandRoute(query));
+        return BuildJsonResponseOk(HandleCommandRoute(query, body));
 
     if (path == "/api/model")
         return BuildJsonResponseOk(HandleModelRoute(query));
@@ -841,13 +852,16 @@ std::string CDkEmbeddedServer::BuildHttpResponse(const std::string& method, cons
     if (path == "/api/environment")
         return BuildJsonResponseOk(HandleEnvironmentRoute(query));
 
+    if (path == "/api/capabilities")
+        return BuildJsonResponseOk(HandleCapabilitiesRoute());
+
     if (path == "/")
     {
         json root = {
             {"schemaVersion", "1.0"},
             {"name", "dk embedded server"},
             {"phase", 2},
-            {"routes", json::array({"/api/server/status", "/api/server/stop", "/api/ttd/trace-info", "/api/ttd/modules", "/api/ttd/threads", "/api/ttd/events/lifetime", "/api/registers", "/api/callstack", "/api/page", "/api/page/svg", "/api/function-calls", "/api/command/execute", "/api/model", "/api/pe", "/api/strings", "/api/memory/layout", "/api/environment"})}
+            {"routes", json::array({"/api/server/status", "/api/server/stop", "/api/ttd/trace-info", "/api/ttd/modules", "/api/ttd/threads", "/api/ttd/events/lifetime", "/api/registers", "/api/callstack", "/api/page", "/api/page/svg", "/api/function-calls", "/api/command/execute", "/api/model", "/api/pe", "/api/strings", "/api/memory/layout", "/api/environment", "/api/capabilities"})}
         };
         return BuildJsonResponseOk(root.dump());
     }
@@ -2684,16 +2698,35 @@ std::string CDkEmbeddedServer::HandlePageSvgRoute(const std::string& query)
     return ss.str();
 }
 
-std::string CDkEmbeddedServer::HandleCommandRoute(const std::string& query)
+std::string CDkEmbeddedServer::HandleCommandRoute(const std::string& query, const std::string& body)
 {
     uint64_t request_id = ++m_request_counter;
 
     auto params = ParseQueryParams(query);
     std::string command;
 
-    auto command_iter = params.find("command");
-    if (command_iter != params.end())
-        command = command_iter->second;
+    // For POST requests, try to parse the JSON body for the command
+    if (!body.empty())
+    {
+        try
+        {
+            auto body_json = json::parse(body);
+            auto cmd_iter = body_json.find("command");
+            if (cmd_iter != body_json.end() && cmd_iter->is_string())
+                command = cmd_iter->get<std::string>();
+        }
+        catch (...)
+        {
+            // If JSON parsing fails, fall back to query params
+        }
+    }
+
+    if (command.empty())
+    {
+        auto command_iter = params.find("command");
+        if (command_iter != params.end())
+            command = command_iter->second;
+    }
 
     if (command.empty())
     {
@@ -5250,6 +5283,60 @@ std::string CDkEmbeddedServer::HandleEnvironmentRoute(const std::string& query)
         DecorateListLinks(root["ldrLists"]["inInitializationOrder"]);
         root["notes"].push_back("InInitializationOrderModuleList fell back to Process.Modules enumeration.");
     }
+
+    return root.dump();
+}
+
+std::string CDkEmbeddedServer::HandleCapabilitiesRoute()
+{
+    json root;
+
+    // Server metadata
+    root["server"] = {
+        {"schemaVersion", "1.0"},
+        {"name", "dk embedded server"},
+        {"phase", 2},
+        {"uptimeMs", std::to_string(GetUptimeMs())},
+        {"requestCount", std::to_string(m_request_counter.load())},
+    };
+
+    // Session information
+    json session;
+    session["isTTD"] = DK_MODEL_ACCESS->isTTD();
+    session["isUsermode"] = DK_MODEL_ACCESS->isUsermode();
+    session["isKernelmode"] = DK_MODEL_ACCESS->isKernelmode();
+    session["isDump"] = DK_MODEL_ACCESS->isDump();
+    session["isLive"] = DK_MODEL_ACCESS->isLive();
+    session["isNT"] = DK_MODEL_ACCESS->isNT();
+
+    // Architecture information
+    ULONG ptr_size = EXT_F_POINTER_SIZE;
+    session["pointerSize"] = static_cast<int>(ptr_size);
+    session["is64Bit"] = (ptr_size == 8);
+
+    root["session"] = session;
+
+    // Available routes
+    json routes = json::array();
+    routes.push_back("/api/server/status");
+    routes.push_back("/api/server/stop");
+    routes.push_back("/api/ttd/trace-info");
+    routes.push_back("/api/ttd/modules");
+    routes.push_back("/api/ttd/threads");
+    routes.push_back("/api/ttd/events/lifetime");
+    routes.push_back("/api/registers");
+    routes.push_back("/api/callstack");
+    routes.push_back("/api/page");
+    routes.push_back("/api/page/svg");
+    routes.push_back("/api/function-calls");
+    routes.push_back("/api/command/execute");
+    routes.push_back("/api/model");
+    routes.push_back("/api/pe");
+    routes.push_back("/api/strings");
+    routes.push_back("/api/memory/layout");
+    routes.push_back("/api/environment");
+    routes.push_back("/api/capabilities");
+    root["routes"] = routes;
 
     return root.dump();
 }
