@@ -5309,8 +5309,21 @@ std::string CDkEmbeddedServer::HandleCapabilitiesRoute()
     session["isLive"] = DK_MODEL_ACCESS->isLive();
     session["isNT"] = DK_MODEL_ACCESS->isNT();
 
-    // Architecture information
-    ULONG ptr_size = EXT_F_POINTER_SIZE;
+    // Architecture information — query target pointer size from debug engine.
+    // Fall back to sizeof(size_t) (host-debugger word size) if the control
+    // interface is unavailable.
+    ULONG ptr_size = static_cast<ULONG>(sizeof(size_t));
+    if (m_preserved_client)
+    {
+        IDebugControl* control = nullptr;
+        if (SUCCEEDED(m_preserved_client->QueryInterface(
+                IID_IDebugControl, reinterpret_cast<void**>(&control)))
+            && control)
+        {
+            control->GetPointerSize(&ptr_size);
+            control->Release();
+        }
+    }
     session["pointerSize"] = static_cast<int>(ptr_size);
     session["is64Bit"] = (ptr_size == 8);
 
