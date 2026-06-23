@@ -855,13 +855,16 @@ std::string CDkEmbeddedServer::BuildHttpResponse(const std::string& method, cons
     if (path == "/api/capabilities")
         return BuildJsonResponseOk(HandleCapabilitiesRoute());
 
+    if (path == "/api/ttd/mem-access")
+        return BuildJsonResponseOk(HandleTtdMemAccessRoute(query));
+
     if (path == "/")
     {
         json root = {
             {"schemaVersion", "1.0"},
             {"name", "dk embedded server"},
             {"phase", 2},
-            {"routes", json::array({"/api/server/status", "/api/server/stop", "/api/ttd/trace-info", "/api/ttd/modules", "/api/ttd/threads", "/api/ttd/events/lifetime", "/api/registers", "/api/callstack", "/api/page", "/api/page/svg", "/api/function-calls", "/api/command/execute", "/api/model", "/api/pe", "/api/strings", "/api/memory/layout", "/api/environment", "/api/capabilities"})}
+            {"routes", json::array({"/api/server/status", "/api/server/stop", "/api/ttd/trace-info", "/api/ttd/modules", "/api/ttd/threads", "/api/ttd/events/lifetime", "/api/registers", "/api/callstack", "/api/page", "/api/page/svg", "/api/function-calls", "/api/command/execute", "/api/model", "/api/pe", "/api/strings", "/api/memory/layout", "/api/environment", "/api/capabilities", "/api/ttd/mem-access"})}
         };
         return BuildJsonResponseOk(root.dump());
     }
@@ -2701,6 +2704,7 @@ std::string CDkEmbeddedServer::HandlePageSvgRoute(const std::string& query)
 std::string CDkEmbeddedServer::HandleCommandRoute(const std::string& query, const std::string& body)
 {
     uint64_t request_id = ++m_request_counter;
+    uint64_t start_time_ms = NowMs();
 
     auto params = ParseQueryParams(query);
     std::string command;
@@ -2735,10 +2739,29 @@ std::string CDkEmbeddedServer::HandleCommandRoute(const std::string& query, cons
             command = alias_iter->second;
     }
 
+    // Parse optional timeoutMs (for documentation/client-side use;
+    // the underlying execute_cmd is blocking and cannot be interrupted
+    // from the same thread, so the server records the intent but the
+    // actual timeout enforcement happens at the HTTP/MCP layer.)
+    uint64_t timeout_ms = 0;
+    {
+        auto it = params.find("timeoutMs");
+        if (it == params.end())
+            it = params.find("timeout");
+        if (it != params.end())
+        {
+            uint64_t parsed = 0;
+            if (TryParseU64(it->second, parsed) && parsed > 0)
+                timeout_ms = parsed;
+        }
+    }
+
     auto lines = command.empty()
         ? std::vector<std::string>{}
         : DK_MODEL_ACCESS->execute_cmd(command);
     auto sanitized_lines = SanitizeCommandOutputLines(lines);
+
+    uint64_t elapsed_ms = NowMs() - start_time_ms;
 
     json root = {
         {"schemaVersion", "1.0"},
@@ -2748,8 +2771,14 @@ std::string CDkEmbeddedServer::HandleCommandRoute(const std::string& query, cons
             {"lineCount", sanitized_lines.size()},
             {"lines", sanitized_lines},
             {"output", JoinLines(sanitized_lines)}
+        }},
+        {"timing", {
+            {"elapsedMs", elapsed_ms}
         }}
     };
+
+    if (timeout_ms > 0)
+        root["timing"]["timeoutMs"] = timeout_ms;
 
     if (command.empty())
     {
@@ -5283,6 +5312,250 @@ std::string CDkEmbeddedServer::HandleEnvironmentRoute(const std::string& query)
         DecorateListLinks(root["ldrLists"]["inInitializationOrder"]);
         root["notes"].push_back("InInitializationOrderModuleList fell back to Process.Modules enumeration.");
     }
+
+    return root.dump();
+}
+
+// ---------------------------------------------------------------------------
+// /api/ttd/mem-access
+// Queries TTD memory access events for a given address range and access mode.
+// Parameters:
+//   start_addr  - hex start address (required)
+//   end_addr    - hex end address (required)
+//   mode        - access type filter: R (read), W (write), E (execute), C (all) (default: W)
+//   maxResults  - maximum results to return (default: 500, max: 5000)
+//   timeoutMs   - soft timeout in milliseconds (default: 30000, max: 120000)
+//
+// Returns a structured JSON array of ttd_mem_access records with timing
+// metadata. Sets timedOut=true when the soft timeout expires before all
+// results are collected.
+// ---------------------------------------------------------------------------
+std::string CDkEmbeddedServer::HandleTtdMemAccessRoute(const std::string& query)
+{
+    uint64_t request_id = ++m_request_counter;
+    uint64_t start_time_ms = NowMs();
+
+    auto FormatHexU64 = [](uint64_t value) -> std::string {
+        std::stringstream ss;
+        ss << "0x" << std::hex << std::setw(16) << std::setfill('0') << value;
+        return ss.str();
+    };
+
+    auto FormatHexCompact = [](uint64_t value) -> std::string {
+        std::stringstream ss;
+        ss << "0x" << std::hex << value;
+        return ss.str();
+    };
+
+    json root = {
+        {"schemaVersion", "1.0"},
+        {"requestId", std::to_string(request_id)},
+        {"available", false},
+        {"accesses", json::array()},
+        {"collectedCount", 0},
+        {"timedOut", false},
+        {"query", {
+            {"startAddr", "0x0"},
+            {"endAddr", "0x0"},
+            {"mode", "W"}
+        }},
+        {"timing", {
+            {"elapsedMs", 0},
+            {"timeoutMs", 30000}
+        }}
+    };
+
+    auto params = ParseQueryParams(query);
+
+    // --- Parse required: start_addr ---
+    std::string start_addr_str;
+    {
+        auto it = params.find("start_addr");
+        if (it != params.end())
+            start_addr_str = TrimAsciiWhitespace(it->second);
+    }
+    if (start_addr_str.empty())
+    {
+        auto it = params.find("start");
+        if (it != params.end())
+            start_addr_str = TrimAsciiWhitespace(it->second);
+    }
+
+    uint64_t start_addr = 0;
+    if (start_addr_str.empty() || !TryParseU64(start_addr_str, start_addr))
+    {
+        root["message"] = "Query parameter 'start_addr' is required.";
+        root["timing"]["elapsedMs"] = NowMs() - start_time_ms;
+        return root.dump();
+    }
+    root["query"]["startAddr"] = FormatHexU64(start_addr);
+
+    // --- Parse required: end_addr ---
+    std::string end_addr_str;
+    {
+        auto it = params.find("end_addr");
+        if (it != params.end())
+            end_addr_str = TrimAsciiWhitespace(it->second);
+    }
+    if (end_addr_str.empty())
+    {
+        auto it = params.find("end");
+        if (it != params.end())
+            end_addr_str = TrimAsciiWhitespace(it->second);
+    }
+
+    uint64_t end_addr = 0;
+    if (end_addr_str.empty() || !TryParseU64(end_addr_str, end_addr))
+    {
+        root["message"] = "Query parameter 'end_addr' is required.";
+        root["timing"]["elapsedMs"] = NowMs() - start_time_ms;
+        return root.dump();
+    }
+    root["query"]["endAddr"] = FormatHexU64(end_addr);
+
+    if (end_addr <= start_addr)
+    {
+        root["message"] = "end_addr must be greater than start_addr.";
+        root["timing"]["elapsedMs"] = NowMs() - start_time_ms;
+        return root.dump();
+    }
+
+    // --- Parse optional: mode ---
+    std::string mode = "W";
+    {
+        auto it = params.find("mode");
+        if (it != params.end())
+        {
+            std::string raw = ToLowerAscii(TrimAsciiWhitespace(it->second));
+            if (raw == "r" || raw == "read")
+                mode = "R";
+            else if (raw == "w" || raw == "write")
+                mode = "W";
+            else if (raw == "e" || raw == "exec" || raw == "execute")
+                mode = "E";
+            else if (raw == "c" || raw == "all")
+                mode = "C";
+            else if (raw == "rw")
+                mode = "RW";
+        }
+    }
+    root["query"]["mode"] = mode;
+
+    // --- Parse optional: maxResults ---
+    uint64_t max_results = 500;
+    {
+        auto it = params.find("maxResults");
+        if (it == params.end())
+            it = params.find("limit");
+        if (it != params.end())
+        {
+            uint64_t parsed = 0;
+            if (TryParseU64(it->second, parsed) && parsed > 0)
+                max_results = std::min<uint64_t>(parsed, 5000);
+        }
+    }
+    root["query"]["maxResults"] = max_results;
+
+    // --- Parse optional: timeoutMs ---
+    uint64_t timeout_ms = 30000;
+    {
+        auto it = params.find("timeoutMs");
+        if (it == params.end())
+            it = params.find("timeout");
+        if (it != params.end())
+        {
+            uint64_t parsed = 0;
+            if (TryParseU64(it->second, parsed) && parsed > 0)
+                timeout_ms = std::min<uint64_t>(parsed, 120000);
+        }
+    }
+    root["timing"]["timeoutMs"] = timeout_ms;
+
+    // --- TTD guard ---
+    if (!DK_MODEL_ACCESS->isTTD())
+    {
+        root["message"] = "TTD memory access query requires TTD mode.";
+        root["timing"]["elapsedMs"] = NowMs() - start_time_ms;
+        return root.dump();
+    }
+
+    // --- Execute query ---
+    auto accesses = DK_MODEL_ACCESS->get_mem_access(start_addr, end_addr, mode);
+
+    size_t collected = 0;
+    bool timed_out = false;
+
+    for (auto& access : accesses)
+    {
+        // --- Timeout check ---
+        uint64_t elapsed = NowMs() - start_time_ms;
+        if (elapsed > timeout_ms)
+        {
+            timed_out = true;
+            break;
+        }
+
+        // --- Max results check ---
+        if (collected >= max_results)
+            break;
+
+        // --- Resolve symbol for IP ---
+        std::string ip_symbol;
+        uint64_t ip_displacement = 0;
+        try
+        {
+            auto sym_info = EXT_F_Addr2Sym(access.ip_addr);
+            ip_symbol = std::get<0>(sym_info);
+            ip_displacement = std::get<1>(sym_info);
+        }
+        catch (...) {}
+
+        std::string display_ip = ip_symbol.empty()
+            ? FormatHexU64(access.ip_addr)
+            : (ip_symbol + "+0x" + 
+               ([](uint64_t v){ std::stringstream s; s << std::hex << v; return s.str(); })(ip_displacement));
+
+        root["accesses"].push_back({
+            {"startPos", {
+                {"major", std::to_string(std::get<0>(access.start_pos))},
+                {"minor", std::get<1>(access.start_pos)}
+            }},
+            {"endPos", {
+                {"major", std::to_string(std::get<0>(access.end_pos))},
+                {"minor", std::get<1>(access.end_pos)}
+            }},
+            {"accessType", access.access_type},
+            {"ip", FormatHexU64(access.ip_addr)},
+            {"ipSymbol", display_ip},
+            {"address", FormatHexU64(access.addr)},
+            {"size", access.size},
+            {"value", FormatHexCompact(access.value)},
+            {"overwrittenValue", FormatHexCompact(access.overwritten_value)},
+            {"threadId", access.thread_id},
+            {"eventType", access.event_type}
+        });
+
+        ++collected;
+    }
+
+    uint64_t total_elapsed = NowMs() - start_time_ms;
+
+    root["available"] = collected > 0;
+    root["collectedCount"] = collected;
+    root["totalCount"] = accesses.size();
+    root["timedOut"] = timed_out;
+    root["timing"]["elapsedMs"] = total_elapsed;
+
+    if (accesses.empty())
+        root["message"] = "No memory access events found in the given range.";
+    else if (timed_out)
+        root["message"] = "Soft timeout reached; " + std::to_string(collected) +
+                          " of " + std::to_string(accesses.size()) +
+                          " results returned.";
+    else if (collected < accesses.size())
+        root["message"] = "maxResults limit reached; " + std::to_string(collected) +
+                          " of " + std::to_string(accesses.size()) +
+                          " results returned. Increase maxResults (max 5000) or narrow the address range.";
 
     return root.dump();
 }

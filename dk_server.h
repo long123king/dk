@@ -57,6 +57,7 @@ private:
     std::string HandleMemoryLayoutRoute(const std::string& query);
     std::string HandleEnvironmentRoute(const std::string& query);
     std::string HandleCapabilitiesRoute();
+    std::string HandleTtdMemAccessRoute(const std::string& query);
 
 private:
     mutable std::mutex m_mutex;
