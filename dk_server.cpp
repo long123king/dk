@@ -5471,6 +5471,24 @@ std::string CDkEmbeddedServer::HandleTtdMemAccessRoute(const std::string& query)
     }
     root["timing"]["timeoutMs"] = timeout_ms;
 
+    // --- Parse optional: time range (major:minor position bounds) ---
+    uint64_t ts_major = 0, ts_minor = 0, te_major = 0, te_minor = 0;
+    {
+        auto it = params.find("timeStartMajor");
+        if (it != params.end()) TryParseU64(it->second, ts_major);
+        it = params.find("timeStartMinor");
+        if (it != params.end()) TryParseU64(it->second, ts_minor);
+        it = params.find("timeEndMajor");
+        if (it != params.end()) TryParseU64(it->second, te_major);
+        it = params.find("timeEndMinor");
+        if (it != params.end()) TryParseU64(it->second, te_minor);
+    }
+    bool has_time_range = (ts_major != 0 || ts_minor != 0 || te_major != 0 || te_minor != 0);
+    if (has_time_range) {
+        root["query"]["timeStart"] = { {"major", std::to_string(ts_major)}, {"minor", ts_minor} };
+        root["query"]["timeEnd"]   = { {"major", std::to_string(te_major)}, {"minor", te_minor} };
+    }
+
     // --- TTD guard ---
     if (!DK_MODEL_ACCESS->isTTD())
     {
@@ -5480,7 +5498,10 @@ std::string CDkEmbeddedServer::HandleTtdMemAccessRoute(const std::string& query)
     }
 
     // --- Execute query ---
-    auto accesses = DK_MODEL_ACCESS->get_mem_access(start_addr, end_addr, mode);
+    auto accesses = has_time_range
+        ? DK_MODEL_ACCESS->get_mem_access(start_addr, end_addr, mode,
+                                          ts_major, ts_minor, te_major, te_minor)
+        : DK_MODEL_ACCESS->get_mem_access(start_addr, end_addr, mode);
 
     size_t collected = 0;
     bool timed_out = false;

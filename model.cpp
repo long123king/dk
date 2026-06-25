@@ -1330,6 +1330,13 @@ uint64_t CModelAccess::get_current_tid()
 
 std::vector<ttd_mem_access> CModelAccess::get_mem_access(uint64_t start_addr, uint64_t end_addr, std::string mode)
 {
+    return get_mem_access(start_addr, end_addr, mode, 0, 0, 0, 0);
+}
+
+std::vector<ttd_mem_access> CModelAccess::get_mem_access(uint64_t start_addr, uint64_t end_addr, std::string mode,
+                                                         uint64_t timeStartMajor, uint64_t timeStartMinor,
+                                                         uint64_t timeEndMajor, uint64_t timeEndMinor)
+{
     std::vector<ttd_mem_access> mem_accesses;
     auto session = get_current_session();
     if (session != nullptr)
@@ -1349,6 +1356,17 @@ std::vector<ttd_mem_access> CModelAccess::get_mem_access(uint64_t start_addr, ui
                 vec_args.push_back(arg_start_addr);
                 vec_args.push_back(arg_end_addr);
                 vec_args.push_back(arg_mode);
+
+                // If time range specified, add TimeStart/TimeEnd as [major, minor] pairs.
+                bool has_time_range = (timeStartMajor != 0 || timeStartMinor != 0 ||
+                                       timeEndMajor != 0 || timeEndMinor != 0);
+                if (has_time_range)
+                {
+                    vec_args.push_back(DK_MODEL_ACCESS->create_int_intrinsic_obj<uint64_t, VT_UI8>(timeStartMajor));
+                    vec_args.push_back(DK_MODEL_ACCESS->create_int_intrinsic_obj<uint64_t, VT_UI8>(timeStartMinor));
+                    vec_args.push_back(DK_MODEL_ACCESS->create_int_intrinsic_obj<uint64_t, VT_UI8>(timeEndMajor));
+                    vec_args.push_back(DK_MODEL_ACCESS->create_int_intrinsic_obj<uint64_t, VT_UI8>(timeEndMinor));
+                }
 
                 auto mem_access_result = DK_MODEL_ACCESS->call(mem_pobj, ttd, vec_args);
                 if (mem_access_result != nullptr)

@@ -249,6 +249,9 @@ public:
     uint64_t get_current_tid();
 
     std::vector<ttd_mem_access> get_mem_access(uint64_t start_addr, uint64_t end_addr, std::string mode);
+    std::vector<ttd_mem_access> get_mem_access(uint64_t start_addr, uint64_t end_addr, std::string mode,
+                                               uint64_t timeStartMajor, uint64_t timeStartMinor,
+                                               uint64_t timeEndMajor, uint64_t timeEndMinor);
 
     DK_MOBJ_PTR get_current_session();
     DK_MOBJ_PTR get_current_process();
