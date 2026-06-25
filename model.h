@@ -185,6 +185,8 @@ public:
     template<class T, VARTYPE VT>
     DK_MOBJ_PTR create_int_intrinsic_obj(T val);
 
+    DK_MOBJ_PTR create_position_obj(uint64_t major, uint64_t minor);
+
     DK_MOBJ_PTR call(DK_MOBJ_PTR mobj, DK_MOBJ_PTR context, std::vector<DK_MOBJ_PTR> args);
 
     DK_MOBJ_PTR assert_obj(DK_MOBJ_PTR& mobj);

@@ -1344,10 +1344,42 @@ std::vector<ttd_mem_access> CModelAccess::get_mem_access(uint64_t start_addr, ui
         auto ttd = DK_MGET_POBJ(session, "TTD");
         if (ttd != nullptr)
         {
-            auto mem_pobj = DK_MGET_POBJ(ttd, "Memory");
+            // Prefer MemoryForPositionRange (native time-range support)
+            auto mem_pobj = DK_MGET_POBJ(ttd, "MemoryForPositionRange");
+            bool native_time_range = (mem_pobj != nullptr);
+
+            if (!native_time_range)
+            {
+                // Fall back to TTD.Memory (legacy, returns entire trace)
+                mem_pobj = DK_MGET_POBJ(ttd, "Memory");
+            }
 
             if (mem_pobj != nullptr)
             {
+                // Determine position objects for the time range
+                DK_MOBJ_PTR min_pos_obj, max_pos_obj;
+                bool has_time_range = (timeStartMajor != 0 || timeStartMinor != 0 ||
+                                       timeEndMajor != 0 || timeEndMinor != 0);
+
+                if (native_time_range)
+                {
+                    if (has_time_range)
+                    {
+                        min_pos_obj = create_position_obj(timeStartMajor, timeStartMinor);
+                        max_pos_obj = create_position_obj(timeEndMajor, timeEndMinor);
+                    }
+                    else
+                    {
+                        // Use full trace lifetime positions
+                        auto lifetime = DK_MGET_POBJ(ttd, "Lifetime");
+                        if (lifetime != nullptr)
+                        {
+                            min_pos_obj = DK_MGET_POBJ(lifetime, "MinPosition");
+                            max_pos_obj = DK_MGET_POBJ(lifetime, "MaxPosition");
+                        }
+                    }
+                }
+
                 auto arg_start_addr = DK_MODEL_ACCESS->create_int_intrinsic_obj<uint64_t, VT_UI8>(start_addr);
                 auto arg_end_addr = DK_MODEL_ACCESS->create_int_intrinsic_obj<uint64_t, VT_UI8>(end_addr);
                 auto arg_mode = DK_MODEL_ACCESS->create_str_intrinsic_obj(mode);
@@ -1357,15 +1389,10 @@ std::vector<ttd_mem_access> CModelAccess::get_mem_access(uint64_t start_addr, ui
                 vec_args.push_back(arg_end_addr);
                 vec_args.push_back(arg_mode);
 
-                // If time range specified, add TimeStart/TimeEnd as [major, minor] pairs.
-                bool has_time_range = (timeStartMajor != 0 || timeStartMinor != 0 ||
-                                       timeEndMajor != 0 || timeEndMinor != 0);
-                if (has_time_range)
+                if (native_time_range && min_pos_obj != nullptr && max_pos_obj != nullptr)
                 {
-                    vec_args.push_back(DK_MODEL_ACCESS->create_int_intrinsic_obj<uint64_t, VT_UI8>(timeStartMajor));
-                    vec_args.push_back(DK_MODEL_ACCESS->create_int_intrinsic_obj<uint64_t, VT_UI8>(timeStartMinor));
-                    vec_args.push_back(DK_MODEL_ACCESS->create_int_intrinsic_obj<uint64_t, VT_UI8>(timeEndMajor));
-                    vec_args.push_back(DK_MODEL_ACCESS->create_int_intrinsic_obj<uint64_t, VT_UI8>(timeEndMinor));
+                    vec_args.push_back(min_pos_obj);
+                    vec_args.push_back(max_pos_obj);
                 }
 
                 auto mem_access_result = DK_MODEL_ACCESS->call(mem_pobj, ttd, vec_args);
@@ -1378,6 +1405,17 @@ std::vector<ttd_mem_access> CModelAccess::get_mem_access(uint64_t start_addr, ui
 
                         mem_access.start_pos = get_pos(get<1>(result), "TimeStart");
                         mem_access.end_pos = get_pos(get<1>(result), "TimeEnd");
+
+                        // Post-filter only for legacy TTD.Memory path (no native time range)
+                        if (!native_time_range && has_time_range)
+                        {
+                            uint64_t em = std::get<0>(mem_access.start_pos);
+                            uint64_t en = std::get<1>(mem_access.start_pos);
+                            if (em > timeEndMajor || (em == timeEndMajor && en > timeEndMinor))
+                                continue;
+                            if (em < timeStartMajor || (em == timeStartMajor && en < timeStartMinor))
+                                continue;
+                        }
                         mem_access.access_type = BSTR2str(get_pvalue<BSTR, VT_BSTR>(get<1>(result), "AccessType"));
                         mem_access.ip_addr = get_pvalue<uint64_t, VT_UI8>(get<1>(result), "IP");
                         mem_access.addr = get_pvalue<uint64_t, VT_UI8>(get<1>(result), "Address");
@@ -1930,6 +1968,30 @@ DK_MOBJ_PTR CModelAccess::create_int_intrinsic_obj(T val)
 
     VariantClear(&vt_arg);
     return nullptr;
+}
+
+DK_MOBJ_PTR CModelAccess::create_position_obj(uint64_t major, uint64_t minor)
+{
+    DK_MOBJ_PTR pos_obj;
+    HRESULT hr = m_model_mgr->CreateIntrinsicObject(ObjectSynthetic, nullptr, &pos_obj);
+    if (FAILED(hr) || pos_obj == nullptr)
+        return nullptr;
+
+    auto seq_obj = create_int_intrinsic_obj<uint64_t, VT_UI8>(major);
+    auto steps_obj = create_int_intrinsic_obj<uint64_t, VT_UI8>(minor);
+
+    if (seq_obj == nullptr || steps_obj == nullptr)
+        return nullptr;
+
+    hr = pos_obj->SetKey(L"Sequence", seq_obj.Get(), nullptr);
+    if (FAILED(hr))
+        return nullptr;
+
+    hr = pos_obj->SetKey(L"Steps", steps_obj.Get(), nullptr);
+    if (FAILED(hr))
+        return nullptr;
+
+    return pos_obj;
 }
 
 DK_MOBJ_PTR CModelAccess::call(DK_MOBJ_PTR mobj, DK_MOBJ_PTR context, std::vector<DK_MOBJ_PTR> args)
