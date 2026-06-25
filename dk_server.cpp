@@ -5323,8 +5323,9 @@ std::string CDkEmbeddedServer::HandleEnvironmentRoute(const std::string& query)
 //   start_addr  - hex start address (required)
 //   end_addr    - hex end address (required)
 //   mode        - access type filter: R (read), W (write), E (execute), C (all) (default: W)
-//   maxResults  - maximum results to return (default: 500, max: 5000)
-//   timeoutMs   - soft timeout in milliseconds (default: 30000, max: 120000)
+//   maxResults  - maximum results to return (default: 500, max: 5000; bypassed by noLimit)
+//   timeoutMs   - soft timeout in milliseconds (default: 30000, max: 120000; bypassed by noLimit)
+//   noLimit     - when "true", bypasses the caps on maxResults and timeoutMs
 //
 // Returns a structured JSON array of ttd_mem_access records with timing
 // metadata. Sets timedOut=true when the soft timeout expires before all
@@ -5441,6 +5442,14 @@ std::string CDkEmbeddedServer::HandleTtdMemAccessRoute(const std::string& query)
     }
     root["query"]["mode"] = mode;
 
+    // --- Parse optional: noLimit ---
+    bool no_limit = false;
+    {
+        auto it = params.find("noLimit");
+        if (it != params.end())
+            no_limit = (it->second == "true" || it->second == "1");
+    }
+
     // --- Parse optional: maxResults ---
     uint64_t max_results = 500;
     {
@@ -5451,7 +5460,7 @@ std::string CDkEmbeddedServer::HandleTtdMemAccessRoute(const std::string& query)
         {
             uint64_t parsed = 0;
             if (TryParseU64(it->second, parsed) && parsed > 0)
-                max_results = std::min<uint64_t>(parsed, 5000);
+                max_results = no_limit ? parsed : std::min<uint64_t>(parsed, 5000);
         }
     }
     root["query"]["maxResults"] = max_results;
@@ -5466,7 +5475,7 @@ std::string CDkEmbeddedServer::HandleTtdMemAccessRoute(const std::string& query)
         {
             uint64_t parsed = 0;
             if (TryParseU64(it->second, parsed) && parsed > 0)
-                timeout_ms = std::min<uint64_t>(parsed, 120000);
+                timeout_ms = no_limit ? parsed : std::min<uint64_t>(parsed, 120000);
         }
     }
     root["timing"]["timeoutMs"] = timeout_ms;
