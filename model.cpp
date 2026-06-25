@@ -1344,50 +1344,15 @@ std::vector<ttd_mem_access> CModelAccess::get_mem_access(uint64_t start_addr, ui
         auto ttd = DK_MGET_POBJ(session, "TTD");
         if (ttd != nullptr)
         {
-            // Prefer MemoryForPositionRange (native time-range support)
-            auto mem_pobj = DK_MGET_POBJ(ttd, "MemoryForPositionRange");
-            bool native_time_range = (mem_pobj != nullptr);
+            // Always use TTD.Memory — it returns correct position data via the
+            // "TimeEnd" key. MemoryForPositionRange results lack this key.
+            auto mem_pobj = DK_MGET_POBJ(ttd, "Memory");
 
-            if (!native_time_range)
-            {
-                // Fall back to TTD.Memory (legacy, returns entire trace)
-                mem_pobj = DK_MGET_POBJ(ttd, "Memory");
-            }
+            bool has_time_range = (timeStartMajor != 0 || timeStartMinor != 0 ||
+                                   timeEndMajor != 0 || timeEndMinor != 0);
 
             if (mem_pobj != nullptr)
             {
-                // Determine position objects for the time range
-                DK_MOBJ_PTR min_pos_obj, max_pos_obj;
-                bool has_time_range = (timeStartMajor != 0 || timeStartMinor != 0 ||
-                                       timeEndMajor != 0 || timeEndMinor != 0);
-
-                if (native_time_range)
-                {
-                    if (has_time_range)
-                    {
-                        // Seek-and-capture real TTD.Position objects (synthetic objects fail COM)
-                        auto saved_pos = DK_GET_CURPOS();
-
-                        DK_SEEK_TO(timeStartMajor, timeStartMinor);
-                        min_pos_obj = get_pobj_tree(m_debugger, "State.DebuggerVariables.curthread.TTD.Position");
-
-                        DK_SEEK_TO(timeEndMajor, timeEndMinor);
-                        max_pos_obj = get_pobj_tree(m_debugger, "State.DebuggerVariables.curthread.TTD.Position");
-
-                        DK_SEEK_TO(std::get<0>(saved_pos), std::get<1>(saved_pos));
-                    }
-                    else
-                    {
-                        // Use full trace lifetime positions
-                        auto lifetime = DK_MGET_POBJ(ttd, "Lifetime");
-                        if (lifetime != nullptr)
-                        {
-                            min_pos_obj = DK_MGET_POBJ(lifetime, "MinPosition");
-                            max_pos_obj = DK_MGET_POBJ(lifetime, "MaxPosition");
-                        }
-                    }
-                }
-
                 auto arg_start_addr = DK_MODEL_ACCESS->create_int_intrinsic_obj<uint64_t, VT_UI8>(start_addr);
                 auto arg_end_addr = DK_MODEL_ACCESS->create_int_intrinsic_obj<uint64_t, VT_UI8>(end_addr);
                 auto arg_mode = DK_MODEL_ACCESS->create_str_intrinsic_obj(mode);
@@ -1397,48 +1362,23 @@ std::vector<ttd_mem_access> CModelAccess::get_mem_access(uint64_t start_addr, ui
                 vec_args.push_back(arg_end_addr);
                 vec_args.push_back(arg_mode);
 
-                if (native_time_range && min_pos_obj != nullptr && max_pos_obj != nullptr)
-                {
-                    vec_args.push_back(min_pos_obj);
-                    vec_args.push_back(max_pos_obj);
-                }
-
                 auto mem_access_result = DK_MODEL_ACCESS->call(mem_pobj, ttd, vec_args);
                 if (mem_access_result != nullptr)
                 {
                     auto results = DK_MODEL_ACCESS->iterate(mem_access_result);
 
-                    // Track previous event's end position — TTD memory access
-                    // result objects only have "TimeEnd" (no "TimeStart" key).
-                    // Each event's start position is the previous event's end position.
-                    std::tuple<uint64_t, uint64_t> prev_end{ 0, 0 };
-                    bool first = true;
-
                     for (auto& result : results)
                     {
                         ttd_mem_access mem_access;
 
-                        // Only "TimeEnd" exists on the result object.
-                        // "TimeStart" is NOT a key on TTD memory access events.
-                        mem_access.end_pos = get_pos(get<1>(result), "TimeEnd");
+                        // Each memory access event has ONE position (a point in
+                        // time, not a range). The key is "TimeEnd" on TTD.Memory
+                        // result objects. Use the same position for both start/end.
+                        mem_access.start_pos = get_pos(get<1>(result), "TimeEnd");
+                        mem_access.end_pos   = mem_access.start_pos;
 
-                        if (first)
-                        {
-                            // First event: start position = the trace's min position.
-                            // Use the end_pos of the first event as its own start
-                            // (the access happened at this position).
-                            mem_access.start_pos = mem_access.end_pos;
-                            first = false;
-                        }
-                        else
-                        {
-                            // Subsequent events: start = previous event's end
-                            mem_access.start_pos = prev_end;
-                        }
-                        prev_end = mem_access.end_pos;
-
-                        // Post-filter only for legacy TTD.Memory path (no native time range)
-                        if (!native_time_range && has_time_range)
+                        // Post-filter for time-range queries
+                        if (has_time_range)
                         {
                             uint64_t em = std::get<0>(mem_access.start_pos);
                             uint64_t en = std::get<1>(mem_access.start_pos);
