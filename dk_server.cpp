@@ -5489,12 +5489,66 @@ std::string CDkEmbeddedServer::HandleTtdMemAccessRoute(const std::string& query)
         root["query"]["timeEnd"]   = { {"major", std::to_string(te_major)}, {"minor", te_minor} };
     }
 
+    // --- Parse optional: percentage-based time range ---
+    double ts_pct = -1.0, te_pct = -1.0;
+    {
+        auto it = params.find("timeStartPct");
+        if (it != params.end()) { TryParseDouble(it->second, ts_pct); root["query"]["timeStartPct"] = ts_pct; }
+        it = params.find("timeEndPct");
+        if (it != params.end()) { TryParseDouble(it->second, te_pct); root["query"]["timeEndPct"] = te_pct; }
+    }
+
     // --- TTD guard ---
     if (!DK_MODEL_ACCESS->isTTD())
     {
         root["message"] = "TTD memory access query requires TTD mode.";
         root["timing"]["elapsedMs"] = NowMs() - start_time_ms;
         return root.dump();
+    }
+
+    // --- Convert percentage time range to Major:Minor positions ---
+    bool has_pct_range = (ts_pct >= 0.0 || te_pct >= 0.0);
+    if (has_pct_range && !has_time_range)
+    {
+        auto proc = DK_MODEL_ACCESS->get_current_process();
+        if (proc != nullptr)
+        {
+            auto ttd_obj = DK_MGET_POBJ(proc, "TTD");
+            if (ttd_obj != nullptr)
+            {
+                auto lifetime = DK_MGET_POBJ(ttd_obj, "Lifetime");
+                if (lifetime != nullptr)
+                {
+                    auto min_pos = DK_MGET_POS(lifetime, "MinPosition");
+                    auto max_pos = DK_MGET_POS(lifetime, "MaxPosition");
+
+                    const uint64_t MAJOR_SCALE = 1000000ULL;
+                    uint64_t min_linear = std::get<0>(min_pos) * MAJOR_SCALE + std::get<1>(min_pos);
+                    uint64_t max_linear = std::get<0>(max_pos) * MAJOR_SCALE + std::get<1>(max_pos);
+                    uint64_t range = max_linear - min_linear;
+
+                    auto pctToPos = [&](double pct) -> std::pair<uint64_t, uint64_t> {
+                        if (pct < 0.0) pct = 0.0;
+                        if (pct > 100.0) pct = 100.0;
+                        uint64_t target = min_linear + (uint64_t)((double)range * pct / 100.0);
+                        return { target / MAJOR_SCALE, target % MAJOR_SCALE };
+                    };
+
+                    if (ts_pct >= 0.0) {
+                        auto pos = pctToPos(ts_pct);
+                        ts_major = pos.first; ts_minor = pos.second;
+                    }
+                    if (te_pct >= 0.0) {
+                        auto pos = pctToPos(te_pct);
+                        te_major = pos.first; te_minor = pos.second;
+                    }
+                    has_time_range = true;
+
+                    root["query"]["timeStart"] = { {"major", std::to_string(ts_major)}, {"minor", ts_minor} };
+                    root["query"]["timeEnd"]   = { {"major", std::to_string(te_major)}, {"minor", te_minor} };
+                }
+            }
+        }
     }
 
     // --- Execute query ---

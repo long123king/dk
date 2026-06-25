@@ -1365,8 +1365,16 @@ std::vector<ttd_mem_access> CModelAccess::get_mem_access(uint64_t start_addr, ui
                 {
                     if (has_time_range)
                     {
-                        min_pos_obj = create_position_obj(timeStartMajor, timeStartMinor);
-                        max_pos_obj = create_position_obj(timeEndMajor, timeEndMinor);
+                        // Seek-and-capture real TTD.Position objects (synthetic objects fail COM)
+                        auto saved_pos = DK_GET_CURPOS();
+
+                        DK_SEEK_TO(timeStartMajor, timeStartMinor);
+                        min_pos_obj = get_pobj_tree(m_debugger, "State.DebuggerVariables.curthread.TTD.Position");
+
+                        DK_SEEK_TO(timeEndMajor, timeEndMinor);
+                        max_pos_obj = get_pobj_tree(m_debugger, "State.DebuggerVariables.curthread.TTD.Position");
+
+                        DK_SEEK_TO(std::get<0>(saved_pos), std::get<1>(saved_pos));
                     }
                     else
                     {
