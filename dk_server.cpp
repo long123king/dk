@@ -5537,10 +5537,14 @@ std::string CDkEmbeddedServer::HandleTtdMemAccessRoute(const std::string& query)
                     if (ts_pct >= 0.0) {
                         auto pos = pctToPos(ts_pct);
                         ts_major = pos.first; ts_minor = pos.second;
+                    } else {
+                        ts_major = std::get<0>(min_pos); ts_minor = std::get<1>(min_pos);
                     }
                     if (te_pct >= 0.0) {
                         auto pos = pctToPos(te_pct);
                         te_major = pos.first; te_minor = pos.second;
+                    } else {
+                        te_major = std::get<0>(max_pos); te_minor = std::get<1>(max_pos);
                     }
                     has_time_range = true;
 

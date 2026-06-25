@@ -1407,12 +1407,35 @@ std::vector<ttd_mem_access> CModelAccess::get_mem_access(uint64_t start_addr, ui
                 if (mem_access_result != nullptr)
                 {
                     auto results = DK_MODEL_ACCESS->iterate(mem_access_result);
+
+                    // Track previous event's end position — TTD memory access
+                    // result objects only have "TimeEnd" (no "TimeStart" key).
+                    // Each event's start position is the previous event's end position.
+                    std::tuple<uint64_t, uint64_t> prev_end{ 0, 0 };
+                    bool first = true;
+
                     for (auto& result : results)
                     {
                         ttd_mem_access mem_access;
 
-                        mem_access.start_pos = get_pos(get<1>(result), "TimeStart");
+                        // Only "TimeEnd" exists on the result object.
+                        // "TimeStart" is NOT a key on TTD memory access events.
                         mem_access.end_pos = get_pos(get<1>(result), "TimeEnd");
+
+                        if (first)
+                        {
+                            // First event: start position = the trace's min position.
+                            // Use the end_pos of the first event as its own start
+                            // (the access happened at this position).
+                            mem_access.start_pos = mem_access.end_pos;
+                            first = false;
+                        }
+                        else
+                        {
+                            // Subsequent events: start = previous event's end
+                            mem_access.start_pos = prev_end;
+                        }
+                        prev_end = mem_access.end_pos;
 
                         // Post-filter only for legacy TTD.Memory path (no native time range)
                         if (!native_time_range && has_time_range)
