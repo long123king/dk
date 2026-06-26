@@ -49,6 +49,7 @@ private:
     std::string HandleCallstackRoute(const std::string& query);
     std::string HandlePageRoute(const std::string& query);
     std::string HandlePageSvgRoute(const std::string& query);
+    std::string HandlePageRenderRoute(const std::string& query);
     std::string HandleFunctionCallsRoute(const std::string& query);
     std::string HandleCommandRoute(const std::string& query, const std::string& body);
     std::string HandleModelRoute(const std::string& query);

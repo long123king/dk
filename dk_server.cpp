@@ -831,6 +831,9 @@ std::string CDkEmbeddedServer::BuildHttpResponse(const std::string& method, cons
     if (path == "/api/page/svg")
         return HandlePageSvgRoute(query);
 
+    if (path == "/api/page/render")
+        return BuildJsonResponseOk(HandlePageRenderRoute(query));
+
     if (path == "/api/function-calls")
         return BuildJsonResponseOk(HandleFunctionCallsRoute(query));
 
@@ -864,7 +867,7 @@ std::string CDkEmbeddedServer::BuildHttpResponse(const std::string& method, cons
             {"schemaVersion", "1.0"},
             {"name", "dk embedded server"},
             {"phase", 2},
-            {"routes", json::array({"/api/server/status", "/api/server/stop", "/api/ttd/trace-info", "/api/ttd/modules", "/api/ttd/threads", "/api/ttd/events/lifetime", "/api/registers", "/api/callstack", "/api/page", "/api/page/svg", "/api/function-calls", "/api/command/execute", "/api/model", "/api/pe", "/api/strings", "/api/memory/layout", "/api/environment", "/api/capabilities", "/api/ttd/mem-access"})}
+            {"routes", json::array({"/api/server/status", "/api/server/stop", "/api/ttd/trace-info", "/api/ttd/modules", "/api/ttd/threads", "/api/ttd/events/lifetime", "/api/registers", "/api/callstack", "/api/page", "/api/page/svg", "/api/page/render", "/api/function-calls", "/api/command/execute", "/api/model", "/api/pe", "/api/strings", "/api/memory/layout", "/api/environment", "/api/capabilities", "/api/ttd/mem-access"})}
         };
         return BuildJsonResponseOk(root.dump());
     }
@@ -2699,6 +2702,348 @@ std::string CDkEmbeddedServer::HandlePageSvgRoute(const std::string& query)
        << svg;
 
     return ss.str();
+}
+
+std::string CDkEmbeddedServer::HandlePageRenderRoute(const std::string& query)
+{
+    uint64_t request_id = ++m_request_counter;
+    bool is_ttd = DK_MODEL_ACCESS->isTTD();
+
+    json root = {
+        {"schemaVersion", "2.0"},
+        {"requestId", std::to_string(request_id)},
+        {"available",  false},
+        {"pageAddr",   ""},
+        {"rsp",        ""},
+        {"bytes",      ""},
+        {"layout",     json::object()},
+        {"colorScheme", json::object()},
+        {"annotations", {
+            {"ptr2sym",    json::array()},
+            {"ptr2local",  json::array()},
+            {"ptr2heap",   json::array()},
+            {"ptr2astr",   json::array()},
+            {"ptr2ustr",   json::array()}
+        }}
+    };
+
+    auto proc = DK_MODEL_ACCESS->get_current_process();
+    if (proc == nullptr)
+        return root.dump();
+
+    auto query_params = ParseQueryParams(query);
+
+    uint64_t requested_thread_id = 0;
+    bool has_requested_thread = false;
+    auto it_thread = query_params.find("thread_id");
+    if (it_thread == query_params.end())
+        it_thread = query_params.find("threadId");
+    if (it_thread != query_params.end())
+        has_requested_thread = TryParseU64(it_thread->second, requested_thread_id);
+
+    uint64_t requested_address = 0;
+    bool has_requested_address = false;
+    bool address_param_supplied = false;
+    {
+        auto it_address = query_params.find("address");
+        if (it_address == query_params.end()) it_address = query_params.find("addr");
+        if (it_address == query_params.end()) it_address = query_params.find("va");
+        if (it_address == query_params.end()) it_address = query_params.find("page_base");
+        if (it_address == query_params.end()) it_address = query_params.find("page");
+
+        if (it_address != query_params.end())
+        {
+            address_param_supplied = true;
+            has_requested_address = TryParseU64(TrimAsciiWhitespace(it_address->second), requested_address);
+        }
+    }
+
+    bool should_restore_pos = false;
+    std::tuple<uint64_t, uint64_t> original_pos{ 0, 0 };
+    (void)SeekToQueryPosition(is_ttd, proc, query_params, original_pos, should_restore_pos);
+
+    // Select thread
+    DK_MOBJ_PTR selected_thread;
+    auto threads_obj = DK_MGET_POBJ(proc, "Threads");
+    if (threads_obj != nullptr)
+    {
+        auto threads = DK_MODEL_ACCESS->iterate(threads_obj);
+        for (auto& thread_entry : threads)
+        {
+            auto thread_obj = std::get<1>(thread_entry);
+            uint64_t tid = 0;
+            try { tid = DK_MGET_PVAL<uint64_t, VT_UI8>(thread_obj, "Id"); }
+            catch (...) { continue; }
+
+            if (!has_requested_thread || tid == requested_thread_id)
+            {
+                selected_thread = thread_obj;
+                has_requested_thread = true;
+                break;
+            }
+        }
+    }
+    if (selected_thread == nullptr)
+        selected_thread = DK_MODEL_ACCESS->get_current_thread();
+
+    auto FormatHexU64 = [](uint64_t v) -> std::string
+    {
+        std::stringstream ss;
+        ss << "0x" << std::hex << std::setw(16) << std::setfill('0') << v;
+        return ss.str();
+    };
+
+    auto TryReadObjU64 = [](DK_MOBJ_PTR& obj, uint64_t& out) -> bool
+    {
+        try { out = DK_MGET_VAL<uint64_t, VT_UI8>(obj); return true; } catch (...) {}
+        try { out = DK_MGET_VAL<DWORD, VT_UI4>(obj); return true; } catch (...) {}
+        try { out = static_cast<uint64_t>(DK_MGET_VAL<int64_t, VT_I8>(obj)); return true; } catch (...) {}
+        return false;
+    };
+
+    // Extract RSP from thread registers
+    uint64_t rsp_value = 0;
+    bool has_rsp = false;
+    if (selected_thread != nullptr)
+    {
+        auto regs_obj = DK_MGET_POBJ(selected_thread, "Registers");
+        std::vector<DK_MOBJ_PTR> reg_roots;
+        if (regs_obj != nullptr)
+        {
+            reg_roots.push_back(regs_obj);
+            auto user_obj = DK_MGET_POBJ(regs_obj, "User");
+            if (user_obj != nullptr) reg_roots.push_back(user_obj);
+        }
+
+        for (auto& reg_root : reg_roots)
+        {
+            for (const auto& name : std::vector<std::string>{"rsp", "Rsp", "RSP"})
+            {
+                try
+                {
+                    auto reg_obj = DK_MGET_POBJ(reg_root, name);
+                    if (reg_obj != nullptr && TryReadObjU64(reg_obj, rsp_value))
+                    {
+                        has_rsp = (rsp_value != 0);
+                        break;
+                    }
+                }
+                catch (...) {}
+            }
+            if (has_rsp) break;
+        }
+
+        // Fallback: StackOffset from top frame attributes
+        if (!has_rsp)
+        {
+            try
+            {
+                auto stack_obj = DK_MGET_POBJ(selected_thread, "Stack");
+                if (stack_obj != nullptr)
+                {
+                    auto frames_obj = DK_MGET_POBJ(stack_obj, "Frames");
+                    if (frames_obj != nullptr)
+                    {
+                        auto frames = DK_MODEL_ACCESS->iterate(frames_obj);
+                        if (!frames.empty())
+                        {
+                            auto frame_attrs = DK_MGET_POBJ(std::get<1>(frames.front()), "Attributes");
+                            if (frame_attrs != nullptr)
+                            {
+                                rsp_value = DK_MGET_PVAL<uint64_t, VT_UI8>(frame_attrs, "StackOffset");
+                                has_rsp = (rsp_value != 0);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (...) {}
+        }
+    }
+
+    if (address_param_supplied && !has_requested_address)
+    {
+        root["error"] = "Invalid address query parameter";
+        if (should_restore_pos)
+        {
+            try { DK_SEEK_TO(std::get<0>(original_pos), std::get<1>(original_pos)); }
+            catch (...) {}
+        }
+        return root.dump();
+    }
+
+    uint64_t effective_address = 0;
+    if (has_requested_address && requested_address != 0)
+    {
+        effective_address = requested_address;
+    }
+    else if (has_rsp && rsp_value != 0)
+    {
+        effective_address = rsp_value;
+    }
+
+    if (effective_address == 0)
+    {
+        if (should_restore_pos)
+        {
+            try { DK_SEEK_TO(std::get<0>(original_pos), std::get<1>(original_pos)); }
+            catch (...) {}
+        }
+        return root.dump();
+    }
+
+    uint64_t page_base = effective_address & 0xFFFFFFFFFFFFF000ULL;
+
+    // Read 4096 bytes of the page
+    std::string page(0x1000, '\0');
+    {
+        ULONG bytes_read = 0;
+        HRESULT hr = EXT_D_IDebugDataSpaces->ReadVirtual(page_base, (uint8_t*)page.data(), 0x1000, &bytes_read);
+        if (hr != S_OK || bytes_read != 0x1000)
+        {
+            // Byte-by-byte fallback
+            for (size_t i = 0; i < 0x1000; i++)
+            {
+                try
+                {
+                    ULONG br = 0;
+                    EXT_D_IDebugDataSpaces->ReadVirtual(page_base + i, (uint8_t*)page.data() + i, 1, &br);
+                }
+                catch (...) {}
+            }
+        }
+    }
+
+    // Encode bytes as lowercase hex string
+    {
+        std::stringstream hex_ss;
+        hex_ss << std::hex << std::setfill('0');
+        for (unsigned char b : page)
+            hex_ss << std::setw(2) << static_cast<unsigned int>(b);
+        root["bytes"] = hex_ss.str();
+    }
+
+    root["pageAddr"]  = FormatHexU64(page_base);
+    root["rsp"]       = FormatHexU64(has_rsp ? rsp_value : effective_address);
+    root["available"] = true;
+
+    // --- layout parameters (mirrors CoordinatesManager constants) ---
+    root["layout"] = {
+        {"gridWidth",    40},
+        {"gridHeight",   30},
+        {"addrWidth",   180},
+        {"rows",        512},
+        {"columns",       8},
+        {"originX",     100},
+        {"originY",     100}
+    };
+
+    // --- color scheme (mirrors Byte2FontStyle + visual_page styling) ---
+    root["colorScheme"] = {
+        {"dark", {
+            {"zero",      "#2f7ea0"},
+            {"alpha",     "#7a6f2a"},
+            {"numeric",   "#2a7a42"},
+            {"lowAscii",  "#3d48a0"},
+            {"highAscii", "#7f3f7f"},
+            {"other",     "#8a3f3f"},
+            {"bg",        "#161b22"},
+            {"gridStroke","#465161"},
+            {"addrText",  "#dbe3eb"},
+            {"hexText",   "#f0f6fc"},
+            {"bitOn",     "#a2adba"},
+            {"bitOff",    "#495666"},
+            {"asciiText", "#b5bfca"},
+            {"arrowColor","#ff938a"},
+            {"arrowOpacity", 0.72},
+            {"localColor","#8ff79a"},
+            {"heapColor", "#79c0ff"},
+            {"stringColor","#ffb4ad"},
+            {"textColor", "#f0f6fc"},
+            {"rectStroke","#ff938a"},
+            {"rectFill",  "#ff938a"},
+            {"rectFillOpacity", 0.3}
+        }},
+        {"light", {
+            {"zero",      "#a0f0f0"},
+            {"alpha",     "#f0f0a0"},
+            {"numeric",   "#a0ffa0"},
+            {"lowAscii",  "#a0a0f0"},
+            {"highAscii", "#f0a0f0"},
+            {"other",     "#f0a0a0"},
+            {"bg",        "#f6f8fa"},
+            {"gridStroke","black"},
+            {"addrText",  "black"},
+            {"hexText",   "black"},
+            {"bitOn",     "#e0e0e0"},
+            {"bitOff",   "#606060"},
+            {"asciiText", "black"},
+            {"arrowColor","red"},
+            {"arrowOpacity", 0.4},
+            {"localColor","green"},
+            {"heapColor", "blue"},
+            {"stringColor","red"},
+            {"textColor", "black"},
+            {"rectStroke","red"},
+            {"rectFill",  "red"},
+            {"rectFillOpacity", 0.2}
+        }}
+    };
+
+    // Analyze the page with CMemoryAnalyzer
+    try
+    {
+        CMemoryAnalyzer manalyzer(page, page_base, 0x1000, page_base, page_base + 0x1000);
+        manalyzer.analyze();
+
+        for (auto& kv : manalyzer.get_ptr2sym())
+        {
+            root["annotations"]["ptr2sym"].push_back({
+                {"offset",     static_cast<uint64_t>(kv.first)},
+                {"symbol",     std::get<0>(kv.second)},
+                {"targetAddr", FormatHexU64(std::get<1>(kv.second))}
+            });
+        }
+
+        for (auto& kv : manalyzer.get_ptr2local())
+        {
+            root["annotations"]["ptr2local"].push_back({
+                {"fromOffset", static_cast<uint64_t>(kv.first)},
+                {"toOffset",   static_cast<uint64_t>(kv.second)}
+            });
+        }
+
+        for (auto& kv : manalyzer.get_ptr2heap())
+        {
+            root["annotations"]["ptr2heap"].push_back({
+                {"offset",     static_cast<uint64_t>(kv.first)},
+                {"targetAddr", FormatHexU64(std::get<0>(kv.second))},
+                {"heapBase",   FormatHexU64(std::get<1>(kv.second))},
+                {"heapSize",   static_cast<uint64_t>(std::get<2>(kv.second))}
+            });
+        }
+
+        for (auto& kv : manalyzer.get_ptr2astr())
+        {
+            uint64_t off = (kv.first >= page_base) ? static_cast<uint64_t>(kv.first - page_base) : 0;
+            root["annotations"]["ptr2astr"].push_back({{"offset", off}, {"text", kv.second}});
+        }
+
+        for (auto& kv : manalyzer.get_ptr2ustr())
+        {
+            uint64_t off = (kv.first >= page_base) ? static_cast<uint64_t>(kv.first - page_base) : 0;
+            root["annotations"]["ptr2ustr"].push_back({{"offset", off}, {"text", kv.second}});
+        }
+    }
+    catch (...) {}
+
+    if (should_restore_pos)
+    {
+        try { DK_SEEK_TO(std::get<0>(original_pos), std::get<1>(original_pos)); }
+        catch (...) {}
+    }
+
+    return root.dump();
 }
 
 std::string CDkEmbeddedServer::HandleCommandRoute(const std::string& query, const std::string& body)
