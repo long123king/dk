@@ -190,6 +190,52 @@ void CMemoryAnalyzer::analyze()
 
     carve_strings();
     carve_ustrings();
+    detect_calls();
+}
+
+void CMemoryAnalyzer::detect_calls()
+{
+    if (m_data.size() < 5) return;
+
+    const uint8_t* bytes = (const uint8_t*)m_data.data();
+    const size_t PAGE_SIZE = 0x1000;
+
+    for (size_t i = 0; i < PAGE_SIZE && i < m_data.size(); i++)
+    {
+        int instrLen = 0;
+        int32_t rel32 = 0;
+        std::string kind;
+
+        if ((bytes[i] == 0xE8 || bytes[i] == 0xE9) && i + 4 < PAGE_SIZE)
+        {
+            uint32_t u = bytes[i + 1] | (bytes[i + 2] << 8) | (bytes[i + 3] << 16) | (bytes[i + 4] << 24);
+            rel32 = (int32_t)u;
+            instrLen = 5;
+            kind = (bytes[i] == 0xE8) ? "call" : "jmp";
+        }
+        else if (bytes[i] == 0xEB && i + 1 < PAGE_SIZE)
+        {
+            rel32 = (int8_t)bytes[i + 1];
+            instrLen = 2;
+            kind = "jmp8";
+        }
+
+        if (instrLen == 0) continue;
+
+        size_t target = m_addr + i + instrLen + rel32;
+        bool inPage = (target >= m_addr && target < m_addr + PAGE_SIZE);
+
+        std::string sym = get_symbol(target);
+        if (!inPage && sym.empty())
+            continue; // only show meaningful targets
+
+        m_ptr2calls[i] = std::make_tuple(kind, target, sym, instrLen);
+    }
+}
+
+std::map<size_t, std::tuple<std::string, size_t, std::string, int>> CMemoryAnalyzer::get_ptr2call()
+{
+    return m_ptr2calls;
 }
 
 std::map<size_t, size_t> CMemoryAnalyzer::get_ptr2local()

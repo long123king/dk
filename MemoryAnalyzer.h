@@ -50,6 +50,8 @@ public:
 
     void carve_ustrings();
 
+    void detect_calls();
+
     void analyze();
 
     std::map<size_t, size_t> get_ptr2local();
@@ -59,6 +61,9 @@ public:
 
     std::map<size_t, std::string> get_ptr2astr();
     std::map<size_t, std::string> get_ptr2ustr();
+
+    // call/jump: offset -> { kind, targetAddr, symbol, instrLen }
+    std::map<size_t, std::tuple<std::string, size_t, std::string, int>> get_ptr2call();
 
 
 private:
@@ -74,6 +79,9 @@ private:
     std::map<size_t, std::string> m_ptr2ustrs;
     std::map<size_t, std::tuple<std::string, size_t>> m_ptr2syms;
     std::map<size_t, std::tuple<size_t, size_t, size_t>> m_ptr2heaps;
+
+    // offset -> { kind, targetAddr, symbol, instrLen }
+    std::map<size_t, std::tuple<std::string, size_t, std::string, int>> m_ptr2calls;
 
     std::vector<ttd_heap_memory> m_heap;
 };

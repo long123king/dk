@@ -2260,7 +2260,8 @@ std::string CDkEmbeddedServer::HandlePageRoute(const std::string& query)
         {"ptr2local",  json::array()},
         {"ptr2heap",   json::array()},
         {"ptr2astr",   json::array()},
-        {"ptr2ustr",   json::array()}
+        {"ptr2ustr",   json::array()},
+        {"ptr2call",   json::array()}
     };
 
     auto proc = DK_MODEL_ACCESS->get_current_process();
@@ -2507,6 +2508,20 @@ std::string CDkEmbeddedServer::HandlePageRoute(const std::string& query)
             uint64_t off = (kv.first >= page_base) ? static_cast<uint64_t>(kv.first - page_base) : 0;
             root["ptr2ustr"].push_back({{"offset", off}, {"text", kv.second}});
         }
+
+        for (auto& kv : manalyzer.get_ptr2call())
+        {
+            size_t target = std::get<1>(kv.second);
+            bool inPage = (target >= page_base && target < page_base + 0x1000);
+            root["ptr2call"].push_back({
+                {"offset",     static_cast<uint64_t>(kv.first)},
+                {"kind",       std::get<0>(kv.second)},
+                {"targetAddr", FormatHexU64(target)},
+                {"symbol",     std::get<2>(kv.second)},
+                {"instrLen",   std::get<3>(kv.second)},
+                {"inPage",     inPage}
+            });
+        }
     }
     catch (...) {}
 
@@ -2723,7 +2738,8 @@ std::string CDkEmbeddedServer::HandlePageRenderRoute(const std::string& query)
             {"ptr2local",  json::array()},
             {"ptr2heap",   json::array()},
             {"ptr2astr",   json::array()},
-            {"ptr2ustr",   json::array()}
+            {"ptr2ustr",   json::array()},
+            {"ptr2call",   json::array()}
         }}
     };
 
@@ -3033,6 +3049,20 @@ std::string CDkEmbeddedServer::HandlePageRenderRoute(const std::string& query)
         {
             uint64_t off = (kv.first >= page_base) ? static_cast<uint64_t>(kv.first - page_base) : 0;
             root["annotations"]["ptr2ustr"].push_back({{"offset", off}, {"text", kv.second}});
+        }
+
+        for (auto& kv : manalyzer.get_ptr2call())
+        {
+            size_t target = std::get<1>(kv.second);
+            bool inPage = (target >= page_base && target < page_base + 0x1000);
+            root["annotations"]["ptr2call"].push_back({
+                {"offset",     static_cast<uint64_t>(kv.first)},
+                {"kind",       std::get<0>(kv.second)},
+                {"targetAddr", FormatHexU64(target)},
+                {"symbol",     std::get<2>(kv.second)},
+                {"instrLen",   std::get<3>(kv.second)},
+                {"inPage",     inPage}
+            });
         }
     }
     catch (...) {}
