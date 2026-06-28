@@ -3006,135 +3006,13 @@ std::string CDkEmbeddedServer::HandlePageRenderRoute(const std::string& query)
         }}
     };
  
-    // Probe whether the page is executable by checking loaded module section permissions
-    bool pageIsExecutable = false;
+    // Analyze the page with CMemoryAnalyzer (always run for byte-level annotations)
     try
     {
-        auto proc = DK_MODEL_ACCESS->get_current_process();
-        if (proc != nullptr)
-        {
-            auto pobj_modules = DK_MGET_POBJ(proc, "Modules");
-            if (pobj_modules != nullptr)
-            {
-                auto modules = DK_MODEL_ACCESS->iterate(pobj_modules);
-                for (auto& mod : modules)
-                {
-                    auto modObj = std::get<1>(mod);
-                    uint64_t modBase = 0, modSize = 0;
-                    try {
-                        modBase = DK_MGET_PVAL<uint64_t, VT_UI8>(modObj, "BaseAddress");
-                        modSize = DK_MGET_PVAL<uint64_t, VT_UI8>(modObj, "Size");
-                    } catch (...) { continue; }
+        CMemoryAnalyzer manalyzer(page, page_base, 0x1000, page_base, page_base + 0x1000);
+        manalyzer.analyze();
 
-                    if (modBase == 0 || modSize == 0) continue;
-                    if (page_base < modBase || page_base >= modBase + modSize) continue;
-
-                    // Address is within this module — read PE sections
-                    IMAGE_DOS_HEADER dos = {};
-                    if (!ReadVirtualExact(modBase, &dos, sizeof(dos)) || dos.e_magic != IMAGE_DOS_SIGNATURE)
-                        break;
-
-                    uint64_t ntAddr = modBase + static_cast<uint32_t>(dos.e_lfanew);
-                    DWORD ntSig = 0;
-                    if (!ReadVirtualExact(ntAddr, &ntSig, sizeof(ntSig)) || ntSig != IMAGE_NT_SIGNATURE)
-                        break;
-
-                    IMAGE_FILE_HEADER fh = {};
-                    if (!ReadVirtualExact(ntAddr + sizeof(DWORD), &fh, sizeof(fh)))
-                        break;
-
-                    WORD optMagic = 0;
-                    if (!ReadVirtualExact(ntAddr + sizeof(DWORD) + sizeof(IMAGE_FILE_HEADER),
-                            &optMagic, sizeof(optMagic)))
-                        break;
-
-                    bool is64 = (optMagic == IMAGE_NT_OPTIONAL_HDR64_MAGIC);
-                    uint64_t sectAddr = ntAddr + sizeof(DWORD) + sizeof(IMAGE_FILE_HEADER) +
-                        (is64 ? sizeof(IMAGE_OPTIONAL_HEADER64) : sizeof(IMAGE_OPTIONAL_HEADER32));
-
-                    for (uint32_t i = 0; i < fh.NumberOfSections; ++i)
-                    {
-                        IMAGE_SECTION_HEADER sh = {};
-                        if (!ReadVirtualExact(sectAddr + i * sizeof(sh), &sh, sizeof(sh)))
-                            break;
-
-                        if (!(sh.Characteristics & IMAGE_SCN_MEM_EXECUTE)) continue;
-
-                        uint64_t sectStart = modBase + sh.VirtualAddress;
-                        uint64_t sectEnd = sectStart + sh.Misc.VirtualSize;
-                        if (page_base >= sectStart && page_base < sectEnd)
-                        {
-                            pageIsExecutable = true;
-                            break;
-                        }
-                    }
-                    break;
-                }
-            }
-        }
-    }
-    catch (...) {}
-
-    if (pageIsExecutable)
-    {
-        // Code page — use structured disassembly instead of byte-level analysis
-        try
-        {
-            json disasmArr = json::array();
-            uint64_t offset = 0;
-            const uint64_t PAGE_END = 0x1000;
-            char buf[512];
-            ULONG disasmSize = 0;
-            ULONG64 endOffset = 0;
-
-            while (offset < PAGE_END)
-            {
-                uint64_t addr = page_base + offset;
-                HRESULT hr = EXT_D_IDebugControl->Disassemble(
-                    addr, 0, buf, sizeof(buf), &disasmSize, &endOffset);
-
-                if (FAILED(hr) || disasmSize == 0 || endOffset <= addr)
-                    break;
-
-                ULONG instrLen = (ULONG)(endOffset - addr);
-                if (instrLen > 15) instrLen = 15;
-                uint8_t instrBytes[16] = {};
-                ULONG bytesRead = 0;
-                EXT_D_IDebugDataSpaces->ReadVirtual(addr, instrBytes, instrLen, &bytesRead);
-
-                std::string bytesStr;
-                for (ULONG i = 0; i < bytesRead; i++)
-                {
-                    char hb[4];
-                    snprintf(hb, sizeof(hb), "%02x", instrBytes[i]);
-                    if (i > 0) bytesStr += ' ';
-                    bytesStr += hb;
-                }
-
-                std::string instrText(buf, disasmSize - 1);
-
-                disasmArr.push_back({
-                    {"offset", offset},
-                    {"bytes",  bytesStr},
-                    {"text",   instrText}
-                });
-
-                offset = endOffset - page_base;
-            }
-
-            root["disasm"] = disasmArr;
-        }
-        catch (...) {}
-    }
-    else
-    {
-        // Data page — run byte-level memory analysis (ptr2sym, ptr2call, strings, etc.)
-        try
-        {
-            CMemoryAnalyzer manalyzer(page, page_base, 0x1000, page_base, page_base + 0x1000);
-            manalyzer.analyze();
-
-            for (auto& kv : manalyzer.get_ptr2sym())
+        for (auto& kv : manalyzer.get_ptr2sym())
         {
             root["annotations"]["ptr2sym"].push_back({
                 {"offset",     static_cast<uint64_t>(kv.first)},
@@ -3188,7 +3066,56 @@ std::string CDkEmbeddedServer::HandlePageRenderRoute(const std::string& query)
         }
     }
     catch (...) {}
-    } // else (data page)
+
+    // Attempt disassembly — succeeds on code pages, silently fails on data pages
+    try
+    {
+        json disasmArr = json::array();
+        uint64_t offset = 0;
+        const uint64_t PAGE_END = 0x1000;
+        char buf[512];
+        ULONG disasmSize = 0;
+        ULONG64 endOffset = 0;
+
+        while (offset < PAGE_END)
+        {
+            uint64_t addr = page_base + offset;
+            HRESULT hr = EXT_D_IDebugControl->Disassemble(
+                addr, 0, buf, sizeof(buf), &disasmSize, &endOffset);
+
+            if (FAILED(hr) || disasmSize == 0 || endOffset <= addr)
+                break;
+
+            ULONG instrLen = (ULONG)(endOffset - addr);
+            if (instrLen > 15) instrLen = 15;
+            uint8_t instrBytes[16] = {};
+            ULONG bytesRead = 0;
+            EXT_D_IDebugDataSpaces->ReadVirtual(addr, instrBytes, instrLen, &bytesRead);
+
+            std::string bytesStr;
+            for (ULONG i = 0; i < bytesRead; i++)
+            {
+                char hb[4];
+                snprintf(hb, sizeof(hb), "%02x", instrBytes[i]);
+                if (i > 0) bytesStr += ' ';
+                bytesStr += hb;
+            }
+
+            std::string instrText(buf, disasmSize - 1);
+
+            disasmArr.push_back({
+                {"offset", offset},
+                {"bytes",  bytesStr},
+                {"text",   instrText}
+            });
+
+            offset = endOffset - page_base;
+        }
+
+        if (!disasmArr.empty())
+            root["disasm"] = disasmArr;
+    }
+    catch (...) {}
 
     if (should_restore_pos)
     {
