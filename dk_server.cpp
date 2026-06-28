@@ -3006,18 +3006,36 @@ std::string CDkEmbeddedServer::HandlePageRenderRoute(const std::string& query)
         }}
     };
  
-    // Probe whether the page is executable via memory protection flags
+    // Probe whether the page is executable — ln must resolve to a symbol within this page
     bool pageIsExecutable = false;
-    if (EXT_D_IDebugDataSpaces2.IsSet())
+    try
     {
-        MEMORY_BASIC_INFORMATION64 mbi = {};
-        if (SUCCEEDED(EXT_D_IDebugDataSpaces2->QueryVirtual(page_base, &mbi)))
+        auto result = DK_MODEL_ACCESS->execute_cmd("ln " + FormatHexU64(page_base));
+        for (const auto& line : result)
         {
-            ULONG prot = mbi.Protect;
-            pageIsExecutable = (prot == PAGE_EXECUTE || prot == PAGE_EXECUTE_READ ||
-                                prot == PAGE_EXECUTE_READWRITE || prot == PAGE_EXECUTE_WRITECOPY);
+            if (line.find('!') == std::string::npos) continue;
+
+            // Parse the address from "(00007ffc`73722000)   module!symbol"
+            size_t parenStart = line.find('(');
+            if (parenStart == std::string::npos) continue;
+            size_t parenEnd = line.find(')', parenStart);
+            if (parenEnd == std::string::npos) continue;
+
+            std::string addrStr = line.substr(parenStart + 1, parenEnd - parenStart - 1);
+            addrStr.erase(std::remove(addrStr.begin(), addrStr.end(), '`'), addrStr.end());
+
+            uint64_t symAddr = 0;
+            try { symAddr = std::stoull(addrStr, nullptr, 16); }
+            catch (...) { continue; }
+
+            if (symAddr >= page_base && symAddr < page_base + 0x1000)
+            {
+                pageIsExecutable = true;
+                break;
+            }
         }
     }
+    catch (...) {}
 
     if (pageIsExecutable)
     {
