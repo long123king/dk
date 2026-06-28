@@ -3005,14 +3005,80 @@ std::string CDkEmbeddedServer::HandlePageRenderRoute(const std::string& query)
             {"rectFillOpacity", 0.2}
         }}
     };
-
-    // Analyze the page with CMemoryAnalyzer
-    try
+ 
+    // Probe whether the page is executable via memory protection flags
+    bool pageIsExecutable = false;
+    if (EXT_D_IDebugDataSpaces2.IsSet())
     {
-        CMemoryAnalyzer manalyzer(page, page_base, 0x1000, page_base, page_base + 0x1000);
-        manalyzer.analyze();
+        MEMORY_BASIC_INFORMATION64 mbi = {};
+        if (SUCCEEDED(EXT_D_IDebugDataSpaces2->QueryVirtual(page_base, &mbi)))
+        {
+            ULONG prot = mbi.Protect;
+            pageIsExecutable = (prot == PAGE_EXECUTE || prot == PAGE_EXECUTE_READ ||
+                                prot == PAGE_EXECUTE_READWRITE || prot == PAGE_EXECUTE_WRITECOPY);
+        }
+    }
 
-        for (auto& kv : manalyzer.get_ptr2sym())
+    if (pageIsExecutable)
+    {
+        // Code page — use structured disassembly instead of byte-level analysis
+        try
+        {
+            json disasmArr = json::array();
+            uint64_t offset = 0;
+            const uint64_t PAGE_END = 0x1000;
+            char buf[512];
+            ULONG disasmSize = 0;
+            ULONG64 endOffset = 0;
+
+            while (offset < PAGE_END)
+            {
+                uint64_t addr = page_base + offset;
+                HRESULT hr = EXT_D_IDebugControl->Disassemble(
+                    addr, 0, buf, sizeof(buf), &disasmSize, &endOffset);
+
+                if (FAILED(hr) || disasmSize == 0 || endOffset <= addr)
+                    break;
+
+                ULONG instrLen = (ULONG)(endOffset - addr);
+                if (instrLen > 15) instrLen = 15;
+                uint8_t instrBytes[16] = {};
+                ULONG bytesRead = 0;
+                EXT_D_IDebugDataSpaces->ReadVirtual(addr, instrBytes, instrLen, &bytesRead);
+
+                std::string bytesStr;
+                for (ULONG i = 0; i < bytesRead; i++)
+                {
+                    char hb[4];
+                    snprintf(hb, sizeof(hb), "%02x", instrBytes[i]);
+                    if (i > 0) bytesStr += ' ';
+                    bytesStr += hb;
+                }
+
+                std::string instrText(buf, disasmSize - 1);
+
+                disasmArr.push_back({
+                    {"offset", offset},
+                    {"bytes",  bytesStr},
+                    {"text",   instrText}
+                });
+
+                offset = endOffset - page_base;
+            }
+
+            root["disasm"] = disasmArr;
+        }
+        catch (...) {}
+    }
+    else
+    {
+        // Data page — run byte-level memory analysis (ptr2sym, ptr2call, strings, etc.)
+        try
+        {
+            CMemoryAnalyzer manalyzer(page, page_base, 0x1000, page_base, page_base + 0x1000);
+            manalyzer.analyze();
+
+            for (auto& kv : manalyzer.get_ptr2sym())
         {
             root["annotations"]["ptr2sym"].push_back({
                 {"offset",     static_cast<uint64_t>(kv.first)},
@@ -3066,66 +3132,7 @@ std::string CDkEmbeddedServer::HandlePageRenderRoute(const std::string& query)
         }
     }
     catch (...) {}
-
-    // Run disassembly on the page using IDebugControl::Disassemble
-    // Attempt a single instruction first — fails on non-executable pages
-    {
-        char probe[64];
-        ULONG probeSize = 0;
-        ULONG64 probeEnd = 0;
-        if (SUCCEEDED(EXT_D_IDebugControl->Disassemble(
-                page_base, 0, probe, sizeof(probe), &probeSize, &probeEnd)) &&
-            probeSize > 0 && probeEnd > page_base)
-        {
-            try
-            {
-                json disasmArr = json::array();
-                uint64_t offset = 0;
-                const uint64_t PAGE_END = 0x1000;
-                char buf[512];
-                ULONG disasmSize = 0;
-                ULONG64 endOffset = 0;
-
-                while (offset < PAGE_END)
-                {
-                    uint64_t addr = page_base + offset;
-                    HRESULT hr = EXT_D_IDebugControl->Disassemble(
-                        addr, 0, buf, sizeof(buf), &disasmSize, &endOffset);
-
-                    if (FAILED(hr) || disasmSize == 0 || endOffset <= addr)
-                        break;
-
-                    ULONG instrLen = (ULONG)(endOffset - addr);
-                    if (instrLen > 15) instrLen = 15;
-                    uint8_t instrBytes[16] = {};
-                    ULONG bytesRead = 0;
-                    EXT_D_IDebugDataSpaces->ReadVirtual(addr, instrBytes, instrLen, &bytesRead);
-
-                    std::string bytesStr;
-                    for (ULONG i = 0; i < bytesRead; i++)
-                    {
-                        char hb[4];
-                        snprintf(hb, sizeof(hb), "%02x", instrBytes[i]);
-                        if (i > 0) bytesStr += ' ';
-                        bytesStr += hb;
-                    }
-
-                    std::string instrText(buf, disasmSize - 1);
-
-                    disasmArr.push_back({
-                        {"offset", offset},
-                        {"bytes",  bytesStr},
-                        {"text",   instrText}
-                    });
-
-                    offset = endOffset - page_base;
-                }
-
-                root["disasm"] = disasmArr;
-            }
-            catch (...) {}
-        }
-    }
+    } // else (data page)
 
     if (should_restore_pos)
     {
