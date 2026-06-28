@@ -3006,32 +3006,70 @@ std::string CDkEmbeddedServer::HandlePageRenderRoute(const std::string& query)
         }}
     };
  
-    // Probe whether the page is executable — ln must resolve to a symbol within this page
+    // Probe whether the page is executable by checking loaded module section permissions
     bool pageIsExecutable = false;
     try
     {
-        auto result = DK_MODEL_ACCESS->execute_cmd("ln " + FormatHexU64(page_base));
-        for (const auto& line : result)
+        auto proc = DK_MODEL_ACCESS->get_current_process();
+        if (proc != nullptr)
         {
-            if (line.find('!') == std::string::npos) continue;
-
-            // Parse the address from "(00007ffc`73722000)   module!symbol"
-            size_t parenStart = line.find('(');
-            if (parenStart == std::string::npos) continue;
-            size_t parenEnd = line.find(')', parenStart);
-            if (parenEnd == std::string::npos) continue;
-
-            std::string addrStr = line.substr(parenStart + 1, parenEnd - parenStart - 1);
-            addrStr.erase(std::remove(addrStr.begin(), addrStr.end(), '`'), addrStr.end());
-
-            uint64_t symAddr = 0;
-            try { symAddr = std::stoull(addrStr, nullptr, 16); }
-            catch (...) { continue; }
-
-            if (symAddr >= page_base && symAddr < page_base + 0x1000)
+            auto pobj_modules = DK_MGET_POBJ(proc, "Modules");
+            if (pobj_modules != nullptr)
             {
-                pageIsExecutable = true;
-                break;
+                auto modules = DK_MODEL_ACCESS->iterate(pobj_modules);
+                for (auto& mod : modules)
+                {
+                    auto modObj = std::get<1>(mod);
+                    uint64_t modBase = 0, modSize = 0;
+                    try {
+                        modBase = DK_MGET_PVAL<uint64_t, VT_UI8>(modObj, "BaseAddress");
+                        modSize = DK_MGET_PVAL<uint64_t, VT_UI8>(modObj, "Size");
+                    } catch (...) { continue; }
+
+                    if (modBase == 0 || modSize == 0) continue;
+                    if (page_base < modBase || page_base >= modBase + modSize) continue;
+
+                    // Address is within this module — read PE sections
+                    IMAGE_DOS_HEADER dos = {};
+                    if (!ReadVirtualExact(modBase, &dos, sizeof(dos)) || dos.e_magic != IMAGE_DOS_SIGNATURE)
+                        break;
+
+                    uint64_t ntAddr = modBase + static_cast<uint32_t>(dos.e_lfanew);
+                    DWORD ntSig = 0;
+                    if (!ReadVirtualExact(ntAddr, &ntSig, sizeof(ntSig)) || ntSig != IMAGE_NT_SIGNATURE)
+                        break;
+
+                    IMAGE_FILE_HEADER fh = {};
+                    if (!ReadVirtualExact(ntAddr + sizeof(DWORD), &fh, sizeof(fh)))
+                        break;
+
+                    WORD optMagic = 0;
+                    if (!ReadVirtualExact(ntAddr + sizeof(DWORD) + sizeof(IMAGE_FILE_HEADER),
+                            &optMagic, sizeof(optMagic)))
+                        break;
+
+                    bool is64 = (optMagic == IMAGE_NT_OPTIONAL_HDR64_MAGIC);
+                    uint64_t sectAddr = ntAddr + sizeof(DWORD) + sizeof(IMAGE_FILE_HEADER) +
+                        (is64 ? sizeof(IMAGE_OPTIONAL_HEADER64) : sizeof(IMAGE_OPTIONAL_HEADER32));
+
+                    for (uint32_t i = 0; i < fh.NumberOfSections; ++i)
+                    {
+                        IMAGE_SECTION_HEADER sh = {};
+                        if (!ReadVirtualExact(sectAddr + i * sizeof(sh), &sh, sizeof(sh)))
+                            break;
+
+                        if (!(sh.Characteristics & IMAGE_SCN_MEM_EXECUTE)) continue;
+
+                        uint64_t sectStart = modBase + sh.VirtualAddress;
+                        uint64_t sectEnd = sectStart + sh.Misc.VirtualSize;
+                        if (page_base >= sectStart && page_base < sectEnd)
+                        {
+                            pageIsExecutable = true;
+                            break;
+                        }
+                    }
+                    break;
+                }
             }
         }
     }
