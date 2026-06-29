@@ -67,7 +67,7 @@ void CMemoryAnalyzer::carve_strings()
     if (m_len > 0x1000)
         handle_len = 0x1000;
 
-    std::string page(handle_len, '0');
+    std::string page(handle_len, '\0');
 
     size_t bytes_read = 0;
     HRESULT result = EXT_D_IDebugDataSpaces->ReadVirtual(m_addr, (uint8_t*)page.data(), handle_len, (PULONG)&bytes_read);
@@ -107,7 +107,7 @@ void CMemoryAnalyzer::carve_ustrings()
     if (m_len > 0x1000)
         handle_len = 0x1000;
 
-    std::string page(handle_len, '0');
+    std::string page(handle_len, '\0');
 
     size_t bytes_read = 0;
     HRESULT result = EXT_D_IDebugDataSpaces->ReadVirtual(m_addr, (uint8_t*)page.data(), handle_len, (PULONG)&bytes_read);
@@ -119,37 +119,23 @@ void CMemoryAnalyzer::carve_ustrings()
     }
 
     std::string str;
-    for (size_t i = 0; i < handle_len; i += 2)
+    // UTF-16LE strings: low byte is a printable ASCII char, high byte is 0.
+    // Guard page[i+1] access with i+1 < handle_len so an odd-length tail
+    // cannot read past the buffer (the previous "i == handle_len" check
+    // was dead code that never triggered).
+    for (size_t i = 0; i + 1 < handle_len; i += 2)
     {
-        if ((page[i] & 0x80) == 0 && isprint(page[i]))
+        if ((page[i] & 0x80) == 0 && isprint(page[i]) && page[i + 1] == 0)
         {
             str.push_back(page[i]);
             continue;
         }
-        else if ((page[i] == 0 && page[i + 1] == 0) || 
-            i == handle_len)
+
+        if (str.length() >= 5)
         {
-            if (str.length() >= 5)
-            {
-                std::stringstream ss;
-
-                m_ptr2ustrs[m_addr + i - str.length() * 2] = str;
-                str.clear();
-            }
-            str.clear();
+            m_ptr2ustrs[m_addr + i - str.length() * 2] = str;
         }
-        else
-        {
-            if (str.length() >= 5)
-            {
-                std::stringstream ss;
-
-                m_ptr2ustrs[m_addr + i - str.length() * 2] = str;
-                str.clear();
-            }
-            str.clear();
-        }
-
+        str.clear();
     }
     if (str.length() >= 5)
     {

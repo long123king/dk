@@ -832,7 +832,13 @@ std::string CDkEmbeddedServer::BuildHttpResponse(const std::string& method, cons
         return HandlePageSvgRoute(query);
 
     if (path == "/api/page/render")
-        return BuildJsonResponseOk(HandlePageRenderRoute(query));
+        return BuildJsonResponseOk(HandlePageRenderRoute(query, 0));
+
+    if (path == "/api/page/render/code")
+        return BuildJsonResponseOk(HandlePageRenderRoute(query, 1));
+
+    if (path == "/api/page/render/data")
+        return BuildJsonResponseOk(HandlePageRenderRoute(query, 2));
 
     if (path == "/api/function-calls")
         return BuildJsonResponseOk(HandleFunctionCallsRoute(query));
@@ -867,7 +873,7 @@ std::string CDkEmbeddedServer::BuildHttpResponse(const std::string& method, cons
             {"schemaVersion", "1.0"},
             {"name", "dk embedded server"},
             {"phase", 2},
-            {"routes", json::array({"/api/server/status", "/api/server/stop", "/api/ttd/trace-info", "/api/ttd/modules", "/api/ttd/threads", "/api/ttd/events/lifetime", "/api/registers", "/api/callstack", "/api/page", "/api/page/svg", "/api/page/render", "/api/function-calls", "/api/command/execute", "/api/model", "/api/pe", "/api/strings", "/api/memory/layout", "/api/environment", "/api/capabilities", "/api/ttd/mem-access"})}
+            {"routes", json::array({"/api/server/status", "/api/server/stop", "/api/ttd/trace-info", "/api/ttd/modules", "/api/ttd/threads", "/api/ttd/events/lifetime", "/api/registers", "/api/callstack", "/api/page", "/api/page/svg", "/api/page/render", "/api/page/render/code", "/api/page/render/data", "/api/function-calls", "/api/command/execute", "/api/model", "/api/pe", "/api/strings", "/api/memory/layout", "/api/environment", "/api/capabilities", "/api/ttd/mem-access"})}
         };
         return BuildJsonResponseOk(root.dump());
     }
@@ -2719,8 +2725,17 @@ std::string CDkEmbeddedServer::HandlePageSvgRoute(const std::string& query)
     return ss.str();
 }
 
-std::string CDkEmbeddedServer::HandlePageRenderRoute(const std::string& query)
+std::string CDkEmbeddedServer::HandlePageRenderRoute(const std::string& query, int kind)
 {
+    // kind:
+    //   0 = both annotations and disassembly (legacy /api/page/render)
+    //   1 = code page  -> emit disassembly only, no annotations
+    //   2 = data page  -> emit annotations only, no disassembly
+    // The frontend already knows the page type (it inspects PE sections),
+    // so the caller can pick the cheapest endpoint that fits.
+    const bool want_annotations = (kind == 0 || kind == 2);
+    const bool want_disasm      = (kind == 0 || kind == 1);
+
     uint64_t request_id = ++m_request_counter;
     bool is_ttd = DK_MODEL_ACCESS->isTTD();
 
@@ -3006,7 +3021,8 @@ std::string CDkEmbeddedServer::HandlePageRenderRoute(const std::string& query)
         }}
     };
  
-    // Analyze the page with CMemoryAnalyzer (always run for byte-level annotations)
+    // Analyze the page with CMemoryAnalyzer (only for data pages; code pages get disasm instead)
+    if (want_annotations)
     try
     {
         CMemoryAnalyzer manalyzer(page, page_base, 0x1000, page_base, page_base + 0x1000);
@@ -3067,7 +3083,8 @@ std::string CDkEmbeddedServer::HandlePageRenderRoute(const std::string& query)
     }
     catch (...) {}
 
-    // Attempt disassembly — succeeds on code pages, silently fails on data pages
+    // Attempt disassembly — only meaningful for code pages
+    if (want_disasm)
     try
     {
         json disasmArr = json::array();
@@ -3101,7 +3118,16 @@ std::string CDkEmbeddedServer::HandlePageRenderRoute(const std::string& query)
                 bytesStr += hb;
             }
 
-            std::string instrText(buf, disasmSize - 1);
+            // Disassemble() truncates the text to fit the 512-byte buffer but
+            // still returns the original (untruncated) length in disasmSize.
+            // Clamp the copy length to the actual buffer size to avoid a
+            // stack buffer over-read that escapes the surrounding try/catch
+            // and surfaces as "Unhandled server exception" on the first page
+            // of a module's .text section.
+            size_t copy_len = (disasmSize > 0)
+                ? std::min<size_t>(static_cast<size_t>(disasmSize) - 1, sizeof(buf) - 1)
+                : 0;
+            std::string instrText(buf, copy_len);
 
             disasmArr.push_back({
                 {"offset", offset},
